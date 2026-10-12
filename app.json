@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Grantum",
+    "slug": "grantum",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "grantum",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#000000"
+      }
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
