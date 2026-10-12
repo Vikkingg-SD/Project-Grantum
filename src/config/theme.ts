@@ -1,0 +1,36 @@
+export const PALETTE = {
+  dark: {
+    background: '#000000',
+    surface: '#121518',
+    subtle: '#1A1E23',
+    border: '#394047',
+    borderStrong: '#4B5563',
+    textMain: '#EDEFF2',
+    textMuted: '#8A929C',
+    primary: '#FF8A00',
+    primaryForeground: '#140B00',
+    verified: '#00B35D',
+    pending: '#00E5FF',
+    failure: '#A4161A',
+    gold: '#FFD700',
+    tint: '#FF8A00',
+  },
+  light: {
+    background: '#F4F6F8',
+    surface: '#FFFFFF',
+    subtle: '#E9ECEF',
+    border: '#D1D5DB',
+    borderStrong: '#9CA3AF',
+    textMain: '#111827',
+    textMuted: '#6B7280',
+    primary: '#D97000',
+    primaryForeground: '#FFFFFF',
+    verified: '#008744',
+    pending: '#0094A8',
+    failure: '#DC2626',
+    gold: '#D97706',
+    tint: '#D97000',
+  },
+} as const;
+
+export type ThemeColors = typeof PALETTE.dark;
