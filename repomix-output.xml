@@ -134,11 +134,11 @@ app.json
 babel.config.js
 commitlint.config.js
 DESIGN_MANIFESTO.md
+git
 LICENSE
 lint-staged.config.js
 metro.config.js
 package.json
-pnpm
 pnpm-workspace.yaml
 README.md
 tsconfig.json
@@ -146,50 +146,6 @@ tsconfig.json
 
 <files>
 This section contains the contents of the repository's files.
-
-<file path="src/mock/grants.ts">
-import { Grant } from '@/types/grant';
-
-export const mockGrants: Grant[] = [
-  {
-    id: '1',
-    title: 'Climate Resilience Infrastructure',
-    funder: 'Northstar Foundation',
-    deadline: '28 days',
-    amount: '$250k–$500k',
-    matchPct: 94,
-    region: 'Global · Infrastructure',
-    summary:
-      'Deploy flood-resilient infrastructure across 12 municipalities, pairing sensor networks with community response planning to protect climate-exposed districts.',
-  },
-  {
-    id: '2',
-    title: 'Community Health Access',
-    funder: 'Civic Futures Fund',
-    deadline: '41 days',
-    amount: '$75k–$150k',
-    matchPct: 82,
-    region: 'East Europe · Health',
-    summary:
-      'Expand primary-care outreach to underserved communities through mobile clinics and telehealth kiosks, cutting preventable admissions and wait times.',
-  },
-  {
-    id: '3',
-    title: 'Open Data for Public Good',
-    funder: 'The Meridian Trust',
-    deadline: '56 days',
-    amount: '$40k–$100k',
-    matchPct: 76,
-    region: 'CIS · Technology',
-    summary:
-      'Publish civic datasets through an open, machine-readable platform that powers public-interest research, transparency tools, and regional innovation.',
-  },
-];
-</file>
-
-<file path="pnpm">
-
-</file>
 
 <file path=".husky/commit-msg">
 npx --no -- commitlint --edit $1
@@ -289,6 +245,976 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+</file>
+
+<file path="src/components/atoms/AppButton.tsx">
+import React from 'react';
+import { Pressable, StyleSheet, ActivityIndicator, ViewStyle, StyleProp } from 'react-native';
+import { AppText } from './AppText';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
+
+export interface AppButtonProps {
+  label: string;
+  onPress: () => void;
+  variant?: 'primary' | 'surface' | 'outline' | 'ghost' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  isLoading?: boolean;
+  disabled?: boolean;
+  icon?: React.ReactNode;
+  iconPosition?: 'left' | 'right';
+  style?: StyleProp<ViewStyle>;
+}
+
+export function AppButton({
+  label,
+  onPress,
+  variant = 'surface',
+  size = 'md',
+  isLoading = false,
+  disabled = false,
+  icon,
+  iconPosition = 'left',
+  style,
+}: AppButtonProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+
+  const getVariantStyle = (pressed: boolean): ViewStyle => {
+    switch (variant) {
+      case 'primary':
+        return {
+          backgroundColor: theme.primary,
+          borderWidth: 0,
+          opacity: pressed ? 0.85 : 1,
+        };
+      case 'outline':
+        return {
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderColor: theme.border,
+          opacity: pressed ? 0.7 : 1,
+        };
+      case 'ghost':
+        return {
+          backgroundColor: pressed ? theme.subtle : 'transparent',
+          borderWidth: 0,
+        };
+      case 'danger':
+        return {
+          backgroundColor: theme.failure,
+          borderWidth: 0,
+          opacity: pressed ? 0.85 : 1,
+        };
+      case 'surface':
+      default:
+        return {
+          backgroundColor: pressed ? theme.subtle : theme.surface,
+          borderWidth: 1,
+          borderColor: theme.border,
+        };
+    }
+  };
+
+  const getTextColor = () => {
+    if (variant === 'primary') return 'primaryForeground';
+    if (variant === 'danger') return 'main';
+    if (variant === 'ghost') return 'muted';
+    return 'main';
+  };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled || isLoading}
+      style={({ pressed }) => [
+        styles.base,
+        styles[size],
+        getVariantStyle(pressed),
+        (disabled || isLoading) && styles.disabled,
+        style,
+      ]}
+    >
+      {isLoading ? (
+        <ActivityIndicator
+          size="small"
+          color={variant === 'primary' ? theme.primaryForeground : theme.textMain}
+        />
+      ) : (
+        <>
+          {icon && iconPosition === 'left' && icon}
+          <AppText
+            variant={size === 'sm' ? 'caption' : 'body'}
+            style={[
+              styles.text,
+              icon ? (iconPosition === 'left' ? styles.iconRight : styles.iconLeft) : null,
+            ]}
+            color={getTextColor() as any}
+          >
+            {label}
+          </AppText>
+          {icon && iconPosition === 'right' && icon}
+        </>
+      )}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  base: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+  },
+  sm: {
+    height: 36,
+    paddingHorizontal: 12,
+  },
+  md: {
+    height: 44,
+    paddingHorizontal: 16,
+  },
+  lg: {
+    height: 50,
+    paddingHorizontal: 20,
+  },
+  text: {
+    fontWeight: '600',
+  },
+  iconRight: {
+    marginLeft: 8,
+  },
+  iconLeft: {
+    marginRight: 8,
+  },
+  disabled: {
+    opacity: 0.4,
+  },
+});
+</file>
+
+<file path="src/components/atoms/AppText.tsx">
+import React from 'react';
+import { Text, TextProps, StyleSheet } from 'react-native';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
+
+export interface AppTextProps extends TextProps {
+  variant?: 'display' | 'h1' | 'h2' | 'h3' | 'body' | 'caption' | 'metric-lg' | 'metric-sm';
+  color?: 'main' | 'muted' | 'primary' | 'verified' | 'pending' | 'failure' | 'gold';
+  align?: 'auto' | 'left' | 'right' | 'center' | 'justify';
+}
+
+export function AppText({
+  variant = 'body',
+  color = 'main',
+  align = 'auto',
+  style,
+  children,
+  ...props
+}: AppTextProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+
+  const colorStyles = {
+    main: theme.textMain,
+    muted: theme.textMuted,
+    primary: theme.primary,
+    verified: theme.verified,
+    pending: theme.pending,
+    failure: theme.failure,
+    gold: theme.gold,
+  };
+
+  return (
+    <Text
+      style={[styles.base, styles[variant], { color: colorStyles[color], textAlign: align }, style]}
+      {...props}
+    >
+      {children}
+    </Text>
+  );
+}
+
+const styles = StyleSheet.create({
+  base: {
+    fontFamily: 'Inter',
+  },
+  display: {
+    fontSize: 32,
+    lineHeight: 38,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+  },
+  h1: {
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
+  h2: {
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: '600',
+  },
+  h3: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '600',
+  },
+  body: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '400',
+  },
+  caption: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '500',
+  },
+  'metric-lg': {
+    fontFamily: 'JetBrains Mono',
+    fontSize: 28,
+    lineHeight: 32,
+    fontWeight: '700',
+  },
+  'metric-sm': {
+    fontFamily: 'JetBrains Mono',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+});
+</file>
+
+<file path="src/components/atoms/MetricGauge.tsx">
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
+import { AppText } from './AppText';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
+
+export interface MetricGaugeProps {
+  value: number; // 0 - 100
+  label?: string;
+  size?: number;
+}
+
+const GAUGE_RADIUS = 50;
+const GAUGE_CIRCUMFERENCE = 2 * Math.PI * GAUGE_RADIUS;
+
+export function MetricGauge({ value, label = 'confidence', size = 128 }: MetricGaugeProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+
+  const clamped = Math.max(0, Math.min(100, value));
+  const strokeDashoffset = GAUGE_CIRCUMFERENCE * (1 - clamped / 100);
+
+  const getTierColor = () => {
+    if (clamped >= 85) return theme.verified;
+    if (clamped >= 40) return theme.pending;
+    return theme.failure;
+  };
+
+  return (
+    <View style={[styles.container, { width: size, height: size }]}>
+      <Svg width={size} height={size} viewBox="0 0 120 120" style={styles.svg}>
+        <Circle
+          cx="60"
+          cy="60"
+          r={GAUGE_RADIUS}
+          fill="none"
+          stroke={theme.border}
+          strokeWidth="8"
+          strokeOpacity={0.4}
+        />
+        <Circle
+          cx="60"
+          cy="60"
+          r={GAUGE_RADIUS}
+          fill="none"
+          stroke={getTierColor()}
+          strokeWidth="8"
+          strokeDasharray={`${GAUGE_CIRCUMFERENCE} ${GAUGE_CIRCUMFERENCE}`}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+        />
+      </Svg>
+      <View style={styles.textContainer}>
+        <AppText variant="metric-lg" style={{ color: getTierColor() }}>
+          {clamped}
+        </AppText>
+        {label && (
+          <AppText variant="caption" color="muted" align="center">
+            {label}
+          </AppText>
+        )}
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  svg: {
+    transform: [{ rotate: '-90deg' }],
+  },
+  textContainer: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
+</file>
+
+<file path="src/components/atoms/StatusBadge.tsx">
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { AppText } from './AppText';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
+
+export interface StatusBadgeProps {
+  label: string;
+  variant?: 'verified' | 'pending' | 'failure' | 'neutral' | 'brand' | 'gold';
+}
+
+export function StatusBadge({ label, variant = 'neutral' }: StatusBadgeProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+
+  const getColors = () => {
+    switch (variant) {
+      case 'verified':
+        return { bg: theme.verified + '1A', border: theme.verified + '66', text: theme.verified };
+      case 'pending':
+        return { bg: theme.pending + '1A', border: theme.pending + '66', text: theme.pending };
+      case 'failure':
+        return { bg: theme.failure + '1A', border: theme.failure + '66', text: theme.failure };
+      case 'brand':
+        return { bg: theme.primary + '1A', border: theme.primary + '66', text: theme.primary };
+      case 'gold':
+        return { bg: theme.gold + '1A', border: theme.gold + '66', text: theme.gold };
+      case 'neutral':
+      default:
+        return { bg: theme.subtle, border: theme.border, text: theme.textMuted };
+    }
+  };
+
+  const colors = getColors();
+
+  return (
+    <View style={[styles.badge, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+      <AppText variant="caption" style={{ color: colors.text, fontWeight: '600' }}>
+        {label}
+      </AppText>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+});
+</file>
+
+<file path="src/components/molecules/GrantCard.tsx">
+import React from 'react';
+import { View, StyleSheet, Pressable } from 'react-native';
+import { AppText } from '../atoms/AppText';
+import { AppButton } from '../atoms/AppButton';
+import { StatusBadge } from '../atoms/StatusBadge';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
+import { Grant } from '@/types/grant';
+
+export interface GrantCardProps {
+  grant: Grant;
+  onSelect: () => void;
+  onApply: () => void;
+}
+
+export function GrantCard({ grant, onSelect, onApply }: GrantCardProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+
+  const getMatchVariant = (pct: number) => {
+    if (pct >= 80) return 'verified';
+    if (pct >= 40) return 'pending';
+    return 'failure';
+  };
+
+  return (
+    <Pressable
+      onPress={onSelect}
+      style={({ pressed }) => [
+        styles.card,
+        {
+          backgroundColor: theme.surface,
+          borderColor: pressed ? theme.primary : theme.border,
+        },
+      ]}
+    >
+      <View style={styles.header}>
+        <StatusBadge label={grant.funder} variant="neutral" />
+        <StatusBadge label={`${grant.matchPct}% match`} variant={getMatchVariant(grant.matchPct)} />
+      </View>
+
+      <AppText variant="h3" style={styles.title} numberOfLines={2}>
+        {grant.title}
+      </AppText>
+
+      <View style={styles.metricsGrid}>
+        <View style={styles.metricColumn}>
+          <AppText variant="caption" color="muted">
+            Funding
+          </AppText>
+          <AppText variant="metric-sm" color="main">
+            {grant.amount}
+          </AppText>
+        </View>
+        <View style={styles.metricColumn}>
+          <AppText variant="caption" color="muted">
+            Deadline
+          </AppText>
+          <AppText variant="metric-sm" color="main">
+            {grant.deadline}
+          </AppText>
+        </View>
+      </View>
+
+      <View style={[styles.footer, { borderTopColor: theme.border }]}>
+        <AppText variant="caption" color="muted" style={styles.region}>
+          {grant.region}
+        </AppText>
+        <View style={styles.actions}>
+          <AppButton label="Details" variant="ghost" size="sm" onPress={onSelect} />
+          <AppButton label="Apply" variant="primary" size="sm" onPress={onApply} />
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  title: {
+    marginBottom: 16,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  metricColumn: {
+    flex: 1,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+  },
+  region: {
+    flex: 1,
+    marginRight: 8,
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+});
+</file>
+
+<file path="src/components/templates/ModalSheetLayout.tsx">
+
+</file>
+
+<file path="src/config/env.ts">
+export const ENV = {
+  APP_ENV: process.env.EXPO_PUBLIC_APP_ENV ?? 'development',
+  APP_VERSION: process.env.EXPO_PUBLIC_APP_VERSION ?? '1.0.0',
+  API_BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:5000/api/v1',
+  API_TIMEOUT_MS: Number(process.env.EXPO_PUBLIC_API_TIMEOUT_MS ?? 15000),
+  ENABLE_ANALYTICS: process.env.EXPO_PUBLIC_ENABLE_ANALYTICS === '1',
+  POLLING_INTERVAL_MS: Number(process.env.EXPO_PUBLIC_POLLING_INTERVAL_MS ?? 3000),
+} as const;
+</file>
+
+<file path="src/config/theme.ts">
+export const PALETTE = {
+  dark: {
+    background: '#000000',
+    surface: '#121518',
+    subtle: '#1A1E23',
+    border: '#394047',
+    borderStrong: '#4B5563',
+    textMain: '#EDEFF2',
+    textMuted: '#8A929C',
+    primary: '#FF8A00',
+    primaryForeground: '#140B00',
+    verified: '#00B35D',
+    pending: '#00E5FF',
+    failure: '#A4161A',
+    gold: '#FFD700',
+    tint: '#FF8A00',
+  },
+  light: {
+    background: '#F4F6F8',
+    surface: '#FFFFFF',
+    subtle: '#E9ECEF',
+    border: '#D1D5DB',
+    borderStrong: '#9CA3AF',
+    textMain: '#111827',
+    textMuted: '#6B7280',
+    primary: '#D97000',
+    primaryForeground: '#FFFFFF',
+    verified: '#008744',
+    pending: '#0094A8',
+    failure: '#DC2626',
+    gold: '#D97706',
+    tint: '#D97000',
+  },
+} as const;
+
+export type ThemeColors = typeof PALETTE.dark;
+</file>
+
+<file path="src/mock/grants.ts">
+import { Grant } from '@/types/grant';
+
+export const mockGrants: Grant[] = [
+  {
+    id: '1',
+    title: 'Climate Resilience Infrastructure',
+    funder: 'Northstar Foundation',
+    deadline: '28 days',
+    amount: '$250k–$500k',
+    matchPct: 94,
+    region: 'Global · Infrastructure',
+    summary:
+      'Deploy flood-resilient infrastructure across 12 municipalities, pairing sensor networks with community response planning to protect climate-exposed districts.',
+  },
+  {
+    id: '2',
+    title: 'Community Health Access',
+    funder: 'Civic Futures Fund',
+    deadline: '41 days',
+    amount: '$75k–$150k',
+    matchPct: 82,
+    region: 'East Europe · Health',
+    summary:
+      'Expand primary-care outreach to underserved communities through mobile clinics and telehealth kiosks, cutting preventable admissions and wait times.',
+  },
+  {
+    id: '3',
+    title: 'Open Data for Public Good',
+    funder: 'The Meridian Trust',
+    deadline: '56 days',
+    amount: '$40k–$100k',
+    matchPct: 76,
+    region: 'CIS · Technology',
+    summary:
+      'Publish civic datasets through an open, machine-readable platform that powers public-interest research, transparency tools, and regional innovation.',
+  },
+];
+</file>
+
+<file path="src/store/useThemeStore.ts">
+import { create } from 'zustand';
+import { Appearance } from 'react-native';
+
+export type ThemeMode = 'dark' | 'light';
+
+interface ThemeState {
+  mode: ThemeMode;
+  toggleTheme: () => void;
+  setTheme: (mode: ThemeMode) => void;
+}
+
+export const useThemeStore = create<ThemeState>((set) => ({
+  mode: Appearance.getColorScheme() === 'light' ? 'light' : 'dark',
+  toggleTheme: () => set((state) => ({ mode: state.mode === 'dark' ? 'light' : 'dark' })),
+  setTheme: (mode) => set({ mode }),
+}));
+</file>
+
+<file path="src/store/useUIStore.ts">
+import { create } from 'zustand';
+
+interface UIState {
+  activeGrantId: string;
+  isFilterSheetOpen: boolean;
+  selectedFormat: string;
+  setActiveGrantId: (id: string) => void;
+  setFilterSheetOpen: (open: boolean) => void;
+  setSelectedFormat: (format: string) => void;
+}
+
+export const useUIStore = create<UIState>((set) => ({
+  activeGrantId: '1',
+  isFilterSheetOpen: false,
+  selectedFormat: 'word',
+  setActiveGrantId: (id) => set({ activeGrantId: id }),
+  setFilterSheetOpen: (open) => set({ isFilterSheetOpen: open }),
+  setSelectedFormat: (format) => set({ selectedFormat: format }),
+}));
+</file>
+
+<file path="src/types/grant.ts">
+export interface Grant {
+  id: string;
+  title: string;
+  funder: string;
+  deadline: string;
+  amount: string;
+  matchPct: number;
+  region: string;
+  summary: string;
+}
+</file>
+
+<file path=".env.example">
+EXPO_PUBLIC_APP_ENV=development
+EXPO_PUBLIC_APP_VERSION=1.0.0
+EXPO_PUBLIC_API_BASE_URL=https://api.grantum.io/api/v1
+EXPO_PUBLIC_API_TIMEOUT_MS=15000
+EXPO_PUBLIC_ENABLE_ANALYTICS=0
+EXPO_PUBLIC_POLLING_INTERVAL_MS=3000
+</file>
+
+<file path=".gitattributes">
+* text=auto eol=lf
+</file>
+
+<file path=".gitignore">
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
+repomix-output*.xml
+.env
+</file>
+
+<file path="API_CONTRACTS.md">
+# API CONTRACTS SPECIFICATION — FLASK / POSTGRESQL BACKEND
+
+This document serves as the formal specification for the Flask backend developer.
+All routes must adhere strictly to the method, path, parameter structure, and expected response payloads outlined below.
+
+---
+
+### 1. Retrieve Grants Index
+
+(
+***Метод: GET
+***URL: /api/v1/grants
+***Отправляем: Query Params: ?q=string&region=string&category=string
+***Ожидаем получить: [
+{
+"id": "1",
+"title": "Climate Resilience Infrastructure",
+"funder": "Northstar Foundation",
+"deadline": "28 days",
+"amount": "$250k–$500k",
+"matchPct": 94,
+"region": "Global · Infrastructure",
+"summary": "Deploy flood-resilient infrastructure..."
+}
+]
+)
+
+---
+
+### 2. Retrieve Specific Grant Detail
+
+(
+***Метод: GET
+***URL: /api/v1/grants/<grant_id>
+***Отправляем: URL Param: grant_id (string)
+***Ожидаем получить: {
+"id": "1",
+"title": "Climate Resilience Infrastructure",
+"funder": "Northstar Foundation",
+"deadline": "28 days",
+"amount": "$250k–$500k",
+"matchPct": 94,
+"region": "Global · Infrastructure",
+"summary": "Deploy flood-resilient infrastructure...",
+"requirements": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"]
+}
+)
+
+---
+
+### 3. Retrieve Proposal Draft for Grant
+
+(
+***Метод: GET
+***URL: /api/v1/proposals/<grant_id>/draft
+***Отправляем: URL Param: grant_id (string)
+***Ожидаем получить: {
+"id": "prop-101",
+"grantId": "1",
+"completedSections": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"],
+"requiredSections": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"],
+"completionPct": 100,
+"confidenceScore": 100,
+"body": "Executive summary..."
+}
+)
+
+---
+
+### 4. Mutate Proposal Sections (Toggle/Delete/Add)
+
+(
+***Метод: PATCH
+***URL: /api/v1/proposals/<grant_id>/sections
+***Отправляем: {
+"action": "remove" | "add" | "restore",
+"sectionName": "Moat"
+}
+***Ожидаем получить: {
+"grantId": "1",
+"completedSections": ["Mission", "Pain", "Solution", "Market", "Competitors"],
+"requiredSections": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"],
+"confidenceScore": 83,
+"updatedAt": "2026-10-09T10:15:30Z"
+}
+)
+
+---
+
+### 5. Trigger Deterministic Audit Scan
+
+(
+***Метод: POST
+***URL: /api/v1/proposals/<grant_id>/audit
+***Отправляем: {
+"triggerMode": "full_scan"
+}
+***Ожидаем получить: {
+"scanId": "audit-run-99",
+"status": "running" | "passed" | "failed",
+"confidenceScore": 83,
+"missingSections": ["Moat"],
+"events": [
+{
+"id": "evt-1",
+"agent": "agent-2-deterministic",
+"message": "Missing: Moat — confidence 83",
+"status": "failed",
+"timestamp": "14:32"
+}
+]
+}
+)
+
+---
+
+### 6. Export Application Bundle
+
+(
+***Метод: POST
+***URL: /api/v1/proposals/<grant_id>/export
+***Отправляем: {
+"format": "word" | "pdf" | "notebook" | "markdown",
+"documentBody": "Executive summary..."
+}
+***Ожидаем получить: {
+"success": true,
+"checksum": "sha256-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+"downloadUrl": "https://api.grantum.io/downloads/bundle-1.docx"
+}
+)
+</file>
+
+<file path="commitlint.config.js">
+module.exports = {
+  extends: ['@commitlint/config-conventional'],
+  rules: {
+    'type-enum': [
+      2,
+      'always',
+      ['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'chore', 'revert'],
+    ],
+    'subject-case': [2, 'never', ['upper-case']],
+  },
+};
+</file>
+
+<file path="DESIGN_MANIFESTO.md">
+## §2. DESIGN MANIFESTO: DUAL THEME "OBSIDIAN & QUARTZ"
+
+Save as `DESIGN_MANIFESTO.md` in the project root.
+
+### 2.1 The Visual Language: Obsidian (Dark) & Quartz (Light)
+
+Grantum uses an **Instrument Grade** aesthetic. It is not a generic consumer application. It is a precision terminal for capital allocation, compliance scanning, and deterministic auditing.
+
+- **Obsidian Instrument (Dark Theme — Default):** Absolute black base (`#000000`) with elevated carbon cards (`#121518`), industrial chrome borders (`#394047`), neon pumpkin brand accents (`#FF8A00`), electric mint for verified states (`#00B35D`), and cyan for pending states (`#00E5FF`).
+- **Quartz Instrument (Light Theme):** High-contrast alpine canvas (`#F4F6F8`) with pure white elevated surfaces (`#FFFFFF`), precision slate borders (`#D1D5DB`), deep burnt pumpkin brand accents (`#D97000`), deep forest emerald for verification (`#008744`), and cobalt cyan for pending operations (`#0094A8`).
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        SEMANTIC DESIGN TOKEN PALETTE PARITY                            │
+├──────────────────┬──────────────────────────┬──────────────────────────────────────────┤
+│ Token Name       │ Obsidian Mode (Dark)     │ Quartz Mode (Light)                      │
+├──────────────────┼──────────────────────────┼──────────────────────────────────────────┤
+│ bg-primary       │ #000000 (Pure Obsidian)  │ #F4F6F8 (Pure Quartz Canvas)             │
+│ bg-surface       │ #121518 (Carbon Vessel)  │ #FFFFFF (Elevated Pure Paper)            │
+│ bg-subtle        │ #1A1E23 (Elevated Scrim) │ #E9ECEF (Structured Subtle Plate)        │
+│ border-default   │ #394047 (Liquid Chrome)  │ #D1D5DB (Etched Slate)                   │
+│ border-strong    │ #4B5563 (Accent Strike)  │ #9CA3AF (Solid Structural Stroke)        │
+│ text-main        │ #EDEFF2 (High Contrast)  │ #111827 (Deep Carbon Ink)                │
+│ text-muted       │ #8A929C (Technical Muted)│ #6B7280 (Subtle Descriptor Gray)         │
+│ brand-primary    │ #FF8A00 (Neon Pumpkin)   │ #D97000 (Burnt Pumpkin Core)             │
+│ brand-foreground │ #140B00 (Carbon Inset)   │ #FFFFFF (Solid White Knockout)           │
+│ status-verified  │ #00B35D (Electric Mint)  │ #008744 (Deep Emerald Anchor)            │
+│ status-pending   │ #00E5FF (High Cyan)      │ #0094A8 (Precision Cyan Stroke)          │
+│ status-failure   │ #A4161A (Deep Crimson)   │ #DC2626 (Vivid Alert Crimson)            │
+│ status-gold      │ #FFD700 (Imperial Amber) │ #D97706 (Burnished Amber Gold)           │
+└──────────────────┴──────────────────────────┴──────────────────────────────────────────┘
+```
+
+### 2.2 Typography Scale & Mathematical Roles
+
+Grantum uses two distinct typographic roles:
+
+1. **Human/Structural Role (Inter):** System Sans (`Inter` / system sans-serif) for titles, subtitles, descriptors, interactive controls.
+2. **Deterministic/Metric Role (JetBrains Mono):** Monospace (`JetBrains Mono` / monospace) for math readouts, checksums, monetary amounts, countdown clocks, and audit logs.
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                           TYPOGRAPHIC METRIC SPECIFICATION                             │
+├──────────────────┬──────────────┬─────────────┬──────────────┬─────────────────────────┤
+│ Typography Role  │ Font Size    │ Line Height │ Letter Space │ Target Element          │
+├──────────────────┼──────────────┼─────────────┼──────────────┼─────────────────────────┤
+│ text-display     │ 32px         │ 38px        │ -0.02em      │ Major Dashboard Headers │
+│ text-h1          │ 24px         │ 30px        │ -0.01em      │ Container Titles        │
+│ text-h2          │ 20px         │ 26px        │ 0.00em       │ Section Titles & Modals │
+│ text-h3          │ 16px         │ 22px        │ +0.01em      │ Card Names & Subsections│
+│ text-body        │ 14px         │ 20px        │ +0.01em      │ Paragraphs & Details    │
+│ text-caption     │ 12px         │ 16px        │ +0.02em      │ Field Labels & Badges   │
+│ text-metric-lg   │ 28px (Mono)  │ 32px        │ +0.00em      │ Gauge Value, Big Sums   │
+│ text-metric-sm   │ 13px (Mono)  │ 18px        │ +0.04em      │ Audit Logs & Timestamps │
+└──────────────────┴──────────────┴─────────────┴──────────────┴─────────────────────────┘
+```
+
+### 2.3 Geometric Invariants & Motion Dynamics
+
+- **Border Radii:**
+  - `radius-sm`: 8px (Buttons, badges, text input containers).
+  - `radius-md`: 12px (Inner cards, hero stats, floating panels).
+  - `radius-lg`: 16px (Modals, bottom sheets, main stage cards).
+  - `radius-full`: 9999px (Pills, indicator dots, circular avatars).
+- **Tilts and Rotations:**
+  - Gauges start at `-90deg` orientation (12 o'clock top origin).
+  - Icon chevrons rotate smoothly by `180deg` on expansion.
+- **Responsive Breakpoints:**
+  - Mobile: `< 768px` (Single column vertical stacking, bottom navigation tabs, bottom sheet modals).
+  - Desktop / Web: `≥ 768px` (Split layout, multi-column grid, centered dialogue modals, sidebar/horizontal controls).
+</file>
+
+<file path="git">
+
+</file>
+
+<file path="LICENSE">
+The MIT License (MIT)
+
+Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="lint-staged.config.js">
+module.exports = {
+  '*.{js,jsx,ts,tsx}': ['eslint --fix', 'prettier --write'],
+  '*.{json,md,css}': ['prettier --write'],
+};
+</file>
+
+<file path="pnpm-workspace.yaml">
+allowBuilds:
+  unrs-resolver: false
 </file>
 
 <file path="app/(tabs)/audit.tsx">
@@ -1026,7 +1952,7 @@ const styles = StyleSheet.create({
 </file>
 
 <file path="app/_layout.tsx">
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, StyleSheet, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -1171,7 +2097,7 @@ export function useGrantDetail(grantId: string) {
       try {
         const response = await apiClient.get(ENDPOINTS.GRANT_DETAIL(grantId));
         return response.data;
-      } catch (err) {
+      } catch (_err) {
         return mockGrants.find((g) => g.id === grantId) ?? mockGrants[0];
       }
     },
@@ -1194,7 +2120,7 @@ export function useGrants(query?: string) {
       try {
         const response = await apiClient.get(ENDPOINTS.GRANTS, { params: { q: query } });
         return response.data;
-      } catch (err) {
+      } catch (_err) {
         // Hermetic fallback for disconnected demo runs
         if (!query) return mockGrants;
         return mockGrants.filter(
@@ -1279,7 +2205,6 @@ export const ENDPOINTS = {
 
 <file path="src/api/queryClient.ts">
 import { QueryClient } from '@tanstack/react-query';
-import { ENV } from '@/config/env';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -1290,153 +2215,6 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: true,
       refetchInterval: false,
     },
-  },
-});
-</file>
-
-<file path="src/components/atoms/AppButton.tsx">
-import React from 'react';
-import { Pressable, StyleSheet, ActivityIndicator, ViewStyle, StyleProp } from 'react-native';
-import { AppText } from './AppText';
-import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
-
-export interface AppButtonProps {
-  label: string;
-  onPress: () => void;
-  variant?: 'primary' | 'surface' | 'outline' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
-  isLoading?: boolean;
-  disabled?: boolean;
-  icon?: React.ReactNode;
-  iconPosition?: 'left' | 'right';
-  style?: StyleProp<ViewStyle>;
-}
-
-export function AppButton({
-  label,
-  onPress,
-  variant = 'surface',
-  size = 'md',
-  isLoading = false,
-  disabled = false,
-  icon,
-  iconPosition = 'left',
-  style,
-}: AppButtonProps) {
-  const { mode } = useThemeStore();
-  const theme = PALETTE[mode];
-
-  const getVariantStyle = (pressed: boolean): ViewStyle => {
-    switch (variant) {
-      case 'primary':
-        return {
-          backgroundColor: theme.primary,
-          borderWidth: 0,
-          opacity: pressed ? 0.85 : 1,
-        };
-      case 'outline':
-        return {
-          backgroundColor: 'transparent',
-          borderWidth: 1,
-          borderColor: theme.border,
-          opacity: pressed ? 0.7 : 1,
-        };
-      case 'ghost':
-        return {
-          backgroundColor: pressed ? theme.subtle : 'transparent',
-          borderWidth: 0,
-        };
-      case 'danger':
-        return {
-          backgroundColor: theme.failure,
-          borderWidth: 0,
-          opacity: pressed ? 0.85 : 1,
-        };
-      case 'surface':
-      default:
-        return {
-          backgroundColor: pressed ? theme.subtle : theme.surface,
-          borderWidth: 1,
-          borderColor: theme.border,
-        };
-    }
-  };
-
-  const getTextColor = () => {
-    if (variant === 'primary') return 'primaryForeground';
-    if (variant === 'danger') return 'main';
-    if (variant === 'ghost') return 'muted';
-    return 'main';
-  };
-
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled || isLoading}
-      style={({ pressed }) => [
-        styles.base,
-        styles[size],
-        getVariantStyle(pressed),
-        (disabled || isLoading) && styles.disabled,
-        style,
-      ]}
-    >
-      {isLoading ? (
-        <ActivityIndicator
-          size="small"
-          color={variant === 'primary' ? theme.primaryForeground : theme.textMain}
-        />
-      ) : (
-        <>
-          {icon && iconPosition === 'left' && icon}
-          <AppText
-            variant={size === 'sm' ? 'caption' : 'body'}
-            style={[
-              styles.text,
-              icon ? (iconPosition === 'left' ? styles.iconRight : styles.iconLeft) : null,
-            ]}
-            color={getTextColor() as any}
-          >
-            {label}
-          </AppText>
-          {icon && iconPosition === 'right' && icon}
-        </>
-      )}
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
-  base: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-  },
-  sm: {
-    height: 36,
-    paddingHorizontal: 12,
-  },
-  md: {
-    height: 44,
-    paddingHorizontal: 16,
-  },
-  lg: {
-    height: 50,
-    paddingHorizontal: 20,
-  },
-  text: {
-    fontWeight: '600',
-  },
-  iconRight: {
-    marginLeft: 8,
-  },
-  iconLeft: {
-    marginRight: 8,
-  },
-  disabled: {
-    opacity: 0.4,
   },
 });
 </file>
@@ -1526,100 +2304,6 @@ const styles = StyleSheet.create({
   },
   error: {
     marginTop: 4,
-  },
-});
-</file>
-
-<file path="src/components/atoms/AppText.tsx">
-import React from 'react';
-import { Text, TextProps, StyleSheet } from 'react-native';
-import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
-
-export interface AppTextProps extends TextProps {
-  variant?: 'display' | 'h1' | 'h2' | 'h3' | 'body' | 'caption' | 'metric-lg' | 'metric-sm';
-  color?: 'main' | 'muted' | 'primary' | 'verified' | 'pending' | 'failure' | 'gold';
-  align?: 'auto' | 'left' | 'right' | 'center' | 'justify';
-}
-
-export function AppText({
-  variant = 'body',
-  color = 'main',
-  align = 'auto',
-  style,
-  children,
-  ...props
-}: AppTextProps) {
-  const { mode } = useThemeStore();
-  const theme = PALETTE[mode];
-
-  const colorStyles = {
-    main: theme.textMain,
-    muted: theme.textMuted,
-    primary: theme.primary,
-    verified: theme.verified,
-    pending: theme.pending,
-    failure: theme.failure,
-    gold: theme.gold,
-  };
-
-  return (
-    <Text
-      style={[styles.base, styles[variant], { color: colorStyles[color], textAlign: align }, style]}
-      {...props}
-    >
-      {children}
-    </Text>
-  );
-}
-
-const styles = StyleSheet.create({
-  base: {
-    fontFamily: 'Inter',
-  },
-  display: {
-    fontSize: 32,
-    lineHeight: 38,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  h1: {
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  h2: {
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: '600',
-  },
-  h3: {
-    fontSize: 16,
-    lineHeight: 22,
-    fontWeight: '600',
-  },
-  body: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '400',
-  },
-  caption: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '500',
-  },
-  'metric-lg': {
-    fontFamily: 'JetBrains Mono',
-    fontSize: 28,
-    lineHeight: 32,
-    fontWeight: '700',
-  },
-  'metric-sm': {
-    fontFamily: 'JetBrains Mono',
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '500',
   },
 });
 </file>
@@ -1832,91 +2516,6 @@ export * from './Chip';
 export * from './IconButton';
 </file>
 
-<file path="src/components/atoms/MetricGauge.tsx">
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
-import { AppText } from './AppText';
-import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
-
-export interface MetricGaugeProps {
-  value: number; // 0 - 100
-  label?: string;
-  size?: number;
-}
-
-const GAUGE_RADIUS = 50;
-const GAUGE_CIRCUMFERENCE = 2 * Math.PI * GAUGE_RADIUS;
-
-export function MetricGauge({ value, label = 'confidence', size = 128 }: MetricGaugeProps) {
-  const { mode } = useThemeStore();
-  const theme = PALETTE[mode];
-
-  const clamped = Math.max(0, Math.min(100, value));
-  const strokeDashoffset = GAUGE_CIRCUMFERENCE * (1 - clamped / 100);
-
-  const getTierColor = () => {
-    if (clamped >= 85) return theme.verified;
-    if (clamped >= 40) return theme.pending;
-    return theme.failure;
-  };
-
-  return (
-    <View style={[styles.container, { width: size, height: size }]}>
-      <Svg width={size} height={size} viewBox="0 0 120 120" style={styles.svg}>
-        <Circle
-          cx="60"
-          cy="60"
-          r={GAUGE_RADIUS}
-          fill="none"
-          stroke={theme.border}
-          strokeWidth="8"
-          strokeOpacity={0.4}
-        />
-        <Circle
-          cx="60"
-          cy="60"
-          r={GAUGE_RADIUS}
-          fill="none"
-          stroke={getTierColor()}
-          strokeWidth="8"
-          strokeDasharray={`${GAUGE_CIRCUMFERENCE} ${GAUGE_CIRCUMFERENCE}`}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-        />
-      </Svg>
-      <View style={styles.textContainer}>
-        <AppText variant="metric-lg" style={{ color: getTierColor() }}>
-          {clamped}
-        </AppText>
-        {label && (
-          <AppText variant="caption" color="muted" align="center">
-            {label}
-          </AppText>
-        )}
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  svg: {
-    transform: [{ rotate: '-90deg' }],
-  },
-  textContainer: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
-</file>
-
 <file path="src/components/atoms/ProgressBar.tsx">
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
@@ -1972,62 +2571,6 @@ const styles = StyleSheet.create({
   fill: {
     height: '100%',
     borderRadius: 3,
-  },
-});
-</file>
-
-<file path="src/components/atoms/StatusBadge.tsx">
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { AppText } from './AppText';
-import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
-
-export interface StatusBadgeProps {
-  label: string;
-  variant?: 'verified' | 'pending' | 'failure' | 'neutral' | 'brand' | 'gold';
-}
-
-export function StatusBadge({ label, variant = 'neutral' }: StatusBadgeProps) {
-  const { mode } = useThemeStore();
-  const theme = PALETTE[mode];
-
-  const getColors = () => {
-    switch (variant) {
-      case 'verified':
-        return { bg: theme.verified + '1A', border: theme.verified + '66', text: theme.verified };
-      case 'pending':
-        return { bg: theme.pending + '1A', border: theme.pending + '66', text: theme.pending };
-      case 'failure':
-        return { bg: theme.failure + '1A', border: theme.failure + '66', text: theme.failure };
-      case 'brand':
-        return { bg: theme.primary + '1A', border: theme.primary + '66', text: theme.primary };
-      case 'gold':
-        return { bg: theme.gold + '1A', border: theme.gold + '66', text: theme.gold };
-      case 'neutral':
-      default:
-        return { bg: theme.subtle, border: theme.border, text: theme.textMuted };
-    }
-  };
-
-  const colors = getColors();
-
-  return (
-    <View style={[styles.badge, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-      <AppText variant="caption" style={{ color: colors.text, fontWeight: '600' }}>
-        {label}
-      </AppText>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-    alignSelf: 'flex-start',
   },
 });
 </file>
@@ -2415,126 +2958,6 @@ const styles = StyleSheet.create({
 });
 </file>
 
-<file path="src/components/molecules/GrantCard.tsx">
-import React from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
-import { AppText } from '../atoms/AppText';
-import { AppButton } from '../atoms/AppButton';
-import { StatusBadge } from '../atoms/StatusBadge';
-import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
-import { Grant } from '@/types/grant';
-
-export interface GrantCardProps {
-  grant: Grant;
-  onSelect: () => void;
-  onApply: () => void;
-}
-
-export function GrantCard({ grant, onSelect, onApply }: GrantCardProps) {
-  const { mode } = useThemeStore();
-  const theme = PALETTE[mode];
-
-  const getMatchVariant = (pct: number) => {
-    if (pct >= 80) return 'verified';
-    if (pct >= 40) return 'pending';
-    return 'failure';
-  };
-
-  return (
-    <Pressable
-      onPress={onSelect}
-      style={({ pressed }) => [
-        styles.card,
-        {
-          backgroundColor: theme.surface,
-          borderColor: pressed ? theme.primary : theme.border,
-        },
-      ]}
-    >
-      <View style={styles.header}>
-        <StatusBadge label={grant.funder} variant="neutral" />
-        <StatusBadge label={`${grant.matchPct}% match`} variant={getMatchVariant(grant.matchPct)} />
-      </View>
-
-      <AppText variant="h3" style={styles.title} numberOfLines={2}>
-        {grant.title}
-      </AppText>
-
-      <View style={styles.metricsGrid}>
-        <View style={styles.metricColumn}>
-          <AppText variant="caption" color="muted">
-            Funding
-          </AppText>
-          <AppText variant="metric-sm" color="main">
-            {grant.amount}
-          </AppText>
-        </View>
-        <View style={styles.metricColumn}>
-          <AppText variant="caption" color="muted">
-            Deadline
-          </AppText>
-          <AppText variant="metric-sm" color="main">
-            {grant.deadline}
-          </AppText>
-        </View>
-      </View>
-
-      <View style={[styles.footer, { borderTopColor: theme.border }]}>
-        <AppText variant="caption" color="muted" style={styles.region}>
-          {grant.region}
-        </AppText>
-        <View style={styles.actions}>
-          <AppButton label="Details" variant="ghost" size="sm" onPress={onSelect} />
-          <AppButton label="Apply" variant="primary" size="sm" onPress={onApply} />
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  title: {
-    marginBottom: 16,
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  metricColumn: {
-    flex: 1,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-  },
-  region: {
-    flex: 1,
-    marginRight: 8,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-});
-</file>
-
 <file path="src/components/molecules/HeroContinueCard.tsx">
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
@@ -2745,11 +3168,10 @@ const styles = StyleSheet.create({
 
 <file path="src/components/organisms/GrantDiscoveryGrid.tsx">
 import React from 'react';
-import { View, StyleSheet, FlatList } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Grant } from '@/types/grant';
 import { GrantCard } from '../molecules/GrantCard';
 import { AppText } from '../atoms/AppText';
-import { AppButton } from '../atoms/AppButton';
 
 export interface GrantDiscoveryGridProps {
   grants: Grant[];
@@ -2939,10 +3361,6 @@ export * from './ScreenContainer';
 export * from './EmptyStateLayout';
 </file>
 
-<file path="src/components/templates/ModalSheetLayout.tsx">
-
-</file>
-
 <file path="src/components/templates/ScreenContainer.tsx">
 import React from 'react';
 import { View, StyleSheet, ScrollView, ViewStyle } from 'react-native';
@@ -3019,56 +3437,6 @@ export const CONFIDENCE_TIER = {
   pass: CONSTANTS.CONFIDENCE_THRESHOLD,
   warn: CONSTANTS.WARN_THRESHOLD,
 } as const;
-</file>
-
-<file path="src/config/env.ts">
-export const ENV = {
-  APP_ENV: process.env.EXPO_PUBLIC_APP_ENV ?? 'development',
-  APP_VERSION: process.env.EXPO_PUBLIC_APP_VERSION ?? '1.0.0',
-  API_BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:5000/api/v1',
-  API_TIMEOUT_MS: Number(process.env.EXPO_PUBLIC_API_TIMEOUT_MS ?? 15000),
-  ENABLE_ANALYTICS: process.env.EXPO_PUBLIC_ENABLE_ANALYTICS === '1',
-  POLLING_INTERVAL_MS: Number(process.env.EXPO_PUBLIC_POLLING_INTERVAL_MS ?? 3000),
-} as const;
-</file>
-
-<file path="src/config/theme.ts">
-export const PALETTE = {
-  dark: {
-    background: '#000000',
-    surface: '#121518',
-    subtle: '#1A1E23',
-    border: '#394047',
-    borderStrong: '#4B5563',
-    textMain: '#EDEFF2',
-    textMuted: '#8A929C',
-    primary: '#FF8A00',
-    primaryForeground: '#140B00',
-    verified: '#00B35D',
-    pending: '#00E5FF',
-    failure: '#A4161A',
-    gold: '#FFD700',
-    tint: '#FF8A00',
-  },
-  light: {
-    background: '#F4F6F8',
-    surface: '#FFFFFF',
-    subtle: '#E9ECEF',
-    border: '#D1D5DB',
-    borderStrong: '#9CA3AF',
-    textMain: '#111827',
-    textMuted: '#6B7280',
-    primary: '#D97000',
-    primaryForeground: '#FFFFFF',
-    verified: '#008744',
-    pending: '#0094A8',
-    failure: '#DC2626',
-    gold: '#D97706',
-    tint: '#D97000',
-  },
-} as const;
-
-export type ThemeColors = typeof PALETTE.dark;
 </file>
 
 <file path="src/store/useDraftStore.ts">
@@ -3206,47 +3574,6 @@ export const useDraftStore = create<DraftState>((set, get) => ({
 }));
 </file>
 
-<file path="src/store/useThemeStore.ts">
-import { create } from 'zustand';
-import { Appearance } from 'react-native';
-
-export type ThemeMode = 'dark' | 'light';
-
-interface ThemeState {
-  mode: ThemeMode;
-  toggleTheme: () => void;
-  setTheme: (mode: ThemeMode) => void;
-}
-
-export const useThemeStore = create<ThemeState>((set) => ({
-  mode: Appearance.getColorScheme() === 'light' ? 'light' : 'dark',
-  toggleTheme: () => set((state) => ({ mode: state.mode === 'dark' ? 'light' : 'dark' })),
-  setTheme: (mode) => set({ mode }),
-}));
-</file>
-
-<file path="src/store/useUIStore.ts">
-import { create } from 'zustand';
-
-interface UIState {
-  activeGrantId: string;
-  isFilterSheetOpen: boolean;
-  selectedFormat: string;
-  setActiveGrantId: (id: string) => void;
-  setFilterSheetOpen: (open: boolean) => void;
-  setSelectedFormat: (format: string) => void;
-}
-
-export const useUIStore = create<UIState>((set) => ({
-  activeGrantId: '1',
-  isFilterSheetOpen: false,
-  selectedFormat: 'word',
-  setActiveGrantId: (id) => set({ activeGrantId: id }),
-  setFilterSheetOpen: (open) => set({ isFilterSheetOpen: open }),
-  setSelectedFormat: (format) => set({ selectedFormat: format }),
-}));
-</file>
-
 <file path="src/types/api.ts">
 export type ApiStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -3293,19 +3620,6 @@ export interface ChatMessage {
 }
 </file>
 
-<file path="src/types/grant.ts">
-export interface Grant {
-  id: string;
-  title: string;
-  funder: string;
-  deadline: string;
-  amount: string;
-  matchPct: number;
-  region: string;
-  summary: string;
-}
-</file>
-
 <file path="src/types/theme.ts">
 export type ThemeMode = 'dark' | 'light';
 
@@ -3343,7 +3657,7 @@ export function truncateText(text: string, maxLength: number): string {
 </file>
 
 <file path="src/utils/scoring.ts">
-import { CONSTANTS, CONFIDENCE_TIER, MATCH_TIER } from '@/config/constants';
+import { CONSTANTS, CONFIDENCE_TIER } from '@/config/constants';
 import { ScoreTier } from '@/types/api';
 
 /**
@@ -3382,76 +3696,26 @@ export function generateId(prefix = 'id'): string {
 }
 </file>
 
-<file path=".env.example">
-EXPO_PUBLIC_APP_ENV=development
-EXPO_PUBLIC_APP_VERSION=1.0.0
-EXPO_PUBLIC_API_BASE_URL=https://api.grantum.io/api/v1
-EXPO_PUBLIC_API_TIMEOUT_MS=15000
-EXPO_PUBLIC_ENABLE_ANALYTICS=0
-EXPO_PUBLIC_POLLING_INTERVAL_MS=3000
-</file>
-
 <file path=".eslintrc.js">
-// .eslintrc.js
 module.exports = {
+  root: true,
   extends: ['expo', 'prettier'],
   plugins: ['prettier'],
+  ignorePatterns: ['node_modules/', '.expo/', 'dist/', 'web-build/', 'assets/', 'expo-env.d.ts'],
   rules: {
     'prettier/prettier': 'error',
     'no-console': ['warn', { allow: ['warn', 'error'] }],
     'react-hooks/exhaustive-deps': 'error',
+    '@typescript-eslint/no-unused-vars': [
+      'warn',
+      { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+    ],
   },
+  overrides: [
+    { files: ['scripts/**/*.ts'], rules: { 'no-console': 'off' } },
+    { files: ['*.js'], rules: { '@typescript-eslint/no-unused-vars': 'off' } },
+  ],
 };
-</file>
-
-<file path=".gitattributes">
-* text=auto eol=lf
-</file>
-
-<file path=".gitignore">
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
-node_modules/
-
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
-
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
-
-# generated native folders
-/ios
-/android
-repomix-output*.xml
-.env
 </file>
 
 <file path=".prettierignore">
@@ -3461,6 +3725,7 @@ dist/
 web-build/
 assets/
 pnpm-lock.yaml
+expo-env.d.ts
 </file>
 
 <file path=".prettierrc">
@@ -3497,140 +3762,6 @@ Never run `npx expo lint` (it scaffolds a flat config; this repo is ruled ESLint
 - Git: feature branches only, Conventional Commits, Squash & Merge via PR (Husky + lint-staged enforce locally).
 </file>
 
-<file path="API_CONTRACTS.md">
-# API CONTRACTS SPECIFICATION — FLASK / POSTGRESQL BACKEND
-
-This document serves as the formal specification for the Flask backend developer.
-All routes must adhere strictly to the method, path, parameter structure, and expected response payloads outlined below.
-
----
-
-### 1. Retrieve Grants Index
-
-(
-***Метод: GET
-***URL: /api/v1/grants
-***Отправляем: Query Params: ?q=string&region=string&category=string
-***Ожидаем получить: [
-{
-"id": "1",
-"title": "Climate Resilience Infrastructure",
-"funder": "Northstar Foundation",
-"deadline": "28 days",
-"amount": "$250k–$500k",
-"matchPct": 94,
-"region": "Global · Infrastructure",
-"summary": "Deploy flood-resilient infrastructure..."
-}
-]
-)
-
----
-
-### 2. Retrieve Specific Grant Detail
-
-(
-***Метод: GET
-***URL: /api/v1/grants/<grant_id>
-***Отправляем: URL Param: grant_id (string)
-***Ожидаем получить: {
-"id": "1",
-"title": "Climate Resilience Infrastructure",
-"funder": "Northstar Foundation",
-"deadline": "28 days",
-"amount": "$250k–$500k",
-"matchPct": 94,
-"region": "Global · Infrastructure",
-"summary": "Deploy flood-resilient infrastructure...",
-"requirements": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"]
-}
-)
-
----
-
-### 3. Retrieve Proposal Draft for Grant
-
-(
-***Метод: GET
-***URL: /api/v1/proposals/<grant_id>/draft
-***Отправляем: URL Param: grant_id (string)
-***Ожидаем получить: {
-"id": "prop-101",
-"grantId": "1",
-"completedSections": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"],
-"requiredSections": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"],
-"completionPct": 100,
-"confidenceScore": 100,
-"body": "Executive summary..."
-}
-)
-
----
-
-### 4. Mutate Proposal Sections (Toggle/Delete/Add)
-
-(
-***Метод: PATCH
-***URL: /api/v1/proposals/<grant_id>/sections
-***Отправляем: {
-"action": "remove" | "add" | "restore",
-"sectionName": "Moat"
-}
-***Ожидаем получить: {
-"grantId": "1",
-"completedSections": ["Mission", "Pain", "Solution", "Market", "Competitors"],
-"requiredSections": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"],
-"confidenceScore": 83,
-"updatedAt": "2026-10-09T10:15:30Z"
-}
-)
-
----
-
-### 5. Trigger Deterministic Audit Scan
-
-(
-***Метод: POST
-***URL: /api/v1/proposals/<grant_id>/audit
-***Отправляем: {
-"triggerMode": "full_scan"
-}
-***Ожидаем получить: {
-"scanId": "audit-run-99",
-"status": "running" | "passed" | "failed",
-"confidenceScore": 83,
-"missingSections": ["Moat"],
-"events": [
-{
-"id": "evt-1",
-"agent": "agent-2-deterministic",
-"message": "Missing: Moat — confidence 83",
-"status": "failed",
-"timestamp": "14:32"
-}
-]
-}
-)
-
----
-
-### 6. Export Application Bundle
-
-(
-***Метод: POST
-***URL: /api/v1/proposals/<grant_id>/export
-***Отправляем: {
-"format": "word" | "pdf" | "notebook" | "markdown",
-"documentBody": "Executive summary..."
-}
-***Ожидаем получить: {
-"success": true,
-"checksum": "sha256-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-"downloadUrl": "https://api.grantum.io/downloads/bundle-1.docx"
-}
-)
-</file>
-
 <file path="app.json">
 {
   "expo": {
@@ -3665,124 +3796,6 @@ module.exports = function (api) {
   return {
     presets: ['babel-preset-expo'],
   };
-};
-</file>
-
-<file path="commitlint.config.js">
-module.exports = {
-  extends: ['@commitlint/config-conventional'],
-  rules: {
-    'type-enum': [
-      2,
-      'always',
-      ['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'chore', 'revert'],
-    ],
-    'subject-case': [2, 'never', ['upper-case']],
-  },
-};
-</file>
-
-<file path="DESIGN_MANIFESTO.md">
-## §2. DESIGN MANIFESTO: DUAL THEME "OBSIDIAN & QUARTZ"
-
-Save as `DESIGN_MANIFESTO.md` in the project root.
-
-### 2.1 The Visual Language: Obsidian (Dark) & Quartz (Light)
-
-Grantum uses an **Instrument Grade** aesthetic. It is not a generic consumer application. It is a precision terminal for capital allocation, compliance scanning, and deterministic auditing.
-
-- **Obsidian Instrument (Dark Theme — Default):** Absolute black base (`#000000`) with elevated carbon cards (`#121518`), industrial chrome borders (`#394047`), neon pumpkin brand accents (`#FF8A00`), electric mint for verified states (`#00B35D`), and cyan for pending states (`#00E5FF`).
-- **Quartz Instrument (Light Theme):** High-contrast alpine canvas (`#F4F6F8`) with pure white elevated surfaces (`#FFFFFF`), precision slate borders (`#D1D5DB`), deep burnt pumpkin brand accents (`#D97000`), deep forest emerald for verification (`#008744`), and cobalt cyan for pending operations (`#0094A8`).
-
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        SEMANTIC DESIGN TOKEN PALETTE PARITY                            │
-├──────────────────┬──────────────────────────┬──────────────────────────────────────────┤
-│ Token Name       │ Obsidian Mode (Dark)     │ Quartz Mode (Light)                      │
-├──────────────────┼──────────────────────────┼──────────────────────────────────────────┤
-│ bg-primary       │ #000000 (Pure Obsidian)  │ #F4F6F8 (Pure Quartz Canvas)             │
-│ bg-surface       │ #121518 (Carbon Vessel)  │ #FFFFFF (Elevated Pure Paper)            │
-│ bg-subtle        │ #1A1E23 (Elevated Scrim) │ #E9ECEF (Structured Subtle Plate)        │
-│ border-default   │ #394047 (Liquid Chrome)  │ #D1D5DB (Etched Slate)                   │
-│ border-strong    │ #4B5563 (Accent Strike)  │ #9CA3AF (Solid Structural Stroke)        │
-│ text-main        │ #EDEFF2 (High Contrast)  │ #111827 (Deep Carbon Ink)                │
-│ text-muted       │ #8A929C (Technical Muted)│ #6B7280 (Subtle Descriptor Gray)         │
-│ brand-primary    │ #FF8A00 (Neon Pumpkin)   │ #D97000 (Burnt Pumpkin Core)             │
-│ brand-foreground │ #140B00 (Carbon Inset)   │ #FFFFFF (Solid White Knockout)           │
-│ status-verified  │ #00B35D (Electric Mint)  │ #008744 (Deep Emerald Anchor)            │
-│ status-pending   │ #00E5FF (High Cyan)      │ #0094A8 (Precision Cyan Stroke)          │
-│ status-failure   │ #A4161A (Deep Crimson)   │ #DC2626 (Vivid Alert Crimson)            │
-│ status-gold      │ #FFD700 (Imperial Amber) │ #D97706 (Burnished Amber Gold)           │
-└──────────────────┴──────────────────────────┴──────────────────────────────────────────┘
-```
-
-### 2.2 Typography Scale & Mathematical Roles
-
-Grantum uses two distinct typographic roles:
-
-1. **Human/Structural Role (Inter):** System Sans (`Inter` / system sans-serif) for titles, subtitles, descriptors, interactive controls.
-2. **Deterministic/Metric Role (JetBrains Mono):** Monospace (`JetBrains Mono` / monospace) for math readouts, checksums, monetary amounts, countdown clocks, and audit logs.
-
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                           TYPOGRAPHIC METRIC SPECIFICATION                             │
-├──────────────────┬──────────────┬─────────────┬──────────────┬─────────────────────────┤
-│ Typography Role  │ Font Size    │ Line Height │ Letter Space │ Target Element          │
-├──────────────────┼──────────────┼─────────────┼──────────────┼─────────────────────────┤
-│ text-display     │ 32px         │ 38px        │ -0.02em      │ Major Dashboard Headers │
-│ text-h1          │ 24px         │ 30px        │ -0.01em      │ Container Titles        │
-│ text-h2          │ 20px         │ 26px        │ 0.00em       │ Section Titles & Modals │
-│ text-h3          │ 16px         │ 22px        │ +0.01em      │ Card Names & Subsections│
-│ text-body        │ 14px         │ 20px        │ +0.01em      │ Paragraphs & Details    │
-│ text-caption     │ 12px         │ 16px        │ +0.02em      │ Field Labels & Badges   │
-│ text-metric-lg   │ 28px (Mono)  │ 32px        │ +0.00em      │ Gauge Value, Big Sums   │
-│ text-metric-sm   │ 13px (Mono)  │ 18px        │ +0.04em      │ Audit Logs & Timestamps │
-└──────────────────┴──────────────┴─────────────┴──────────────┴─────────────────────────┘
-```
-
-### 2.3 Geometric Invariants & Motion Dynamics
-
-- **Border Radii:**
-  - `radius-sm`: 8px (Buttons, badges, text input containers).
-  - `radius-md`: 12px (Inner cards, hero stats, floating panels).
-  - `radius-lg`: 16px (Modals, bottom sheets, main stage cards).
-  - `radius-full`: 9999px (Pills, indicator dots, circular avatars).
-- **Tilts and Rotations:**
-  - Gauges start at `-90deg` orientation (12 o'clock top origin).
-  - Icon chevrons rotate smoothly by `180deg` on expansion.
-- **Responsive Breakpoints:**
-  - Mobile: `< 768px` (Single column vertical stacking, bottom navigation tabs, bottom sheet modals).
-  - Desktop / Web: `≥ 768px` (Split layout, multi-column grid, centered dialogue modals, sidebar/horizontal controls).
-</file>
-
-<file path="LICENSE">
-The MIT License (MIT)
-
-Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-</file>
-
-<file path="lint-staged.config.js">
-module.exports = {
-  '*.{ts,tsx}': ['eslint --fix', 'prettier --write'],
-  '*.{json,md,css}': ['prettier --write'],
 };
 </file>
 
@@ -3847,11 +3860,6 @@ module.exports = getDefaultConfig(__dirname);
   "packageManager": "pnpm@12.10.1",
   "private": true
 }
-</file>
-
-<file path="pnpm-workspace.yaml">
-allowBuilds:
-  unrs-resolver: false
 </file>
 
 <file path="README.md">

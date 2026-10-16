@@ -7,7 +7,17 @@ module.exports = {
     'prettier/prettier': 'error',
     'no-console': ['warn', { allow: ['warn', 'error'] }],
     'react-hooks/exhaustive-deps': 'error',
-    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-unused-vars': [
+      'warn',
+      {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      },
+    ],
   },
-  overrides: [{ files: ['scripts/**/*.ts'], rules: { 'no-console': 'off' } }],
+  overrides: [
+    { files: ['scripts/**/*.ts'], rules: { 'no-console': 'off' } },
+    { files: ['*.js'], rules: { '@typescript-eslint/no-unused-vars': 'off' } },
+  ],
 };
