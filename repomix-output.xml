@@ -52,15 +52,6 @@ app/
     export.tsx
     index.tsx
     post-award.tsx
-  grants/
-    [grantID]/
-      _layout.tsx
-      audit.tsx
-      dashboard.tsx
-      discovery.tsx
-      drafting.tsx
-      export.tsx
-      post-award.tsx
   _layout.tsx
   +not-found.tsx
   onboarding.tsx
@@ -117,13 +108,15 @@ src/
     constants.ts
     env.ts
     theme.ts
+  mock/
+    grants.ts
   store/
     useDraftStore.ts
     useThemeStore.ts
     useUIStore.ts
   types/
     api.ts
-    grants.ts
+    grant.ts
     theme.ts
   utils/
     formatting.ts
@@ -131,7 +124,9 @@ src/
     uuid.ts
 .env.example
 .eslintrc.js
+.gitattributes
 .gitignore
+.prettierignore
 .prettierrc
 AGENTS.md
 API_CONTRACTS.md
@@ -139,32 +134,82 @@ app.json
 babel.config.js
 commitlint.config.js
 DESIGN_MANIFESTO.md
-global.css
 LICENSE
 lint-staged.config.js
 metro.config.js
-nativewind-env.d.ts
 package.json
+pnpm
 pnpm-workspace.yaml
-tailwind.config.js
+README.md
 tsconfig.json
 </directory_structure>
 
 <files>
 This section contains the contents of the repository's files.
 
+<file path="src/mock/grants.ts">
+import { Grant } from '@/types/grant';
+
+export const mockGrants: Grant[] = [
+  {
+    id: '1',
+    title: 'Climate Resilience Infrastructure',
+    funder: 'Northstar Foundation',
+    deadline: '28 days',
+    amount: '$250k–$500k',
+    matchPct: 94,
+    region: 'Global · Infrastructure',
+    summary:
+      'Deploy flood-resilient infrastructure across 12 municipalities, pairing sensor networks with community response planning to protect climate-exposed districts.',
+  },
+  {
+    id: '2',
+    title: 'Community Health Access',
+    funder: 'Civic Futures Fund',
+    deadline: '41 days',
+    amount: '$75k–$150k',
+    matchPct: 82,
+    region: 'East Europe · Health',
+    summary:
+      'Expand primary-care outreach to underserved communities through mobile clinics and telehealth kiosks, cutting preventable admissions and wait times.',
+  },
+  {
+    id: '3',
+    title: 'Open Data for Public Good',
+    funder: 'The Meridian Trust',
+    deadline: '56 days',
+    amount: '$40k–$100k',
+    matchPct: 76,
+    region: 'CIS · Technology',
+    summary:
+      'Publish civic datasets through an open, machine-readable platform that powers public-interest research, transparency tools, and regional innovation.',
+  },
+];
+</file>
+
+<file path="pnpm">
+
+</file>
+
 <file path=".husky/commit-msg">
-"npx --no -- commitlint --edit \$1"
+npx --no -- commitlint --edit $1
 </file>
 
 <file path=".husky/pre-commit">
-npm test
+npx lint-staged
 </file>
 
 <file path="app/(tabs)/_layout.tsx">
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { LayoutDashboard, Compass, PenTool, ShieldCheck, FileCheck, Award } from 'lucide-react-native';
+import {
+  LayoutDashboard,
+  Compass,
+  PenTool,
+  ShieldCheck,
+  FileCheck,
+  Award,
+} from 'lucide-react-native';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE } from '@/config/theme';
 
@@ -247,64 +292,753 @@ export default function TabsLayout() {
 </file>
 
 <file path="app/(tabs)/audit.tsx">
+import React, { useState } from 'react';
+import { View, StyleSheet, FlatList } from 'react-native';
+import { CheckCircle2, AlertCircle } from 'lucide-react-native';
+import { ScreenContainer } from '@/components/templates/ScreenContainer';
+import { AppText } from '@/components/atoms/AppText';
+import { StatusBadge } from '@/components/atoms/StatusBadge';
+import { ConfidenceGaugeReadout } from '@/components/molecules/ConfidenceGaugeReadout';
+import { ChatMessageBubble } from '@/components/molecules/ChatMessageBubble';
+import { ChatInputRow } from '@/components/molecules/ChatInputRow';
+import { useDraftStore } from '@/store/useDraftStore';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
 
+export default function AuditScreen() {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+  const { completedSections, requiredSections, confidenceScore, auditMessages, addAuditMessage } =
+    useDraftStore();
+
+  const [inputMessage, setInputMessage] = useState('');
+
+  const handleSend = () => {
+    if (!inputMessage.trim()) return;
+    addAuditMessage(inputMessage, 'user');
+    const msg = inputMessage;
+    setInputMessage('');
+    setTimeout(() => {
+      const missing = requiredSections.filter((s) => !completedSections.includes(s));
+      const res =
+        missing.length === 0
+          ? `AUDIT OK · ${msg}: Zero arithmetic inconsistencies. Confidence index 100.`
+          : `AUDIT ALERT · ${msg}: Blocked on omitted sections: ${missing.join(', ')}. Confidence: ${confidenceScore}.`;
+      addAuditMessage(res, 'assistant-auditor');
+    }, 600);
+  };
+
+  return (
+    <ScreenContainer scrollable={false} style={{ padding: 0 }}>
+      <View style={styles.header}>
+        <AppText variant="h1">Deterministic Auditor</AppText>
+        <StatusBadge label="Agent-2 Deterministic" variant="verified" />
+      </View>
+
+      <View
+        style={[styles.scanCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+      >
+        <AppText variant="caption" color="muted" style={styles.cardTitle}>
+          SCAN STATUS · REQUIRED PROPOSAL SECTIONS
+        </AppText>
+        <View style={styles.grid}>
+          {requiredSections.map((sec) => {
+            const passed = completedSections.includes(sec);
+            return (
+              <View
+                key={sec}
+                style={[
+                  styles.gridItem,
+                  { backgroundColor: theme.subtle, borderColor: theme.border },
+                ]}
+              >
+                {passed ? (
+                  <CheckCircle2 size={16} color={theme.verified} />
+                ) : (
+                  <AlertCircle size={16} color={theme.failure} />
+                )}
+                <AppText
+                  variant="caption"
+                  color={passed ? 'main' : 'failure'}
+                  style={{ fontWeight: '600' }}
+                >
+                  {sec}
+                </AppText>
+              </View>
+            );
+          })}
+        </View>
+
+        <View style={[styles.gaugeBox, { borderTopColor: theme.border }]}>
+          <ConfidenceGaugeReadout score={confidenceScore} />
+        </View>
+      </View>
+
+      <FlatList
+        data={auditMessages}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <ChatMessageBubble {...item} />}
+        contentContainerStyle={styles.chatList}
+      />
+
+      <ChatInputRow
+        value={inputMessage}
+        onChangeText={setInputMessage}
+        onSend={handleSend}
+        placeholder="Query the deterministic auditor..."
+      />
+    </ScreenContainer>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  scanCard: {
+    marginHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+  },
+  cardTitle: {
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  gridItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  gaugeBox: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+  },
+  chatList: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+});
 </file>
 
 <file path="app/(tabs)/discovery.tsx">
+import { View, Text } from 'react-native';
 
+export default function DiscoveryPlaceholder() {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Text>Discovery (Coming Soon)</Text>
+    </View>
+  );
+}
 </file>
 
 <file path="app/(tabs)/drafting.tsx">
+import React, { useState } from 'react';
+import { View, StyleSheet, FlatList, Pressable } from 'react-native';
+import { Trash2, X } from 'lucide-react-native';
+import { ScreenContainer } from '@/components/templates/ScreenContainer';
+import { AppText } from '@/components/atoms/AppText';
+import { AppButton } from '@/components/atoms/AppButton';
+import { AppInput } from '@/components/atoms/AppInput';
+import { StatusBadge } from '@/components/atoms/StatusBadge';
+import { ChatInputRow } from '@/components/molecules/ChatInputRow';
+import { ChatMessageBubble } from '@/components/molecules/ChatMessageBubble';
+import { useDraftStore } from '@/store/useDraftStore';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
 
+export default function DraftingScreen() {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+  const {
+    completedSections,
+    requiredSections,
+    draftingMessages,
+    addDraftingMessage,
+    removeCompletedSection,
+    restoreCompletedSections,
+    addRequiredSection,
+    deleteRequiredSection,
+  } = useDraftStore();
+
+  const [inputMessage, setInputMessage] = useState('');
+  const [newSectionName, setNewSectionName] = useState('');
+
+  const chips = [
+    'Tighten the mission statement',
+    'Align budget to funder cap',
+    'Add evidence references',
+  ];
+
+  const handleSend = () => {
+    if (!inputMessage.trim()) return;
+    addDraftingMessage(inputMessage, 'user');
+    const msg = inputMessage;
+    setInputMessage('');
+    setTimeout(() => {
+      addDraftingMessage(
+        `Noted. Revising draft for: "${msg}". Narrative remains aligned with funder criteria.`,
+        'assistant-narrative'
+      );
+    }, 600);
+  };
+
+  return (
+    <ScreenContainer scrollable={false} style={{ padding: 0 }}>
+      <View style={styles.topInfo}>
+        <AppText variant="h1">Drafting Assistant</AppText>
+        <StatusBadge
+          label={`${completedSections.length}/${requiredSections.length} sections verified`}
+          variant={completedSections.length === requiredSections.length ? 'verified' : 'pending'}
+        />
+      </View>
+
+      <View
+        style={[styles.sectionsCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+      >
+        <AppText variant="caption" color="muted" style={styles.cardHeader}>
+          APPLICATION DRAFT — REQUIRED SECTIONS
+        </AppText>
+        <View style={styles.sectionRows}>
+          {completedSections.map((sec) => (
+            <View
+              key={sec}
+              style={[
+                styles.sectionRow,
+                { borderColor: theme.border, backgroundColor: theme.subtle },
+              ]}
+            >
+              <AppText variant="body" style={styles.secText}>
+                {sec}
+              </AppText>
+              <View style={styles.secActions}>
+                <Pressable onPress={() => removeCompletedSection(sec)} style={styles.iconBtn}>
+                  <X size={14} color={theme.textMuted} />
+                </Pressable>
+                <Pressable onPress={() => deleteRequiredSection(sec)} style={styles.iconBtn}>
+                  <Trash2 size={14} color={theme.failure} />
+                </Pressable>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.addSectionRow}>
+          <View style={styles.addInput}>
+            <AppInput
+              placeholder="Add section (e.g. Moat)"
+              value={newSectionName}
+              onChangeText={setNewSectionName}
+            />
+          </View>
+          <AppButton
+            label="Add"
+            size="sm"
+            onPress={() => {
+              if (newSectionName.trim()) {
+                addRequiredSection(newSectionName);
+                setNewSectionName('');
+              }
+            }}
+          />
+        </View>
+        {completedSections.length < requiredSections.length && (
+          <AppButton
+            label="Restore all sections"
+            variant="outline"
+            size="sm"
+            onPress={restoreCompletedSections}
+          />
+        )}
+      </View>
+
+      <View style={styles.chipRow}>
+        {chips.map((chip) => (
+          <Pressable
+            key={chip}
+            style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={() => {
+              addDraftingMessage(chip, 'user');
+              setTimeout(() => {
+                addDraftingMessage(
+                  `Automated revision pass executed for: ${chip}.`,
+                  'assistant-narrative'
+                );
+              }, 600);
+            }}
+          >
+            <AppText variant="caption">{chip}</AppText>
+          </Pressable>
+        ))}
+      </View>
+
+      <FlatList
+        data={draftingMessages}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <ChatMessageBubble {...item} />}
+        contentContainerStyle={styles.chatList}
+      />
+
+      <ChatInputRow value={inputMessage} onChangeText={setInputMessage} onSend={handleSend} />
+    </ScreenContainer>
+  );
+}
+
+const styles = StyleSheet.create({
+  topInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  sectionsCard: {
+    marginHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+  },
+  cardHeader: {
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  sectionRows: {
+    gap: 6,
+  },
+  sectionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  secText: {
+    fontWeight: '600',
+  },
+  secActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  iconBtn: {
+    padding: 4,
+  },
+  addSectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  addInput: {
+    flex: 1,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginVertical: 8,
+    gap: 6,
+  },
+  chip: {
+    borderRadius: 6,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  chatList: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+});
 </file>
 
 <file path="app/(tabs)/export.tsx">
+import React, { useState } from 'react';
+import { View, StyleSheet, Pressable } from 'react-native';
+import { FileText, FileDown, NotebookPen, FileCode } from 'lucide-react-native';
+import { ScreenContainer } from '@/components/templates/ScreenContainer';
+import { AppText } from '@/components/atoms/AppText';
+import { AppButton } from '@/components/atoms/AppButton';
+import { AppTextArea } from '@/components/atoms/AppTextArea';
+import { StatusBadge } from '@/components/atoms/StatusBadge';
+import { useDraftStore } from '@/store/useDraftStore';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
+import { CONSTANTS } from '@/config/constants';
 
+export default function ExportScreen() {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+  const { confidenceScore, exportDocument, setExportDocument } = useDraftStore();
+  const [format, setFormat] = useState('word');
+  const [exported, setExported] = useState(false);
+
+  const locked = confidenceScore < CONSTANTS.CONFIDENCE_THRESHOLD;
+
+  const formats = [
+    { id: 'word', label: 'Word (.docx)', icon: FileText },
+    { id: 'notebook', label: 'Notebook (.ipynb)', icon: NotebookPen },
+    { id: 'pdf', label: 'PDF (.pdf)', icon: FileDown },
+    { id: 'markdown', label: 'Markdown (.md)', icon: FileCode },
+  ];
+
+  return (
+    <ScreenContainer>
+      <View style={styles.header}>
+        <AppText variant="h1">Export Control</AppText>
+        <AppText variant="caption" color="muted">
+          Deterministic compliance audit gate & document packager
+        </AppText>
+      </View>
+
+      <View style={styles.formatsRow}>
+        {formats.map((f) => {
+          const Icon = f.icon;
+          const active = format === f.id;
+          return (
+            <Pressable
+              key={f.id}
+              onPress={() => {
+                setFormat(f.id);
+                setExported(false);
+              }}
+              style={[
+                styles.formatBtn,
+                {
+                  backgroundColor: theme.surface,
+                  borderColor: active ? theme.primary : theme.border,
+                },
+              ]}
+            >
+              <Icon size={20} color={active ? theme.primary : theme.textMuted} />
+              <AppText variant="caption" style={{ fontWeight: '600' }}>
+                {f.label}
+              </AppText>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={styles.statusRow}>
+        <StatusBadge
+          label={
+            locked
+              ? `Export locked — confidence ${confidenceScore} below ${CONSTANTS.CONFIDENCE_THRESHOLD}`
+              : `Export unlocked — confidence ${confidenceScore}`
+          }
+          variant={locked ? 'failure' : 'verified'}
+        />
+        <AppButton
+          label={exported ? 'Exported Successfully' : 'Export Bundle'}
+          variant="primary"
+          size="sm"
+          disabled={locked}
+          onPress={() => setExported(true)}
+        />
+      </View>
+
+      <AppTextArea
+        label="Document Body"
+        value={exportDocument}
+        onChangeText={setExportDocument}
+        charLimit={CONSTANTS.MAX_INPUT_CHARS}
+      />
+
+      {exported && (
+        <View
+          style={[
+            styles.checksumBox,
+            { backgroundColor: theme.surface, borderColor: theme.verified },
+          ]}
+        >
+          <AppText variant="caption" color="verified" align="center">
+            CHECKSUM VERIFIED · SHA-256
+            e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+          </AppText>
+        </View>
+      )}
+    </ScreenContainer>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    marginBottom: 16,
+  },
+  formatsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  formatBtn: {
+    flex: 1,
+    minWidth: 140,
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  checksumBox: {
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+});
 </file>
 
 <file path="app/(tabs)/index.tsx">
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import { ScreenContainer } from '@/components/templates/ScreenContainer';
+import { AppText } from '@/components/atoms/AppText';
+import { HeroContinueCard } from '@/components/molecules/HeroContinueCard';
+import { PipelineFunnelBar } from '@/components/organisms/PipelineFunnelBar';
+import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
+import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSheet';
+import { useGrants } from '@/api/hooks/useGrants';
+import { useUIStore } from '@/store/useUIStore';
+import { useDraftStore } from '@/store/useDraftStore';
+import { Grant } from '@/types/grant';
 
+export default function DashboardScreen() {
+  const router = useRouter();
+  const { data: grants = [] } = useGrants();
+  const { setActiveGrantId } = useUIStore();
+  const { resetDraftForGrant } = useDraftStore();
+  const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
+
+  const activeGrant = grants[0] ?? {
+    id: '1',
+    title: 'Climate Resilience Infrastructure',
+    funder: 'Northstar Foundation',
+  };
+
+  const handleApply = (grant: Grant) => {
+    setActiveGrantId(grant.id);
+    resetDraftForGrant(grant.id, grant.title, grant.funder);
+    setSelectedGrant(null);
+    router.push('/(tabs)/drafting');
+  };
+
+  return (
+    <ScreenContainer>
+      <View style={styles.header}>
+        <AppText variant="display">Good morning, Alex.</AppText>
+        <AppText variant="caption" color="muted">
+          Grantum Autonomous Capital Allocation Terminal
+        </AppText>
+      </View>
+
+      <HeroContinueCard
+        projectTitle={activeGrant.title}
+        completionPct={42}
+        onResume={() => router.push('/(tabs)/drafting')}
+      />
+
+      <PipelineFunnelBar
+        stages={[
+          { label: 'Discovery', count: 24 },
+          { label: 'Pre-screen', count: 8 },
+          { label: 'Draft', count: 3 },
+          { label: 'Audit', count: 2 },
+          { label: 'Ready', count: 1 },
+          { label: 'Awarded', count: 1 },
+        ]}
+      />
+
+      <View style={styles.section}>
+        <AppText variant="h2" style={styles.sectionTitle}>
+          Recommended Opportunities
+        </AppText>
+        <GrantDiscoveryGrid
+          grants={grants}
+          onSelect={(grant) => setSelectedGrant(grant)}
+          onApply={handleApply}
+        />
+      </View>
+
+      <GrantDetailModalSheet
+        grant={selectedGrant}
+        visible={Boolean(selectedGrant)}
+        onClose={() => setSelectedGrant(null)}
+        onApply={handleApply}
+      />
+    </ScreenContainer>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    marginBottom: 16,
+  },
+  section: {
+    marginTop: 20,
+  },
+  sectionTitle: {
+    marginBottom: 12,
+  },
+});
 </file>
 
 <file path="app/(tabs)/post-award.tsx">
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { ScreenContainer } from '@/components/templates/ScreenContainer';
+import { AppText } from '@/components/atoms/AppText';
+import { StatusBadge } from '@/components/atoms/StatusBadge';
+import { AuditLogLine } from '@/components/molecules/AuditLogLine';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
 
-</file>
+export default function PostAwardScreen() {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
 
-<file path="app/grants/[grantID]/_layout.tsx">
+  return (
+    <ScreenContainer>
+      <View style={styles.header}>
+        <AppText variant="h1">Post-Award Tracking</AppText>
+        <StatusBadge label="Awarded" variant="gold" />
+      </View>
 
-</file>
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <AppText variant="h2">Climate Resilience Infrastructure</AppText>
+        <AppText variant="caption" color="muted" style={styles.funder}>
+          Northstar Foundation · Counter-signed 18 May 2026
+        </AppText>
 
-<file path="app/grants/[grantID]/audit.tsx">
+        <View style={styles.grid}>
+          <View style={[styles.metricBox, { backgroundColor: theme.subtle }]}>
+            <AppText variant="caption" color="muted">
+              Award Total
+            </AppText>
+            <AppText variant="metric-sm" color="main">
+              $500,000
+            </AppText>
+          </View>
+          <View style={[styles.metricBox, { backgroundColor: theme.subtle }]}>
+            <AppText variant="caption" color="muted">
+              Next Milestone
+            </AppText>
+            <AppText variant="metric-sm" color="main">
+              14 Aug 2026
+            </AppText>
+          </View>
+          <View style={[styles.metricBox, { backgroundColor: theme.subtle }]}>
+            <AppText variant="caption" color="muted">
+              Compliance State
+            </AppText>
+            <AppText variant="metric-sm" color="verified">
+              100% Locked
+            </AppText>
+          </View>
+        </View>
+      </View>
 
-</file>
+      <View
+        style={[styles.auditCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+      >
+        <AppText variant="h3" style={styles.auditTitle}>
+          Immutable Audit Trail
+        </AppText>
+        <AuditLogLine
+          agent="agent-2-deterministic"
+          message="Final budget reconciliation passed"
+          status="passed"
+          timestamp="18 May · 14:32"
+        />
+        <AuditLogLine
+          agent="agent-1-narrative"
+          message="Evidence references locked"
+          status="passed"
+          timestamp="18 May · 14:31"
+        />
+        <AuditLogLine
+          agent="system"
+          message="Submission receipt stored on ledger"
+          status="passed"
+          timestamp="18 May · 14:30"
+        />
+      </View>
+    </ScreenContainer>
+  );
+}
 
-<file path="app/grants/[grantID]/dashboard.tsx">
-
-</file>
-
-<file path="app/grants/[grantID]/discovery.tsx">
-
-</file>
-
-<file path="app/grants/[grantID]/drafting.tsx">
-
-</file>
-
-<file path="app/grants/[grantID]/export.tsx">
-
-</file>
-
-<file path="app/grants/[grantID]/post-award.tsx">
-
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  card: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 16,
+  },
+  funder: {
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  grid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  metricBox: {
+    flex: 1,
+    borderRadius: 8,
+    padding: 10,
+  },
+  auditCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+  },
+  auditTitle: {
+    marginBottom: 10,
+  },
+});
 </file>
 
 <file path="app/_layout.tsx">
-import React from 'react';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
+import { JetBrainsMono_500Medium, JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono';
 import { queryClient } from '@/api/queryClient';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE } from '@/config/theme';
@@ -313,6 +1047,22 @@ export default function RootLayout() {
   const { mode } = useThemeStore();
   const theme = PALETTE[mode];
   const { width } = useWindowDimensions();
+
+  const [fontsLoaded] = useFonts({
+    Inter: Inter_400Regular,
+    'Inter-SemiBold': Inter_600SemiBold,
+    'Inter-Bold': Inter_700Bold,
+    'JetBrains Mono': JetBrainsMono_500Medium,
+    'JetBrainsMono-Bold': JetBrainsMono_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaProvider>
@@ -332,6 +1082,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   stage: {
     flex: 1,
     width: '100%',
@@ -344,35 +1099,182 @@ const styles = StyleSheet.create({
 </file>
 
 <file path="app/+not-found.tsx">
+import { View, Text } from 'react-native';
 
+export default function NotFound() {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Text>404 - Signal Lost</Text>
+    </View>
+  );
+}
 </file>
 
 <file path="app/onboarding.tsx">
+import { View, Text } from 'react-native';
 
+export default function Onboarding() {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Text>Onboarding (Coming Soon)</Text>
+    </View>
+  );
+}
 </file>
 
 <file path="src/api/hooks/useAuditScan.ts">
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '../client';
+import { ENDPOINTS } from '../endpoint';
+import { AuditScanResponse } from '@/types/api';
+import { ENV } from '@/config/env';
 
+export function useAuditStatus(grantId: string, isScanning: boolean) {
+  return useQuery<AuditScanResponse>({
+    queryKey: ['audit-status', grantId],
+    queryFn: async () => {
+      const response = await apiClient.get(ENDPOINTS.PROPOSAL_AUDIT(grantId));
+      return response.data;
+    },
+    enabled: Boolean(grantId),
+    refetchInterval: isScanning ? ENV.POLLING_INTERVAL_MS : false,
+  });
+}
+
+export function useTriggerAuditScan(grantId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.post(ENDPOINTS.PROPOSAL_AUDIT(grantId), {
+        triggerMode: 'full_scan',
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['audit-status', grantId] });
+    },
+  });
+}
 </file>
 
 <file path="src/api/hooks/useGrantDetail.ts">
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '../client';
+import { ENDPOINTS } from '../endpoint';
+import { Grant } from '@/types/grant';
+import { mockGrants } from '@/mock/grants';
 
+export function useGrantDetail(grantId: string) {
+  return useQuery<Grant>({
+    queryKey: ['grant', grantId],
+    queryFn: async () => {
+      try {
+        const response = await apiClient.get(ENDPOINTS.GRANT_DETAIL(grantId));
+        return response.data;
+      } catch (err) {
+        return mockGrants.find((g) => g.id === grantId) ?? mockGrants[0];
+      }
+    },
+    enabled: Boolean(grantId),
+  });
+}
 </file>
 
 <file path="src/api/hooks/useGrants.ts">
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '../client';
+import { ENDPOINTS } from '../endpoint';
+import { Grant } from '@/types/grant';
+import { mockGrants } from '@/mock/grants';
 
+export function useGrants(query?: string) {
+  return useQuery<Grant[]>({
+    queryKey: ['grants', query],
+    queryFn: async () => {
+      try {
+        const response = await apiClient.get(ENDPOINTS.GRANTS, { params: { q: query } });
+        return response.data;
+      } catch (err) {
+        // Hermetic fallback for disconnected demo runs
+        if (!query) return mockGrants;
+        return mockGrants.filter(
+          (g) =>
+            g.title.toLowerCase().includes(query.toLowerCase()) ||
+            g.funder.toLowerCase().includes(query.toLowerCase())
+        );
+      }
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+}
 </file>
 
 <file path="src/api/hooks/useProposalDraft.ts">
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '../client';
+import { ENDPOINTS } from '../endpoint';
+import { ProposalDraft } from '@/types/api';
 
+export function useProposalDraft(grantId: string) {
+  return useQuery<ProposalDraft>({
+    queryKey: ['proposal-draft', grantId],
+    queryFn: async () => {
+      const response = await apiClient.get(ENDPOINTS.PROPOSAL_DRAFT(grantId));
+      return response.data;
+    },
+    enabled: Boolean(grantId),
+  });
+}
+
+export function useMutateProposalSections(grantId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { action: 'remove' | 'add' | 'restore'; sectionName: string }) => {
+      const response = await apiClient.patch(ENDPOINTS.PROPOSAL_SECTIONS(grantId), payload);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposal-draft', grantId] });
+      queryClient.invalidateQueries({ queryKey: ['audit-status', grantId] });
+    },
+  });
+}
 </file>
 
 <file path="src/api/client.ts">
+import axios from 'axios';
+import { ENV } from '@/config/env';
 
+export const apiClient = axios.create({
+  baseURL: ENV.API_BASE_URL,
+  timeout: ENV.API_TIMEOUT_MS,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Structured warn log for terminal and Expo debugging
+    console.warn(
+      `[API INTERCEPTOR WARN] ${error.config?.method?.toUpperCase()} ${error.config?.url}:`,
+      error.message
+    );
+    return Promise.reject(error);
+  }
+);
 </file>
 
 <file path="src/api/endpoint.ts">
-
+export const ENDPOINTS = {
+  GRANTS: '/grants',
+  GRANT_DETAIL: (id: string) => `/grants/${id}`,
+  PROPOSAL_DRAFT: (grantId: string) => `/proposals/${grantId}/draft`,
+  PROPOSAL_SECTIONS: (grantId: string) => `/proposals/${grantId}/sections`,
+  PROPOSAL_AUDIT: (grantId: string) => `/proposals/${grantId}/audit`,
+  PROPOSAL_EXPORT: (grantId: string) => `/proposals/${grantId}/export`,
+} as const;
 </file>
 
 <file path="src/api/queryClient.ts">
@@ -383,7 +1285,7 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 2, // 2 minutes data freshness
-      gcTime: 1000 * 60 * 15,    // 15 minutes garbage collection
+      gcTime: 1000 * 60 * 15, // 15 minutes garbage collection
       retry: 2,
       refetchOnWindowFocus: true,
       refetchInterval: false,
@@ -490,7 +1392,10 @@ export function AppButton({
           {icon && iconPosition === 'left' && icon}
           <AppText
             variant={size === 'sm' ? 'caption' : 'body'}
-            style={[styles.text, icon ? (iconPosition === 'left' ? styles.iconRight : styles.iconLeft) : null]}
+            style={[
+              styles.text,
+              icon ? (iconPosition === 'left' ? styles.iconRight : styles.iconLeft) : null,
+            ]}
             color={getTextColor() as any}
           >
             {label}
@@ -537,7 +1442,92 @@ const styles = StyleSheet.create({
 </file>
 
 <file path="src/components/atoms/AppInput.tsx">
+import React from 'react';
+import { View, TextInput, TextInputProps, StyleSheet } from 'react-native';
+import { AppText } from './AppText';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
 
+export interface AppInputProps extends TextInputProps {
+  label?: string;
+  error?: string;
+  icon?: React.ReactNode;
+}
+
+export function AppInput({ label, error, icon, style, ...props }: AppInputProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+
+  return (
+    <View style={styles.container}>
+      {label && (
+        <AppText variant="caption" color="muted" style={styles.label}>
+          {label}
+        </AppText>
+      )}
+      <View
+        style={[
+          styles.inputWrapper,
+          {
+            backgroundColor: theme.surface,
+            borderColor: error ? theme.failure : theme.border,
+          },
+        ]}
+      >
+        {icon && <View style={styles.iconContainer}>{icon}</View>}
+        <TextInput
+          placeholderTextColor={theme.textMuted}
+          style={[
+            styles.input,
+            { color: theme.textMain },
+            icon ? styles.inputWithIcon : null,
+            style,
+          ]}
+          {...props}
+        />
+      </View>
+      {error && (
+        <AppText variant="caption" color="failure" style={styles.error}>
+          {error}
+        </AppText>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    width: '100%',
+    marginVertical: 4,
+  },
+  label: {
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    minHeight: 44,
+    paddingHorizontal: 12,
+  },
+  iconContainer: {
+    marginRight: 8,
+  },
+  input: {
+    flex: 1,
+    fontFamily: 'Inter',
+    fontSize: 14,
+    height: '100%',
+  },
+  inputWithIcon: {
+    paddingLeft: 4,
+  },
+  error: {
+    marginTop: 4,
+  },
+});
 </file>
 
 <file path="src/components/atoms/AppText.tsx">
@@ -575,12 +1565,7 @@ export function AppText({
 
   return (
     <Text
-      style={[
-        styles.base,
-        styles[variant],
-        { color: colorStyles[color], textAlign: align },
-        style,
-      ]}
+      style={[styles.base, styles[variant], { color: colorStyles[color], textAlign: align }, style]}
       {...props}
     >
       {children}
@@ -640,19 +1625,211 @@ const styles = StyleSheet.create({
 </file>
 
 <file path="src/components/atoms/AppTextArea.tsx">
+import React from 'react';
+import { View, TextInput, TextInputProps, StyleSheet } from 'react-native';
+import { AppText } from './AppText';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
 
+export interface AppTextAreaProps extends TextInputProps {
+  label?: string;
+  charLimit?: number;
+}
+
+export function AppTextArea({ label, charLimit, value, style, ...props }: AppTextAreaProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+  const count = typeof value === 'string' ? value.length : 0;
+  const isOver = charLimit !== undefined && count > charLimit;
+
+  return (
+    <View style={styles.container}>
+      {label && (
+        <AppText variant="caption" color="muted" style={styles.label}>
+          {label}
+        </AppText>
+      )}
+      <View
+        style={[
+          styles.textWrapper,
+          {
+            backgroundColor: theme.surface,
+            borderColor: isOver ? theme.failure : theme.border,
+          },
+        ]}
+      >
+        <TextInput
+          multiline
+          textAlignVertical="top"
+          placeholderTextColor={theme.textMuted}
+          value={value}
+          maxLength={charLimit}
+          style={[styles.textArea, { color: theme.textMain }, style]}
+          {...props}
+        />
+      </View>
+      {charLimit !== undefined && (
+        <AppText
+          variant="caption"
+          align="right"
+          color={isOver ? 'failure' : 'muted'}
+          style={styles.counter}
+        >
+          {count}/{charLimit}
+        </AppText>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    width: '100%',
+    marginVertical: 4,
+  },
+  label: {
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  textWrapper: {
+    borderRadius: 8,
+    borderWidth: 1,
+    minHeight: 120,
+    padding: 12,
+  },
+  textArea: {
+    fontFamily: 'Inter',
+    fontSize: 14,
+    minHeight: 96,
+  },
+  counter: {
+    marginTop: 4,
+  },
+});
 </file>
 
 <file path="src/components/atoms/Chip.tsx">
+import React from 'react';
+import { Pressable, StyleSheet } from 'react-native';
+import { AppText } from './AppText';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
 
+export interface ChipProps {
+  label: string;
+  selected?: boolean;
+  onToggle?: () => void;
+  disabled?: boolean;
+}
+
+export function Chip({ label, selected = false, onToggle, disabled = false }: ChipProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+
+  return (
+    <Pressable
+      onPress={onToggle}
+      disabled={disabled}
+      style={[
+        styles.chip,
+        {
+          backgroundColor: selected ? theme.primary : theme.surface,
+          borderColor: selected ? theme.primary : theme.border,
+          opacity: disabled ? 0.4 : 1,
+        },
+      ]}
+    >
+      <AppText
+        variant="caption"
+        style={{
+          color: selected ? theme.primaryForeground : theme.textMuted,
+          fontWeight: '600',
+        }}
+      >
+        {label}
+      </AppText>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginRight: 6,
+    marginBottom: 6,
+  },
+});
 </file>
 
 <file path="src/components/atoms/IconButton.tsx">
+import React from 'react';
+import { Pressable, StyleSheet } from 'react-native';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
 
+export interface IconButtonProps {
+  icon: React.ReactNode;
+  onPress: () => void;
+  label: string;
+  active?: boolean;
+  disabled?: boolean;
+}
+
+export function IconButton({
+  icon,
+  onPress,
+  label,
+  active = false,
+  disabled = false,
+}: IconButtonProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.button,
+        {
+          backgroundColor: active ? theme.subtle : 'transparent',
+          borderColor: active ? theme.borderStrong : theme.border,
+          opacity: disabled ? 0.4 : pressed ? 0.7 : 1,
+        },
+      ]}
+    >
+      {icon}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  button: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
 </file>
 
 <file path="src/components/atoms/index.ts">
-
+export * from './AppText';
+export * from './AppButton';
+export * from './AppInput';
+export * from './AppTextArea';
+export * from './StatusBadge';
+export * from './MetricGauge';
+export * from './ProgressBar';
+export * from './ToggleSwitch';
+export * from './Chip';
+export * from './IconButton';
 </file>
 
 <file path="src/components/atoms/MetricGauge.tsx">
@@ -741,7 +1918,62 @@ const styles = StyleSheet.create({
 </file>
 
 <file path="src/components/atoms/ProgressBar.tsx">
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { AppText } from './AppText';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
 
+export interface ProgressBarProps {
+  percent: number;
+  label?: string;
+}
+
+export function ProgressBar({ percent, label }: ProgressBarProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+  const clamped = Math.max(0, Math.min(100, percent));
+
+  return (
+    <View style={styles.container}>
+      {label && (
+        <View style={styles.labelRow}>
+          <AppText variant="caption" color="muted">
+            {label}
+          </AppText>
+          <AppText variant="metric-sm" color="main">
+            {clamped}%
+          </AppText>
+        </View>
+      )}
+      <View style={[styles.track, { backgroundColor: theme.subtle }]}>
+        <View style={[styles.fill, { width: `${clamped}%`, backgroundColor: theme.pending }]} />
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    width: '100%',
+    marginVertical: 4,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  track: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  fill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+});
 </file>
 
 <file path="src/components/atoms/StatusBadge.tsx">
@@ -801,27 +2033,386 @@ const styles = StyleSheet.create({
 </file>
 
 <file path="src/components/atoms/ToggleSwitch.tsx">
+import React from 'react';
+import { Pressable, View, StyleSheet } from 'react-native';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
 
+export interface ToggleSwitchProps {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  disabled?: boolean;
+}
+
+export function ToggleSwitch({ checked, onChange, disabled = false }: ToggleSwitchProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+
+  return (
+    <Pressable
+      onPress={() => !disabled && onChange(!checked)}
+      disabled={disabled}
+      style={[
+        styles.track,
+        {
+          backgroundColor: checked ? theme.verified : theme.subtle,
+          borderColor: checked ? theme.verified : theme.border,
+          opacity: disabled ? 0.4 : 1,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.thumb,
+          {
+            backgroundColor: theme.textMain,
+            transform: [{ translateX: checked ? 20 : 2 }],
+          },
+        ]}
+      />
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  track: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    justifyContent: 'center',
+  },
+  thumb: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+  },
+});
 </file>
 
 <file path="src/components/molecules/AuditLogLine.tsx">
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Check, Flag, Clock3, CircleAlert } from 'lucide-react-native';
+import { AppText } from '../atoms/AppText';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
 
+export interface AuditLogLineProps {
+  agent: 'agent-1-narrative' | 'agent-2-deterministic' | 'system';
+  message: string;
+  status: 'running' | 'passed' | 'failed';
+  timestamp?: string;
+}
+
+export function AuditLogLine({ agent, message, status, timestamp }: AuditLogLineProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+
+  const renderIcon = () => {
+    if (status === 'passed') return <Check size={16} color={theme.verified} />;
+    if (status === 'failed') return <Flag size={16} color={theme.failure} />;
+    if (agent === 'system') return <Clock3 size={16} color={theme.pending} />;
+    return <CircleAlert size={16} color={theme.pending} />;
+  };
+
+  return (
+    <View style={[styles.row, { borderBottomColor: theme.border }]}>
+      <View style={styles.iconWrap}>{renderIcon()}</View>
+      <AppText variant="metric-sm" color="muted" style={styles.message} numberOfLines={2}>
+        {message}
+      </AppText>
+      {timestamp && (
+        <AppText variant="metric-sm" color="muted" style={styles.timestamp}>
+          {timestamp}
+        </AppText>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+  },
+  iconWrap: {
+    marginTop: 2,
+  },
+  message: {
+    flex: 1,
+  },
+  timestamp: {
+    opacity: 0.7,
+  },
+});
 </file>
 
 <file path="src/components/molecules/ChatInputRow.tsx">
+import React from 'react';
+import { View, TextInput, StyleSheet } from 'react-native';
+import { Send } from 'lucide-react-native';
+import { IconButton } from '../atoms/IconButton';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
 
+export interface ChatInputRowProps {
+  value: string;
+  onChangeText: (text: string) => void;
+  onSend: () => void;
+  placeholder?: string;
+  disabled?: boolean;
+}
+
+export function ChatInputRow({
+  value,
+  onChangeText,
+  onSend,
+  placeholder = 'Describe narrative changes or prompt auditor…',
+  disabled = false,
+}: ChatInputRowProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+
+  return (
+    <View
+      style={[styles.container, { backgroundColor: theme.surface, borderTopColor: theme.border }]}
+    >
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={theme.textMuted}
+        editable={!disabled}
+        style={[
+          styles.input,
+          { color: theme.textMain, backgroundColor: theme.subtle, borderColor: theme.border },
+        ]}
+      />
+      <IconButton
+        icon={<Send size={18} color={value.trim() ? theme.primary : theme.textMuted} />}
+        onPress={onSend}
+        label="Send"
+        disabled={disabled || !value.trim()}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderTopWidth: 1,
+    gap: 10,
+  },
+  input: {
+    flex: 1,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    fontFamily: 'Inter',
+    fontSize: 14,
+  },
+});
 </file>
 
 <file path="src/components/molecules/ChatMessageBubble.tsx">
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Bot, User } from 'lucide-react-native';
+import { AppText } from '../atoms/AppText';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
+import { ChatMessage } from '@/types/api';
 
+export function ChatMessageBubble({ text, variant, timestamp = 'now' }: ChatMessage) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+  const isUser = variant === 'user';
+  const isAudit = variant === 'assistant-auditor';
+
+  return (
+    <View style={[styles.row, isUser ? styles.userRow : styles.assistantRow]}>
+      <View
+        style={[
+          styles.bubble,
+          isUser
+            ? { backgroundColor: theme.subtle, borderColor: theme.border }
+            : isAudit
+              ? { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }
+              : { backgroundColor: theme.surface, borderColor: theme.border },
+        ]}
+      >
+        <View style={styles.header}>
+          {isUser ? (
+            <User size={14} color={theme.textMuted} />
+          ) : (
+            <Bot size={14} color={isAudit ? theme.verified : theme.primary} />
+          )}
+          <AppText variant="caption" color="muted" style={styles.timestamp}>
+            {timestamp}
+          </AppText>
+        </View>
+        <AppText
+          variant={isAudit ? 'metric-sm' : 'body'}
+          color="main"
+          style={isAudit ? styles.monoText : null}
+        >
+          {text}
+        </AppText>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  row: {
+    width: '100%',
+    flexDirection: 'row',
+    marginVertical: 6,
+  },
+  userRow: {
+    justifyContent: 'flex-end',
+  },
+  assistantRow: {
+    justifyContent: 'flex-start',
+  },
+  bubble: {
+    maxWidth: '85%',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  timestamp: {
+    fontSize: 11,
+  },
+  monoText: {
+    fontSize: 13,
+  },
+});
 </file>
 
 <file path="src/components/molecules/ConfidenceGaugeReadout.tsx">
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { MetricGauge } from '../atoms/MetricGauge';
+import { StatusBadge } from '../atoms/StatusBadge';
+import { AppText } from '../atoms/AppText';
+import { scoreTier } from '@/utils/scoring';
+import { CONFIDENCE_TIER } from '@/config/constants';
 
+export interface ConfidenceGaugeReadoutProps {
+  score: number;
+  threshold?: number;
+}
+
+export function ConfidenceGaugeReadout({
+  score,
+  threshold = CONFIDENCE_TIER.pass,
+}: ConfidenceGaugeReadoutProps) {
+  const status = scoreTier(score, CONFIDENCE_TIER);
+
+  return (
+    <View style={styles.container}>
+      <MetricGauge value={score} label="confidence" />
+      <View style={styles.readout}>
+        <StatusBadge
+          label={score >= threshold ? 'Export unlocked' : 'Export locked'}
+          variant={status}
+        />
+        <AppText variant="caption" color="muted" style={styles.thresholdText}>
+          Threshold: {threshold} confidence
+        </AppText>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 20,
+    width: '100%',
+  },
+  readout: {
+    flex: 1,
+    gap: 8,
+  },
+  thresholdText: {
+    maxWidth: 176,
+  },
+});
 </file>
 
 <file path="src/components/molecules/FilterFieldGroup.tsx">
+import React from 'react';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { AppText } from '../atoms/AppText';
+import { Chip } from '../atoms/Chip';
 
+export interface FilterFieldGroupProps {
+  label: string;
+  options: string[];
+  selected?: string[];
+  onToggle?: (option: string) => void;
+}
+
+export function FilterFieldGroup({
+  label,
+  options,
+  selected = [],
+  onToggle,
+}: FilterFieldGroupProps) {
+  return (
+    <View style={styles.container}>
+      <AppText variant="caption" color="muted" style={styles.label}>
+        {label}
+      </AppText>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.row}
+      >
+        {options.map((opt) => (
+          <Chip
+            key={opt}
+            label={opt}
+            selected={selected.includes(opt)}
+            onToggle={() => onToggle?.(opt)}
+          />
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    marginVertical: 6,
+  },
+  label: {
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+});
 </file>
 
 <file path="src/components/molecules/GrantCard.tsx">
@@ -872,12 +2463,20 @@ export function GrantCard({ grant, onSelect, onApply }: GrantCardProps) {
 
       <View style={styles.metricsGrid}>
         <View style={styles.metricColumn}>
-          <AppText variant="caption" color="muted">Funding</AppText>
-          <AppText variant="metric-sm" color="main">{grant.amount}</AppText>
+          <AppText variant="caption" color="muted">
+            Funding
+          </AppText>
+          <AppText variant="metric-sm" color="main">
+            {grant.amount}
+          </AppText>
         </View>
         <View style={styles.metricColumn}>
-          <AppText variant="caption" color="muted">Deadline</AppText>
-          <AppText variant="metric-sm" color="main">{grant.deadline}</AppText>
+          <AppText variant="caption" color="muted">
+            Deadline
+          </AppText>
+          <AppText variant="metric-sm" color="main">
+            {grant.deadline}
+          </AppText>
         </View>
       </View>
 
@@ -937,35 +2536,407 @@ const styles = StyleSheet.create({
 </file>
 
 <file path="src/components/molecules/HeroContinueCard.tsx">
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { ArrowRight } from 'lucide-react-native';
+import { AppText } from '../atoms/AppText';
+import { AppButton } from '../atoms/AppButton';
+import { ProgressBar } from '../atoms/ProgressBar';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
 
+export interface HeroContinueCardProps {
+  projectTitle: string;
+  completionPct: number;
+  onResume: () => void;
+}
+
+export function HeroContinueCard({ projectTitle, completionPct, onResume }: HeroContinueCardProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+
+  return (
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <AppText variant="caption" color="primary" style={styles.eyebrow}>
+        ACTIVE SESSION · DRAFTING PIPELINE
+      </AppText>
+      <AppText variant="h2" color="main" style={styles.title} numberOfLines={2}>
+        {projectTitle}
+      </AppText>
+      <ProgressBar percent={completionPct} label="Drafting progress" />
+      <View style={styles.footer}>
+        <AppButton
+          label="Continue drafting"
+          variant="primary"
+          onPress={onResume}
+          icon={<ArrowRight size={16} color={theme.primaryForeground} />}
+          iconPosition="right"
+        />
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    marginVertical: 8,
+  },
+  eyebrow: {
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  title: {
+    marginBottom: 12,
+  },
+  footer: {
+    marginTop: 14,
+  },
+});
 </file>
 
 <file path="src/components/molecules/index.ts">
-
+export * from './GrantCard';
+export * from './ChatInputRow';
+export * from './ChatMessageBubble';
+export * from './AuditLogLine';
+export * from './ConfidenceGaugeReadout';
+export * from './HeroContinueCard';
+export * from './FilterFieldGroup';
 </file>
 
 <file path="src/components/organisms/GrantDetailModalSheet.tsx">
+import React from 'react';
+import { View, StyleSheet, Modal, ScrollView, Pressable } from 'react-native';
+import { X } from 'lucide-react-native';
+import { Grant } from '@/types/grant';
+import { AppText } from '../atoms/AppText';
+import { AppButton } from '../atoms/AppButton';
+import { StatusBadge } from '../atoms/StatusBadge';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
 
+export interface GrantDetailModalSheetProps {
+  grant: Grant | null;
+  visible: boolean;
+  onClose: () => void;
+  onApply: (grant: Grant) => void;
+}
+
+export function GrantDetailModalSheet({
+  grant,
+  visible,
+  onClose,
+  onApply,
+}: GrantDetailModalSheetProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+
+  if (!grant) return null;
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.scrim}>
+        <Pressable style={styles.backdrop} onPress={onClose} />
+        <View style={[styles.sheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={[styles.header, { borderBottomColor: theme.border }]}>
+            <View style={styles.titleArea}>
+              <AppText variant="h2" numberOfLines={2}>
+                {grant.title}
+              </AppText>
+              <StatusBadge label={grant.funder} variant="neutral" />
+            </View>
+            <Pressable onPress={onClose} style={styles.closeBtn}>
+              <X size={20} color={theme.textMuted} />
+            </Pressable>
+          </View>
+
+          <ScrollView style={styles.body}>
+            <View style={styles.metaRow}>
+              <View>
+                <AppText variant="caption" color="muted">
+                  Funding Amount
+                </AppText>
+                <AppText variant="metric-sm" color="main">
+                  {grant.amount}
+                </AppText>
+              </View>
+              <View>
+                <AppText variant="caption" color="muted">
+                  Deadline
+                </AppText>
+                <AppText variant="metric-sm" color="main">
+                  {grant.deadline}
+                </AppText>
+              </View>
+              <View>
+                <AppText variant="caption" color="muted">
+                  Match Score
+                </AppText>
+                <AppText variant="metric-sm" color="verified">
+                  {grant.matchPct}%
+                </AppText>
+              </View>
+            </View>
+
+            <AppText variant="body" color="main" style={styles.summary}>
+              {grant.summary}
+            </AppText>
+          </ScrollView>
+
+          <View style={[styles.footer, { borderTopColor: theme.border }]}>
+            <AppButton label="Start Draft" variant="primary" onPress={() => onApply(grant)} />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  scrim: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    flex: 1,
+  },
+  sheet: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderWidth: 1,
+    maxHeight: '80%',
+    paddingBottom: 24,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  titleArea: {
+    flex: 1,
+    gap: 6,
+  },
+  closeBtn: {
+    padding: 6,
+  },
+  body: {
+    padding: 16,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  summary: {
+    lineHeight: 22,
+  },
+  footer: {
+    padding: 16,
+    borderTopWidth: 1,
+  },
+});
 </file>
 
 <file path="src/components/organisms/GrantDiscoveryGrid.tsx">
+import React from 'react';
+import { View, StyleSheet, FlatList } from 'react-native';
+import { Grant } from '@/types/grant';
+import { GrantCard } from '../molecules/GrantCard';
+import { AppText } from '../atoms/AppText';
+import { AppButton } from '../atoms/AppButton';
 
+export interface GrantDiscoveryGridProps {
+  grants: Grant[];
+  onSelect: (grant: Grant) => void;
+  onApply: (grant: Grant) => void;
+}
+
+export function GrantDiscoveryGrid({ grants, onSelect, onApply }: GrantDiscoveryGridProps) {
+  if (!grants.length) {
+    return (
+      <View style={styles.empty}>
+        <AppText variant="h3" color="muted">
+          No matching grant opportunities
+        </AppText>
+        <AppText variant="body" color="muted" align="center" style={styles.emptySub}>
+          Adjust regional parameters or check search filters.
+        </AppText>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {grants.map((grant) => (
+        <GrantCard
+          key={grant.id}
+          grant={grant}
+          onSelect={() => onSelect(grant)}
+          onApply={() => onApply(grant)}
+        />
+      ))}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    width: '100%',
+  },
+  empty: {
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptySub: {
+    marginTop: 6,
+  },
+});
 </file>
 
 <file path="src/components/organisms/index.ts">
-
+export * from './PipelineFunnelBar';
+export * from './GrantDiscoveryGrid';
+export * from './GrantDetailModalSheet';
 </file>
 
 <file path="src/components/organisms/PipelineFunnelBar.tsx">
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { AppText } from '../atoms/AppText';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
 
+export interface FunnelStage {
+  label: string;
+  count: number;
+}
+
+export interface PipelineFunnelBarProps {
+  stages: FunnelStage[];
+}
+
+export function PipelineFunnelBar({ stages }: PipelineFunnelBarProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+
+  return (
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      {stages.map((stage, index) => {
+        const terminal = index === stages.length - 1;
+        const valueColor = terminal ? theme.gold : theme.primary;
+        const labelColor = terminal ? theme.gold : theme.textMuted;
+        return (
+          <React.Fragment key={stage.label}>
+            <View style={styles.stage}>
+              <AppText variant="caption" style={[styles.label, { color: labelColor }]}>
+                {stage.label}
+              </AppText>
+              <AppText variant="metric-lg" style={{ color: valueColor }}>
+                {stage.count}
+              </AppText>
+            </View>
+            {index < stages.length - 1 && (
+              <View style={[styles.separator, { backgroundColor: theme.border }]} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    marginVertical: 8,
+    gap: 8,
+  },
+  stage: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  label: {
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+  },
+  separator: {
+    height: 1,
+    width: 24,
+  },
+});
 </file>
 
 <file path="src/components/templates/EmptyStateLayout.tsx">
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { AppText } from '../atoms/AppText';
+import { AppButton } from '../atoms/AppButton';
 
+export interface EmptyStateLayoutProps {
+  title: string;
+  description: string;
+  ctaLabel?: string;
+  onCtaPress?: () => void;
+}
+
+export function EmptyStateLayout({
+  title,
+  description,
+  ctaLabel,
+  onCtaPress,
+}: EmptyStateLayoutProps) {
+  return (
+    <View style={styles.container}>
+      <AppText variant="h2" align="center">
+        {title}
+      </AppText>
+      <AppText variant="body" color="muted" align="center" style={styles.desc}>
+        {description}
+      </AppText>
+      {ctaLabel && onCtaPress && (
+        <View style={styles.cta}>
+          <AppButton label={ctaLabel} variant="primary" onPress={onCtaPress} />
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  desc: {
+    marginTop: 8,
+    maxWidth: 320,
+  },
+  cta: {
+    marginTop: 16,
+  },
+});
 </file>
 
 <file path="src/components/templates/index.ts">
-
+export * from './ScreenContainer';
+export * from './EmptyStateLayout';
 </file>
 
 <file path="src/components/templates/ModalSheetLayout.tsx">
@@ -973,11 +2944,81 @@ const styles = StyleSheet.create({
 </file>
 
 <file path="src/components/templates/ScreenContainer.tsx">
+import React from 'react';
+import { View, StyleSheet, ScrollView, ViewStyle } from 'react-native';
+import { useThemeStore } from '@/store/useThemeStore';
+import { PALETTE } from '@/config/theme';
 
+export interface ScreenContainerProps {
+  children: React.ReactNode;
+  scrollable?: boolean;
+  style?: ViewStyle;
+}
+
+export function ScreenContainer({ children, scrollable = true, style }: ScreenContainerProps) {
+  const { mode } = useThemeStore();
+  const theme = PALETTE[mode];
+
+  if (scrollable) {
+    return (
+      <ScrollView
+        style={[styles.container, { backgroundColor: theme.background }]}
+        contentContainerStyle={[styles.content, style]}
+      >
+        {children}
+      </ScrollView>
+    );
+  }
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme.background }, style]}>{children}</View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+});
 </file>
 
 <file path="src/config/constants.ts">
+export const CONSTANTS = {
+  // Volatile required-section universe per Next.js V7.2
+  REQUIRED_DRAFT_SECTIONS: [
+    'Mission',
+    'Pain',
+    'Solution',
+    'Market',
+    'Competitors',
+    'Moat',
+  ] as const,
 
+  // Compliance and audit thresholds (Strict single source)
+  CONFIDENCE_THRESHOLD: 85,
+  MATCH_THRESHOLD: 80,
+  WARN_THRESHOLD: 40,
+
+  // Timing and input invariants
+  MAX_INPUT_CHARS: 10000,
+  SCAN_SETTLE_MS: 3000,
+  HISTORY_CAP: 19,
+  DEFAULT_POLLING_MS: 3000,
+} as const;
+
+export const MATCH_TIER = {
+  pass: CONSTANTS.MATCH_THRESHOLD,
+  warn: CONSTANTS.WARN_THRESHOLD,
+} as const;
+
+export const CONFIDENCE_TIER = {
+  pass: CONSTANTS.CONFIDENCE_THRESHOLD,
+  warn: CONSTANTS.WARN_THRESHOLD,
+} as const;
 </file>
 
 <file path="src/config/env.ts">
@@ -1031,7 +3072,138 @@ export type ThemeColors = typeof PALETTE.dark;
 </file>
 
 <file path="src/store/useDraftStore.ts">
+import { create } from 'zustand';
+import { CONSTANTS } from '@/config/constants';
+import { draftConfidenceScore } from '@/utils/scoring';
+import { ChatMessage } from '@/types/api';
+import { generateId } from '@/utils/uuid';
 
+interface DraftState {
+  completedSections: string[];
+  requiredSections: string[];
+  confidenceScore: number;
+  draftingMessages: ChatMessage[];
+  auditMessages: ChatMessage[];
+  exportDocument: string;
+  isScanning: boolean;
+
+  // Section Mutations
+  removeCompletedSection: (name: string) => void;
+  restoreCompletedSections: () => void;
+  addRequiredSection: (name: string) => void;
+  deleteRequiredSection: (name: string) => void;
+
+  // Chat Mutations
+  addDraftingMessage: (text: string, variant: ChatMessage['variant']) => void;
+  addAuditMessage: (text: string, variant: ChatMessage['variant']) => void;
+  setExportDocument: (doc: string) => void;
+  setScanning: (status: boolean) => void;
+  resetDraftForGrant: (grantId: string, grantTitle: string, funder: string) => void;
+}
+
+export const useDraftStore = create<DraftState>((set, get) => ({
+  completedSections: [...CONSTANTS.REQUIRED_DRAFT_SECTIONS],
+  requiredSections: [...CONSTANTS.REQUIRED_DRAFT_SECTIONS],
+  confidenceScore: 100,
+  draftingMessages: [
+    {
+      id: 'init-draft',
+      text: 'Welcome to the drafting assistant. Narrative generation armed.',
+      variant: 'assistant-narrative',
+      timestamp: 'now',
+    },
+  ],
+  auditMessages: [
+    {
+      id: 'init-audit',
+      text: 'AUDIT AGENT ONLINE · Deterministic pass armed. Awaiting compliance check.',
+      variant: 'assistant-auditor',
+      timestamp: 'now',
+    },
+  ],
+  exportDocument: 'Executive summary\n\nGrantum Autonomous Proposal System initialized.',
+  isScanning: false,
+
+  removeCompletedSection: (name) => {
+    const { completedSections, requiredSections } = get();
+    const nextCompleted = completedSections.filter((s) => s !== name);
+    set({
+      completedSections: nextCompleted,
+      confidenceScore: draftConfidenceScore(nextCompleted, requiredSections),
+    });
+  },
+
+  restoreCompletedSections: () => {
+    const { requiredSections } = get();
+    set({
+      completedSections: [...requiredSections],
+      confidenceScore: 100,
+    });
+  },
+
+  addRequiredSection: (name) => {
+    if (!name.trim()) return;
+    const { completedSections, requiredSections } = get();
+    if (requiredSections.includes(name)) return;
+    const nextRequired = [...requiredSections, name.trim()];
+    const nextCompleted = [...completedSections, name.trim()];
+    set({
+      requiredSections: nextRequired,
+      completedSections: nextCompleted,
+      confidenceScore: draftConfidenceScore(nextCompleted, nextRequired),
+    });
+  },
+
+  deleteRequiredSection: (name) => {
+    const { completedSections, requiredSections } = get();
+    const nextRequired = requiredSections.filter((s) => s !== name);
+    const nextCompleted = completedSections.filter((s) => s !== name);
+    set({
+      requiredSections: nextRequired,
+      completedSections: nextCompleted,
+      confidenceScore: draftConfidenceScore(nextCompleted, nextRequired),
+    });
+  },
+
+  addDraftingMessage: (text, variant) => {
+    set((state) => ({
+      draftingMessages: [
+        ...state.draftingMessages,
+        { id: generateId('msg'), text, variant, timestamp: 'now' },
+      ],
+    }));
+  },
+
+  addAuditMessage: (text, variant) => {
+    set((state) => ({
+      auditMessages: [
+        ...state.auditMessages,
+        { id: generateId('msg'), text, variant, timestamp: 'now' },
+      ],
+    }));
+  },
+
+  setExportDocument: (doc) => set({ exportDocument: doc }),
+
+  setScanning: (status) => set({ isScanning: status }),
+
+  resetDraftForGrant: (grantId, grantTitle, funder) => {
+    set({
+      completedSections: [...CONSTANTS.REQUIRED_DRAFT_SECTIONS],
+      requiredSections: [...CONSTANTS.REQUIRED_DRAFT_SECTIONS],
+      confidenceScore: 100,
+      exportDocument: `Executive summary\n\n${grantTitle} seeks allocation from ${funder}. Verified audit trace anchored.`,
+      draftingMessages: [
+        {
+          id: generateId('msg'),
+          text: `Welcome to the drafting assistant. Current file: ${grantTitle} (${funder}). Describe revisions to align with requirements.`,
+          variant: 'assistant-narrative',
+          timestamp: 'now',
+        },
+      ],
+    });
+  },
+}));
 </file>
 
 <file path="src/store/useThemeStore.ts">
@@ -1076,27 +3248,138 @@ export const useUIStore = create<UIState>((set) => ({
 </file>
 
 <file path="src/types/api.ts">
+export type ApiStatus = 'idle' | 'loading' | 'success' | 'error';
 
+export type ScoreTier = 'verified' | 'pending' | 'failure';
+
+export interface AuditEvent {
+  id: string;
+  agent: 'agent-1-narrative' | 'agent-2-deterministic' | 'system';
+  message: string;
+  status: 'running' | 'passed' | 'failed';
+  timestamp: string;
+}
+
+export interface ProposalDraft {
+  id: string;
+  grantId: string;
+  completedSections: string[];
+  requiredSections: string[];
+  completionPct: number;
+  confidenceScore: number;
+  body: string;
+}
+
+export interface AuditScanResponse {
+  scanId: string;
+  status: 'running' | 'passed' | 'failed';
+  confidenceScore: number;
+  missingSections: string[];
+  events: AuditEvent[];
+}
+
+export interface ExportResponse {
+  success: boolean;
+  checksum: string;
+  downloadUrl: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+  variant: 'user' | 'assistant-narrative' | 'assistant-auditor' | 'system';
+  timestamp?: string;
+  status?: 'sending' | 'sent' | 'error';
+}
 </file>
 
-<file path="src/types/grants.ts">
-
+<file path="src/types/grant.ts">
+export interface Grant {
+  id: string;
+  title: string;
+  funder: string;
+  deadline: string;
+  amount: string;
+  matchPct: number;
+  region: string;
+  summary: string;
+}
 </file>
 
 <file path="src/types/theme.ts">
+export type ThemeMode = 'dark' | 'light';
 
+export interface ThemePalette {
+  background: string;
+  surface: string;
+  subtle: string;
+  border: string;
+  borderStrong: string;
+  textMain: string;
+  textMuted: string;
+  primary: string;
+  primaryForeground: string;
+  verified: string;
+  pending: string;
+  failure: string;
+  gold: string;
+  tint: string;
+}
 </file>
 
 <file path="src/utils/formatting.ts">
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
 
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength)}…`;
+}
 </file>
 
 <file path="src/utils/scoring.ts">
+import { CONSTANTS, CONFIDENCE_TIER, MATCH_TIER } from '@/config/constants';
+import { ScoreTier } from '@/types/api';
 
+/**
+ * Calculates score tier according to constitutional thresholds
+ */
+export function scoreTier(
+  score: number,
+  thresholds: { pass: number; warn: number } = CONFIDENCE_TIER
+): ScoreTier {
+  if (score >= thresholds.pass) return 'verified';
+  if (score >= thresholds.warn) return 'pending';
+  return 'failure';
+}
+
+/**
+ * Volatile denominator formula ported directly from Next.js V7.2
+ * Each section is worth 100 / required.length points
+ */
+export function draftConfidenceScore(
+  completedSections: string[],
+  requiredSections: readonly string[] | string[] = CONSTANTS.REQUIRED_DRAFT_SECTIONS
+): number {
+  if (!requiredSections.length) return 100;
+  const completed = completedSections.filter((section) =>
+    requiredSections.includes(section)
+  ).length;
+  return Math.round((completed / requiredSections.length) * 100);
+}
 </file>
 
 <file path="src/utils/uuid.ts">
-
+export function generateId(prefix = 'id'): string {
+  const timestamp = Date.now().toString(36);
+  const randomStr = Math.random().toString(36).substring(2, 8);
+  return `${prefix}-${timestamp}-${randomStr}`;
+}
 </file>
 
 <file path=".env.example">
@@ -1109,6 +3392,7 @@ EXPO_PUBLIC_POLLING_INTERVAL_MS=3000
 </file>
 
 <file path=".eslintrc.js">
+// .eslintrc.js
 module.exports = {
   extends: ['expo', 'prettier'],
   plugins: ['prettier'],
@@ -1118,6 +3402,10 @@ module.exports = {
     'react-hooks/exhaustive-deps': 'error',
   },
 };
+</file>
+
+<file path=".gitattributes">
+* text=auto eol=lf
 </file>
 
 <file path=".gitignore">
@@ -1162,6 +3450,17 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+repomix-output*.xml
+.env
+</file>
+
+<file path=".prettierignore">
+node_modules/
+.expo/
+dist/
+web-build/
+assets/
+pnpm-lock.yaml
 </file>
 
 <file path=".prettierrc">
@@ -1170,53 +3469,32 @@ yarn-error.*
   "singleQuote": true,
   "tabWidth": 2,
   "trailingComma": "es5",
-  "printWidth": 100,
-  "plugins": ["prettier-plugin-tailwindcss"]
+  "printWidth": 100
 }
 </file>
 
 <file path="AGENTS.md">
-This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+# AGENTS.md
 
-## Expo has changed — do not trust your training data
+Expo / React Native universal app (iOS · Android · Web). Routes live in `app/` at the repo ROOT — every file there is a screen; `_layout.tsx` files define navigators. Non-route code lives in `src/`.
 
-Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
+Expo has changed — do not trust training data. Before touching any Expo/RN API: read the `expo` major in `package.json`, then consult `https://docs.expo.dev/versions/v<major>.0.0/` and `https://docs.expo.dev/llms.txt`.
 
-1. Read the major version of the `expo` package in `package.json`.
-2. Fetch the matching versioned docs: `https://docs.expo.dev/versions/v<major>.0.0/`
-3. For anything else, fetch https://docs.expo.dev/llms.txt — an index of all Expo docs with corrections to common LLM misconceptions. Follow its links to the specific page you need; never answer from memory.
+## Commands (pnpm only — never npm install)
 
-## Commands
+- `pnpm expo install <pkg>` — SDK-compatible installs
+- `pnpm start` / `pnpm web` / `pnpm android` / `pnpm ios`
+- `pnpm typecheck` · `pnpm lint` · `pnpm format` · `pnpm format:check`
 
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
-
-```bash
-npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
-npx expo-doctor             # diagnose dependency and config issues
-npx expo install --fix      # fix incompatible package versions
-```
-
-Run lint and typecheck before declaring any task done.
-
-## Navigation & Routing
-
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
-
-## Building with EAS
-
-Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
-Docs: https://docs.expo.dev/eas/index.md
+Never run `npx expo lint` (it scaffolds a flat config; this repo is ruled ESLint 8 + `.eslintrc.js`).
 
 ## Rules
 
-- If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
-- Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
-- Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+- `ios/` and `android/` are generated (Continuous Native Generation) — never hand-edit; configure via `app.json` + config plugins.
+- Expo Go ships bundled native modules only; libraries with native code need a development build.
+- Prefer Expo modules over third-party libs; new deps require an owner ruling (ledger line).
+- Styling: tokens from `src/config/theme.ts` only; atomic design `atoms → molecules → organisms → templates → screens → app`.
+- Git: feature branches only, Conventional Commits, Squash & Merge via PR (Husky + lint-staged enforce locally).
 </file>
 
 <file path="API_CONTRACTS.md">
@@ -1228,121 +3506,127 @@ All routes must adhere strictly to the method, path, parameter structure, and ex
 ---
 
 ### 1. Retrieve Grants Index
+
 (
 ***Метод: GET
 ***URL: /api/v1/grants
 ***Отправляем: Query Params: ?q=string&region=string&category=string
 ***Ожидаем получить: [
-  {
-    "id": "1",
-    "title": "Climate Resilience Infrastructure",
-    "funder": "Northstar Foundation",
-    "deadline": "28 days",
-    "amount": "$250k–$500k",
-    "matchPct": 94,
-    "region": "Global · Infrastructure",
-    "summary": "Deploy flood-resilient infrastructure..."
-  }
+{
+"id": "1",
+"title": "Climate Resilience Infrastructure",
+"funder": "Northstar Foundation",
+"deadline": "28 days",
+"amount": "$250k–$500k",
+"matchPct": 94,
+"region": "Global · Infrastructure",
+"summary": "Deploy flood-resilient infrastructure..."
+}
 ]
 )
 
 ---
 
 ### 2. Retrieve Specific Grant Detail
+
 (
 ***Метод: GET
 ***URL: /api/v1/grants/<grant_id>
 ***Отправляем: URL Param: grant_id (string)
 ***Ожидаем получить: {
-  "id": "1",
-  "title": "Climate Resilience Infrastructure",
-  "funder": "Northstar Foundation",
-  "deadline": "28 days",
-  "amount": "$250k–$500k",
-  "matchPct": 94,
-  "region": "Global · Infrastructure",
-  "summary": "Deploy flood-resilient infrastructure...",
-  "requirements": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"]
+"id": "1",
+"title": "Climate Resilience Infrastructure",
+"funder": "Northstar Foundation",
+"deadline": "28 days",
+"amount": "$250k–$500k",
+"matchPct": 94,
+"region": "Global · Infrastructure",
+"summary": "Deploy flood-resilient infrastructure...",
+"requirements": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"]
 }
 )
 
 ---
 
 ### 3. Retrieve Proposal Draft for Grant
+
 (
 ***Метод: GET
 ***URL: /api/v1/proposals/<grant_id>/draft
 ***Отправляем: URL Param: grant_id (string)
 ***Ожидаем получить: {
-  "id": "prop-101",
-  "grantId": "1",
-  "completedSections": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"],
-  "requiredSections": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"],
-  "completionPct": 100,
-  "confidenceScore": 100,
-  "body": "Executive summary..."
+"id": "prop-101",
+"grantId": "1",
+"completedSections": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"],
+"requiredSections": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"],
+"completionPct": 100,
+"confidenceScore": 100,
+"body": "Executive summary..."
 }
 )
 
 ---
 
 ### 4. Mutate Proposal Sections (Toggle/Delete/Add)
+
 (
 ***Метод: PATCH
 ***URL: /api/v1/proposals/<grant_id>/sections
 ***Отправляем: {
-  "action": "remove" | "add" | "restore",
-  "sectionName": "Moat"
+"action": "remove" | "add" | "restore",
+"sectionName": "Moat"
 }
 ***Ожидаем получить: {
-  "grantId": "1",
-  "completedSections": ["Mission", "Pain", "Solution", "Market", "Competitors"],
-  "requiredSections": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"],
-  "confidenceScore": 83,
-  "updatedAt": "2026-10-09T10:15:30Z"
+"grantId": "1",
+"completedSections": ["Mission", "Pain", "Solution", "Market", "Competitors"],
+"requiredSections": ["Mission", "Pain", "Solution", "Market", "Competitors", "Moat"],
+"confidenceScore": 83,
+"updatedAt": "2026-10-09T10:15:30Z"
 }
 )
 
 ---
 
 ### 5. Trigger Deterministic Audit Scan
+
 (
 ***Метод: POST
 ***URL: /api/v1/proposals/<grant_id>/audit
 ***Отправляем: {
-  "triggerMode": "full_scan"
+"triggerMode": "full_scan"
 }
 ***Ожидаем получить: {
-  "scanId": "audit-run-99",
-  "status": "running" | "passed" | "failed",
-  "confidenceScore": 83,
-  "missingSections": ["Moat"],
-  "events": [
-    {
-      "id": "evt-1",
-      "agent": "agent-2-deterministic",
-      "message": "Missing: Moat — confidence 83",
-      "status": "failed",
-      "timestamp": "14:32"
-    }
-  ]
+"scanId": "audit-run-99",
+"status": "running" | "passed" | "failed",
+"confidenceScore": 83,
+"missingSections": ["Moat"],
+"events": [
+{
+"id": "evt-1",
+"agent": "agent-2-deterministic",
+"message": "Missing: Moat — confidence 83",
+"status": "failed",
+"timestamp": "14:32"
+}
+]
 }
 )
 
 ---
 
 ### 6. Export Application Bundle
+
 (
 ***Метод: POST
 ***URL: /api/v1/proposals/<grant_id>/export
 ***Отправляем: {
-  "format": "word" | "pdf" | "notebook" | "markdown",
-  "documentBody": "Executive summary..."
+"format": "word" | "pdf" | "notebook" | "markdown",
+"documentBody": "Executive summary..."
 }
 ***Ожидаем получить: {
-  "success": true,
-  "checksum": "sha256-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "downloadUrl": "https://api.grantum.io/downloads/bundle-1.docx"
+"success": true,
+"checksum": "sha256-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+"downloadUrl": "https://api.grantum.io/downloads/bundle-1.docx"
 }
 )
 </file>
@@ -1367,9 +3651,7 @@ All routes must adhere strictly to the method, path, parameter structure, and ex
         "backgroundColor": "#000000"
       }
     },
-    "plugins": [
-      "expo-router"
-    ],
+    "plugins": ["expo-router", "expo-font"],
     "experiments": {
       "typedRoutes": true
     }
@@ -1381,10 +3663,7 @@ All routes must adhere strictly to the method, path, parameter structure, and ex
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: [
-      ["babel-preset-expo", { jsxImportSource: "nativewind" }],
-      "nativewind/babel",
-    ],
+    presets: ['babel-preset-expo'],
   };
 };
 </file>
@@ -1409,10 +3688,11 @@ module.exports = {
 Save as `DESIGN_MANIFESTO.md` in the project root.
 
 ### 2.1 The Visual Language: Obsidian (Dark) & Quartz (Light)
+
 Grantum uses an **Instrument Grade** aesthetic. It is not a generic consumer application. It is a precision terminal for capital allocation, compliance scanning, and deterministic auditing.
 
-* **Obsidian Instrument (Dark Theme — Default):** Absolute black base (`#000000`) with elevated carbon cards (`#121518`), industrial chrome borders (`#394047`), neon pumpkin brand accents (`#FF8A00`), electric mint for verified states (`#00B35D`), and cyan for pending states (`#00E5FF`).
-* **Quartz Instrument (Light Theme):** High-contrast alpine canvas (`#F4F6F8`) with pure white elevated surfaces (`#FFFFFF`), precision slate borders (`#D1D5DB`), deep burnt pumpkin brand accents (`#D97000`), deep forest emerald for verification (`#008744`), and cobalt cyan for pending operations (`#0094A8`).
+- **Obsidian Instrument (Dark Theme — Default):** Absolute black base (`#000000`) with elevated carbon cards (`#121518`), industrial chrome borders (`#394047`), neon pumpkin brand accents (`#FF8A00`), electric mint for verified states (`#00B35D`), and cyan for pending states (`#00E5FF`).
+- **Quartz Instrument (Light Theme):** High-contrast alpine canvas (`#F4F6F8`) with pure white elevated surfaces (`#FFFFFF`), precision slate borders (`#D1D5DB`), deep burnt pumpkin brand accents (`#D97000`), deep forest emerald for verification (`#008744`), and cobalt cyan for pending operations (`#0094A8`).
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
@@ -1437,7 +3717,9 @@ Grantum uses an **Instrument Grade** aesthetic. It is not a generic consumer app
 ```
 
 ### 2.2 Typography Scale & Mathematical Roles
+
 Grantum uses two distinct typographic roles:
+
 1. **Human/Structural Role (Inter):** System Sans (`Inter` / system sans-serif) for titles, subtitles, descriptors, interactive controls.
 2. **Deterministic/Metric Role (JetBrains Mono):** Monospace (`JetBrains Mono` / monospace) for math readouts, checksums, monetary amounts, countdown clocks, and audit logs.
 
@@ -1459,23 +3741,18 @@ Grantum uses two distinct typographic roles:
 ```
 
 ### 2.3 Geometric Invariants & Motion Dynamics
-* **Border Radii:**
-  * `radius-sm`: 8px (Buttons, badges, text input containers).
-  * `radius-md`: 12px (Inner cards, hero stats, floating panels).
-  * `radius-lg`: 16px (Modals, bottom sheets, main stage cards).
-  * `radius-full`: 9999px (Pills, indicator dots, circular avatars).
-* **Tilts and Rotations:**
-  * Gauges start at `-90deg` orientation (12 o'clock top origin).
-  * Icon chevrons rotate smoothly by `180deg` on expansion.
-* **Responsive Breakpoints:**
-  * Mobile: `< 768px` (Single column vertical stacking, bottom navigation tabs, bottom sheet modals).
-  * Desktop / Web: `≥ 768px` (Split layout, multi-column grid, centered dialogue modals, sidebar/horizontal controls).
-</file>
 
-<file path="global.css">
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+- **Border Radii:**
+  - `radius-sm`: 8px (Buttons, badges, text input containers).
+  - `radius-md`: 12px (Inner cards, hero stats, floating panels).
+  - `radius-lg`: 16px (Modals, bottom sheets, main stage cards).
+  - `radius-full`: 9999px (Pills, indicator dots, circular avatars).
+- **Tilts and Rotations:**
+  - Gauges start at `-90deg` orientation (12 o'clock top origin).
+  - Icon chevrons rotate smoothly by `180deg` on expansion.
+- **Responsive Breakpoints:**
+  - Mobile: `< 768px` (Single column vertical stacking, bottom navigation tabs, bottom sheet modals).
+  - Desktop / Web: `≥ 768px` (Split layout, multi-column grid, centered dialogue modals, sidebar/horizontal controls).
 </file>
 
 <file path="LICENSE">
@@ -1510,16 +3787,9 @@ module.exports = {
 </file>
 
 <file path="metro.config.js">
-const { getDefaultConfig } = require("expo/metro-config");
-const { withNativeWind } = require("nativewind/metro");
+const { getDefaultConfig } = require('expo/metro-config');
 
-const config = getDefaultConfig(__dirname);
-
-module.exports = withNativeWind(config, { input: "./global.css" });
-</file>
-
-<file path="nativewind-env.d.ts">
-/// <reference types="nativewind/types" />
+module.exports = getDefaultConfig(__dirname);
 </file>
 
 <file path="package.json">
@@ -1533,43 +3803,48 @@ module.exports = withNativeWind(config, { input: "./global.css" });
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "prepare": "husky"
   },
   "dependencies": {
+    "@expo-google-fonts/inter": "^0.2.3",
+    "@expo-google-fonts/jetbrains-mono": "^0.2.3",
     "@expo/metro-runtime": "~57.0.16",
     "@tanstack/react-query": "^5.104.1",
     "axios": "^1.20.0",
-    "clsx": "^2.1.1",
-    "expo": "~57.0.27",
+    "expo": "~57.0.28",
     "expo-constants": "^57.0.21",
+    "expo-font": "~57.0.4",
     "expo-linking": "^57.0.12",
-    "expo-router": "^57.0.25",
+    "expo-router": "~57.0.26",
     "expo-status-bar": "~57.0.1",
     "lucide-react-native": "^1.52.0",
-    "nativewind": "^4.2.7",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
-    "react-native-safe-area-context": "^5.10.1",
-    "react-native-screens": "^4.28.0",
-    "react-native-svg": "^15.15.5",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.2",
+    "react-native-svg": "15.15.4",
     "react-native-web": "^0.21.3",
-    "tailwind-merge": "^3.7.0",
-    "tailwindcss": "3.3.2",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@types/react": "~19.2.2",
-    "eslint": "^10.12.0",
+    "eslint": "8.57.0",
     "eslint-config-expo": "^57.0.2",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-prettier": "5.5.6",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.9",
-    "prettier-plugin-tailwindcss": "^0.8.1",
     "typescript": "~6.0.3"
   },
+  "packageManager": "pnpm@12.10.1",
   "private": true
 }
 </file>
@@ -1579,50 +3854,57 @@ allowBuilds:
   unrs-resolver: false
 </file>
 
-<file path="tailwind.config.js">
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    "./app/**/*.{js,jsx,ts,tsx}",
-    "./components/**/*.{js,jsx,ts,tsx}"
-  ],
-  theme: {
-    extend: {
-      colors: {
-        background: '#000000',
-        foreground: '#edeff2',
-        card: '#121518',
-        popover: '#1a1e23',
-        primary: '#ff8a00',
-        secondary: '#1a1e23',
-        muted: '#161a1e',
-        accent: '#1a1e23',
-        destructive: '#ff3b30',
-        border: '#394047',
-        input: '#30373e',
-        ring: '#ff8a00',
-        verified: '#00b35d',
-        mint: '#00ff87',
-        pending: '#00e5ff',
-        failure: '#a4161a',
-        gold: '#ffd700',
-      },
-      fontFamily: {
-        sans: ['Inter', 'system'],
-        mono: ['JetBrains Mono', 'monospace'],
-      },
-    },
-  },
-  plugins: [],
-}
+<file path="README.md">
+# Project-Grantum (grantum-rn)
+
+Grantum is an autonomous grant-discovery, drafting, and deterministic compliance-audit engine, ported from the frozen Next.js pitch instrument (`grantum-local`, V7.x) to a universal React Native client.
+
+## Stack
+
+| Layer          | Choice                                                                   |
+| -------------- | ------------------------------------------------------------------------ |
+| Runtime        | Expo SDK 57 · React Native 0.86.3 · React 19.2.3                         |
+| Language       | TypeScript ~6.0.3 (strict)                                               |
+| Routing        | Expo Router (`app/` at root)                                             |
+| Server state   | TanStack Query v5                                                        |
+| Client state   | Zustand v5                                                               |
+| Styling        | `PALETTE` tokens + raw StyleSheet (NativeWind removed by ruling R-1)     |
+| Backend target | Flask + PostgreSQL per `API_CONTRACTS.md` (mock data source until wired) |
+
+## Run
+
+pnpm install
+pnpm web # http://localhost:8081
+pnpm start # QR → Expo Go over LAN (DATA_SOURCE=mock needs no backend)
+pnpm typecheck · pnpm lint · pnpm format:check
+
+No Android emulator on the dev box (hardware ruling); devices via Expo Go over LAN.
+
+## Layout
+
+`app/` routes · `src/components/{atoms,molecules,organisms,templates}` UI kit · `src/screens` (WP-H) · `src/config` tokens/env/constants · `src/api` hooks + data-source seam · `src/mock` hermetic demo data · `src/store` Zustand · `src/utils` scoring/formatting/uuid.
+
+## Design
+
+Obsidian (dark) / Quartz (light) instrument language — see `DESIGN_MANIFESTO.md` (regenerated from `src/config/theme.ts` in WP-B).
+
+## Git workflow
+
+Feature branches → Conventional Commits → PR → Squash & Merge only. Husky + lint-staged block non-conforming code at commit.
 </file>
 
 <file path="tsconfig.json">
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
-  }
+    "strict": true,
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
 }
 </file>
 
