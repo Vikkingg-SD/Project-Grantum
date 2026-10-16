@@ -62,6 +62,8 @@ assets/
   favicon.png
   icon.png
   splash-icon.png
+scripts/
+  verify-scoring.ts
 src/
   api/
     hooks/
@@ -107,18 +109,27 @@ src/
   config/
     constants.ts
     env.ts
+    exportFormats.ts
+    fonts.ts
+    layout.ts
     theme.ts
   mock/
+    dashboard.ts
+    db.ts
     grants.ts
+    mockDataSource.ts
+    seeds.ts
   store/
     useDraftStore.ts
     useThemeStore.ts
     useUIStore.ts
   types/
     api.ts
+    chat.ts
     grant.ts
     theme.ts
   utils/
+    filters.ts
     formatting.ts
     scoring.ts
     uuid.ts
@@ -146,6 +157,395 @@ tsconfig.json
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="scripts/verify-scoring.ts">
+import { draftConfidenceScore, scoreTier } from '../src/utils/scoring';
+import { TIERS } from '../src/config/constants';
+
+const six = ['Mission', 'Pain', 'Solution', 'Market', 'Competitors', 'Moat'];
+
+const cases: Array<[string, number, number]> = [
+  ['6/6', draftConfidenceScore(six, six), 100],
+  ['5/6 (export locks)', draftConfidenceScore(six.slice(0, 5), six), 83],
+  ['4/6', draftConfidenceScore(six.slice(0, 4), six), 67],
+  ['0/6', draftConfidenceScore([], six), 0],
+  ['6/7 (re-unlocks)', draftConfidenceScore(six, [...six, 'Marketing strategy']), 86],
+  ['empty required', draftConfidenceScore([], []), 100],
+  ['duplicates count once', draftConfidenceScore(['Mission', 'Mission'], six), 17],
+  ['unrelated ignored', draftConfidenceScore(['Zzz'], six), 0],
+  ['confidence 85 -> verified', scoreTier(85, TIERS.confidence) === 'verified' ? 1 : 0, 1],
+  ['confidence 84 -> pending', scoreTier(84, TIERS.confidence) === 'pending' ? 1 : 0, 1],
+  ['confidence 40 -> pending', scoreTier(40, TIERS.confidence) === 'pending' ? 1 : 0, 1],
+  ['confidence 39 -> failure', scoreTier(39, TIERS.confidence) === 'failure' ? 1 : 0, 1],
+  ['match 80 -> verified', scoreTier(80, TIERS.match) === 'verified' ? 1 : 0, 1],
+  ['match 79 -> pending', scoreTier(79, TIERS.match) === 'pending' ? 1 : 0, 1],
+];
+
+let failed = 0;
+for (const [name, got, want] of cases) {
+  const ok = got === want;
+  if (!ok) failed += 1;
+  console.log(`${ok ? 'PASS' : 'FAIL'} ${name} got=${got} want=${want}`);
+}
+
+if (failed > 0) process.exit(1);
+console.log(`ALL ${cases.length} SCORING CASES PASS`);
+</file>
+
+<file path="src/config/exportFormats.ts">
+import type { ExportFormat } from '@/types/api';
+
+export interface ExportFormatConfig {
+  id: ExportFormat;
+  label: string;
+  blurb: string;
+}
+
+export const EXPORT_FORMATS: ExportFormatConfig[] = [
+  { id: 'word', label: 'Word (.docx)', blurb: 'Funder portal upload' },
+  { id: 'notebook', label: 'Notebook (.ipynb)', blurb: 'Internal working draft' },
+  { id: 'pdf', label: 'PDF (.pdf)', blurb: 'Signed submission copy' },
+  { id: 'markdown', label: 'Markdown (.md)', blurb: 'Version-controlled source' },
+];
+</file>
+
+<file path="src/config/fonts.ts">
+export const FONT = {
+  sans: {
+    regular: 'Inter_400Regular',
+    medium: 'Inter_500Medium',
+    semibold: 'Inter_600SemiBold',
+    bold: 'Inter_700Bold',
+  },
+  mono: {
+    medium: 'JetBrainsMono_500Medium',
+    bold: 'JetBrainsMono_700Bold',
+  },
+} as const;
+</file>
+
+<file path="src/config/layout.ts">
+export const BREAKPOINTS = { sm: 640, md: 768, lg: 1024, xl: 1280 } as const;
+
+export const LAYOUT = {
+  contentMaxWidth: 1280,
+  chatMaxWidth: 768,
+  onboardingMaxWidth: 672,
+  modalMaxWidth: 512,
+  authMaxWidth: 448,
+  pagePaddingMobile: 16,
+  pagePaddingDesktop: 32,
+  sectionPaddingX: 20,
+  minTouchTarget: 44,
+  modalMaxHeightRatio: 0.9,
+} as const;
+</file>
+
+<file path="src/mock/dashboard.ts">
+import type { DashboardSummary } from '@/types/api';
+
+export const mockDashboardSummary: DashboardSummary = {
+  greetingName: 'Alex',
+  pipeline: [
+    { label: 'Discovery', count: 24 },
+    { label: 'Pre-screen', count: 8 },
+    { label: 'Draft', count: 3 },
+    { label: 'Audit', count: 2 },
+    { label: 'Ready', count: 1 },
+    { label: 'Awarded', count: 1 },
+  ],
+  profileCompletionPct: 51,
+  activeDraft: {
+    grantId: '1',
+    title: 'Climate Resilience Infrastructure',
+    completionPct: 42,
+  },
+};
+</file>
+
+<file path="src/mock/db.ts">
+import type { GrantDetail } from '@/types/grant';
+import type { ProposalDraft, AuditScan, AwardRecord, AuditEvent } from '@/types/api';
+import { mockGrants } from './grants';
+import { seedExportDoc } from './seeds';
+import { DEFAULT_REQUIRED_SECTIONS } from '@/config/constants';
+import { draftConfidenceScore } from '@/utils/scoring';
+import { generateId } from '@/utils/uuid';
+
+const drafts: Record<string, ProposalDraft> = {};
+const scans: Record<string, AuditScan> = {};
+
+export function getMockGrantDetail(id: string): GrantDetail {
+  const grant = mockGrants.find((g) => g.id === id) ?? mockGrants[0];
+  return { ...grant, requirements: [...DEFAULT_REQUIRED_SECTIONS] };
+}
+
+export function getMockDraft(grantId: string): ProposalDraft {
+  if (!drafts[grantId]) {
+    drafts[grantId] = {
+      id: `prop-${grantId}`,
+      grantId,
+      completedSections: [...DEFAULT_REQUIRED_SECTIONS],
+      requiredSections: [...DEFAULT_REQUIRED_SECTIONS],
+      completionPct: 42,
+      confidenceScore: 100,
+      body: seedExportDoc(mockGrants.find((g) => g.id === grantId) ?? mockGrants[0]),
+    };
+  }
+  return drafts[grantId];
+}
+
+export function updateMockDraft(grantId: string, update: Partial<ProposalDraft>): ProposalDraft {
+  const current = getMockDraft(grantId);
+  const next = { ...current, ...update };
+  drafts[grantId] = next;
+  return next;
+}
+
+export function createMockScan(grantId: string): AuditScan {
+  const draft = getMockDraft(grantId);
+  const scanId = generateId('scan');
+  const missing = draft.requiredSections.filter((s) => !draft.completedSections.includes(s));
+  const events: AuditEvent[] = [
+    {
+      id: generateId('evt'),
+      agent: 'agent-2-deterministic',
+      message: missing.length === 0 ? 'All sections verified' : `Missing: ${missing.join(', ')}`,
+      status: missing.length === 0 ? 'passed' : 'failed',
+      timestamp: new Date().toISOString(),
+    },
+  ];
+  const scan: AuditScan = {
+    scanId,
+    status: 'running',
+    confidenceScore: draftConfidenceScore(draft.completedSections, draft.requiredSections),
+    missingSections: missing,
+    events,
+  };
+  scans[scanId] = scan;
+  return scan;
+}
+
+export function getMockScan(scanId: string): AuditScan | undefined {
+  const scan = scans[scanId];
+  if (scan && scan.status === 'running') {
+    scan.status = scan.missingSections.length === 0 ? 'passed' : 'failed';
+  }
+  return scan;
+}
+
+export function getMockAward(grantId: string): AwardRecord {
+  return {
+    grantId,
+    status: 'awarded',
+    submittedAt: '2026-05-18T14:30:00Z',
+    nextReportAt: '2026-08-14T00:00:00Z',
+    amount: '$250k–$500k',
+    contractStatus: 'Contract countersigned',
+    events: [
+      {
+        id: '1',
+        agent: 'agent-2-deterministic',
+        message: 'Final budget reconciliation passed',
+        status: 'passed',
+        timestamp: '18 May · 14:32',
+      },
+      {
+        id: '2',
+        agent: 'agent-1-narrative',
+        message: 'Evidence references locked',
+        status: 'passed',
+        timestamp: '18 May · 14:31',
+      },
+      {
+        id: '3',
+        agent: 'system',
+        message: 'Submission receipt stored',
+        status: 'passed',
+        timestamp: '18 May · 14:30',
+      },
+    ],
+  };
+}
+</file>
+
+<file path="src/mock/mockDataSource.ts">
+import type {
+  DataSource,
+  GrantSearchParams,
+  SectionMutation,
+  ExportRequest,
+  BountyInput,
+} from '@/types/api';
+import { mockGrants } from './grants';
+import { mockDashboardSummary } from './dashboard';
+import {
+  getMockGrantDetail,
+  getMockDraft,
+  updateMockDraft,
+  createMockScan,
+  getMockScan,
+  getMockAward,
+} from './db';
+import { applySectionMutation } from '@/utils/scoring';
+import { ENV } from '@/config/env';
+import { filterGrants } from '@/utils/filters';
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const mockDataSource: DataSource = {
+  async getGrants(params?: GrantSearchParams) {
+    await sleep(ENV.MOCK_LATENCY_MS);
+    return filterGrants(mockGrants, {
+      query: params?.q,
+      regions: params?.region,
+      categories: params?.category,
+    });
+  },
+  async getGrant(id: string) {
+    await sleep(ENV.MOCK_LATENCY_MS);
+    return getMockGrantDetail(id);
+  },
+  async getProposalDraft(grantId: string) {
+    await sleep(ENV.MOCK_LATENCY_MS);
+    return getMockDraft(grantId);
+  },
+  async mutateSections(grantId: string, input: SectionMutation) {
+    await sleep(ENV.MOCK_LATENCY_MS);
+    const draft = getMockDraft(grantId);
+    const next = applySectionMutation(draft, input);
+    updateMockDraft(grantId, next);
+    return {
+      grantId,
+      completedSections: next.completedSections,
+      requiredSections: next.requiredSections,
+      confidenceScore: next.confidenceScore,
+      updatedAt: new Date().toISOString(),
+    };
+  },
+  async runAudit(grantId: string) {
+    await sleep(ENV.MOCK_LATENCY_MS);
+    return createMockScan(grantId);
+  },
+  async getAuditScan(_grantId: string, scanId: string) {
+    await sleep(ENV.MOCK_LATENCY_MS);
+    const scan = getMockScan(scanId);
+    if (!scan) throw new Error('Scan not found');
+    return scan;
+  },
+  async exportBundle(grantId: string, input: ExportRequest) {
+    await sleep(ENV.MOCK_LATENCY_MS);
+    updateMockDraft(grantId, { body: input.documentBody });
+    return {
+      success: true,
+      checksum: 'sha256-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      downloadUrl: `https://api.grantum.io/downloads/bundle-${grantId}.${input.format}`,
+    };
+  },
+  async getAward(grantId: string) {
+    await sleep(ENV.MOCK_LATENCY_MS);
+    return getMockAward(grantId);
+  },
+  async getDashboardSummary() {
+    await sleep(ENV.MOCK_LATENCY_MS);
+    return mockDashboardSummary;
+  },
+  async getMe() {
+    await sleep(ENV.MOCK_LATENCY_MS);
+    return { id: 'u1', isOnboarded: true, status: 'active' as const };
+  },
+  async sendMagicLink(_email: string) {
+    await sleep(ENV.MOCK_LATENCY_MS);
+    return { success: true as const };
+  },
+  async oauthLogin(_provider: string) {
+    await sleep(ENV.MOCK_LATENCY_MS);
+    return { token: 'mock-token', isNewUser: false };
+  },
+  async finishOnboarding() {
+    await sleep(ENV.MOCK_LATENCY_MS);
+    return { success: true as const, isOnboarded: true as const };
+  },
+  async submitBounty(_input: BountyInput) {
+    await sleep(ENV.MOCK_LATENCY_MS);
+    return { queued: true as const };
+  },
+};
+</file>
+
+<file path="src/mock/seeds.ts">
+import type { Grant } from '@/types/grant';
+import type { ChatEntry } from '@/types/chat';
+
+export function seedDraftingMessages(grant: Grant): ChatEntry[] {
+  return [
+    {
+      id: `drafting-welcome-${grant.id}`,
+      text: `Welcome to the drafting assistant. Current file: ${grant.title} (${grant.funder}). Tell me what your project needs to change, and I will keep the narrative aligned to the funder requirements.`,
+      variant: 'assistant-narrative',
+      timestamp: 'now',
+    },
+  ];
+}
+
+export function seedAuditMessages(grant: Grant): ChatEntry[] {
+  return [
+    {
+      id: `audit-welcome-${grant.id}`,
+      text: 'AUDIT AGENT ONLINE · deterministic pass armed. Ask me to verify budget math, eligibility windows, or evidence references.',
+      variant: 'assistant-auditor',
+      timestamp: 'now',
+    },
+  ];
+}
+
+export function seedExportDoc(grant: Grant): string {
+  return `Executive summary\n\n${grant.title} seeks ${grant.amount} — ${grant.summary}`;
+}
+</file>
+
+<file path="src/types/chat.ts">
+export type ChatVariant = 'user' | 'assistant-narrative' | 'assistant-auditor' | 'system';
+
+export interface ChatEntry {
+  id: string;
+  text: string;
+  variant: ChatVariant;
+  timestamp?: string;
+}
+</file>
+
+<file path="src/utils/filters.ts">
+import type { Grant } from '@/types/grant';
+import { splitRegion } from './formatting';
+
+export interface GrantFilters {
+  query?: string;
+  regions?: string[];
+  categories?: string[];
+}
+
+export function filterGrants(grants: Grant[], filters: GrantFilters): Grant[] {
+  const q = filters.query?.toLowerCase().trim() ?? '';
+  const regions = filters.regions ?? [];
+  const categories = filters.categories ?? [];
+
+  return grants.filter((grant) => {
+    if (q) {
+      const haystack = `${grant.title} ${grant.funder} ${grant.region}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    if (regions.length > 0 && !regions.some((r) => grant.region.includes(r))) {
+      return false;
+    }
+    if (categories.length > 0) {
+      const { category } = splitRegion(grant.region);
+      if (!categories.includes(category)) return false;
+    }
+    return true;
+  });
+}
+</file>
 
 <file path=".husky/commit-msg">
 npx --no -- commitlint --edit $1
@@ -495,9 +895,11 @@ import Svg, { Circle } from 'react-native-svg';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE } from '@/config/theme';
+import type { ScoreTier } from '@/types/api';
 
 export interface MetricGaugeProps {
-  value: number; // 0 - 100
+  value: number;
+  tier: ScoreTier;
   label?: string;
   size?: number;
 }
@@ -505,16 +907,15 @@ export interface MetricGaugeProps {
 const GAUGE_RADIUS = 50;
 const GAUGE_CIRCUMFERENCE = 2 * Math.PI * GAUGE_RADIUS;
 
-export function MetricGauge({ value, label = 'confidence', size = 128 }: MetricGaugeProps) {
+export function MetricGauge({ value, tier, label = 'confidence', size = 128 }: MetricGaugeProps) {
   const { mode } = useThemeStore();
   const theme = PALETTE[mode];
-
   const clamped = Math.max(0, Math.min(100, value));
   const strokeDashoffset = GAUGE_CIRCUMFERENCE * (1 - clamped / 100);
 
   const getTierColor = () => {
-    if (clamped >= 85) return theme.verified;
-    if (clamped >= 40) return theme.pending;
+    if (tier === 'verified') return theme.verified;
+    if (tier === 'pending') return theme.pending;
     return theme.failure;
   };
 
@@ -557,19 +958,9 @@ export function MetricGauge({ value, label = 'confidence', size = 128 }: MetricG
 }
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  svg: {
-    transform: [{ rotate: '-90deg' }],
-  },
-  textContainer: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  container: { position: 'relative', alignItems: 'center', justifyContent: 'center' },
+  svg: { transform: [{ rotate: '-90deg' }] },
+  textContainer: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
 });
 </file>
 
@@ -760,47 +1151,113 @@ export const ENV = {
   API_BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:5000/api/v1',
   API_TIMEOUT_MS: Number(process.env.EXPO_PUBLIC_API_TIMEOUT_MS ?? 15000),
   ENABLE_ANALYTICS: process.env.EXPO_PUBLIC_ENABLE_ANALYTICS === '1',
-  POLLING_INTERVAL_MS: Number(process.env.EXPO_PUBLIC_POLLING_INTERVAL_MS ?? 3000),
+  POLLING_INTERVAL_MS: Number(process.env.EXPO_PUBLIC_POLLING_INTERVAL_MS ?? 1000),
+  DATA_SOURCE: (process.env.EXPO_PUBLIC_DATA_SOURCE === 'api' ? 'api' : 'mock') as 'api' | 'mock',
+  MOCK_LATENCY_MS: Number(process.env.EXPO_PUBLIC_MOCK_LATENCY_MS ?? 350),
 } as const;
 </file>
 
 <file path="src/config/theme.ts">
-export const PALETTE = {
+import type { TextStyle, ViewStyle } from 'react-native';
+import { FONT } from '@/config/fonts';
+import type { ThemeColors, ThemeMode } from '@/types/theme';
+
+export const PALETTE: Record<ThemeMode, ThemeColors> = {
   dark: {
     background: '#000000',
     surface: '#121518',
     subtle: '#1A1E23',
+    surfaceMuted: '#161A1E',
     border: '#394047',
     borderStrong: '#4B5563',
+    inputBorder: '#30373E',
     textMain: '#EDEFF2',
     textMuted: '#8A929C',
     primary: '#FF8A00',
     primaryForeground: '#140B00',
     verified: '#00B35D',
+    mint: '#00FF87',
     pending: '#00E5FF',
     failure: '#A4161A',
+    failureText: '#FF5A5F',
     gold: '#FFD700',
+    overlay: 'rgba(0,0,0,0.6)',
     tint: '#FF8A00',
   },
   light: {
     background: '#F4F6F8',
     surface: '#FFFFFF',
     subtle: '#E9ECEF',
+    surfaceMuted: '#EEF1F4',
     border: '#D1D5DB',
     borderStrong: '#9CA3AF',
+    inputBorder: '#7B8490',
     textMain: '#111827',
-    textMuted: '#6B7280',
-    primary: '#D97000',
+    textMuted: '#5B6472',
+    primary: '#B85C00',
     primaryForeground: '#FFFFFF',
-    verified: '#008744',
-    pending: '#0094A8',
-    failure: '#DC2626',
-    gold: '#D97706',
-    tint: '#D97000',
+    verified: '#007A3D',
+    mint: '#007A3D',
+    pending: '#00798C',
+    failure: '#B91C1C',
+    failureText: '#B91C1C',
+    gold: '#B45309',
+    overlay: 'rgba(0,0,0,0.6)',
+    tint: '#B85C00',
   },
+};
+
+export const RADIUS = { sm: 8, md: 12, full: 9999 } as const;
+export const SPACING = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  '2xl': 24,
+  '3xl': 32,
+  '4xl': 40,
 } as const;
 
-export type ThemeColors = typeof PALETTE.dark;
+export const TYPOGRAPHY = {
+  display: { fontFamily: FONT.sans.bold, fontSize: 30, lineHeight: 36, letterSpacing: -0.6 },
+  h1: { fontFamily: FONT.sans.bold, fontSize: 24, lineHeight: 32, letterSpacing: -0.24 },
+  h2: { fontFamily: FONT.sans.semibold, fontSize: 20, lineHeight: 28 },
+  h3: { fontFamily: FONT.sans.semibold, fontSize: 16, lineHeight: 24 },
+  label: { fontFamily: FONT.sans.semibold, fontSize: 14, lineHeight: 20 },
+  body: { fontFamily: FONT.sans.regular, fontSize: 14, lineHeight: 20 },
+  caption: { fontFamily: FONT.sans.medium, fontSize: 12, lineHeight: 16 },
+  eyebrow: {
+    fontFamily: FONT.sans.bold,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 1.92,
+    textTransform: 'uppercase',
+  },
+  'metric-xl': { fontFamily: FONT.mono.bold, fontSize: 30, lineHeight: 36 },
+  'metric-lg': { fontFamily: FONT.mono.bold, fontSize: 24, lineHeight: 32 },
+  'metric-md': { fontFamily: FONT.mono.bold, fontSize: 18, lineHeight: 28 },
+  'metric-sm': { fontFamily: FONT.mono.medium, fontSize: 13, lineHeight: 18 },
+} as const satisfies Record<string, TextStyle>;
+
+export type TypographyVariant = keyof typeof TYPOGRAPHY;
+
+export const ELEVATION: Record<ThemeMode, { card: ViewStyle }> = {
+  dark: { card: { boxShadow: '0 8px 32px rgba(0,0,0,0.6)' } },
+  light: { card: { boxShadow: '0 4px 16px rgba(17,24,39,0.08)' } },
+};
+
+export function withAlpha(hex: string, alpha: number): string {
+  const a = Math.round(Math.max(0, Math.min(1, alpha)) * 255)
+    .toString(16)
+    .padStart(2, '0')
+    .toUpperCase();
+  return `${hex}${a}`;
+}
+
+export function glow(color: string): ViewStyle {
+  return { boxShadow: `0 0 12px ${withAlpha(color, 0.24)}` };
+}
 </file>
 
 <file path="src/mock/grants.ts">
@@ -895,6 +1352,10 @@ export interface Grant {
   region: string;
   summary: string;
 }
+
+export interface GrantDetail extends Grant {
+  requirements: string[];
+}
 </file>
 
 <file path=".env.example">
@@ -903,7 +1364,9 @@ EXPO_PUBLIC_APP_VERSION=1.0.0
 EXPO_PUBLIC_API_BASE_URL=https://api.grantum.io/api/v1
 EXPO_PUBLIC_API_TIMEOUT_MS=15000
 EXPO_PUBLIC_ENABLE_ANALYTICS=0
-EXPO_PUBLIC_POLLING_INTERVAL_MS=3000
+EXPO_PUBLIC_POLLING_INTERVAL_MS=1000
+EXPO_PUBLIC_DATA_SOURCE=mock
+EXPO_PUBLIC_MOCK_LATENCY_MS=350
 </file>
 
 <file path=".gitattributes">
@@ -1205,15 +1668,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 </file>
 
-<file path="lint-staged.config.js">
-module.exports = {
-  '*.{js,jsx,ts,tsx}': ['eslint --fix', 'prettier --write'],
-  '*.{json,md,css}': ['prettier --write'],
-};
-</file>
-
 <file path="pnpm-workspace.yaml">
 allowBuilds:
+  esbuild: true
   unrs-resolver: false
 </file>
 
@@ -1602,7 +2059,8 @@ import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { useDraftStore } from '@/store/useDraftStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE } from '@/config/theme';
-import { CONSTANTS } from '@/config/constants';
+import { TIERS, MAX_INPUT_CHARS } from '@/config/constants';
+import { scoreTier, isExportUnlocked } from '@/utils/scoring';
 
 export default function ExportScreen() {
   const { mode } = useThemeStore();
@@ -1610,8 +2068,8 @@ export default function ExportScreen() {
   const { confidenceScore, exportDocument, setExportDocument } = useDraftStore();
   const [format, setFormat] = useState('word');
   const [exported, setExported] = useState(false);
-
-  const locked = confidenceScore < CONSTANTS.CONFIDENCE_THRESHOLD;
+  const locked = !isExportUnlocked(confidenceScore);
+  const gateTier = scoreTier(confidenceScore, TIERS.confidence);
 
   const formats = [
     { id: 'word', label: 'Word (.docx)', icon: FileText },
@@ -1628,7 +2086,6 @@ export default function ExportScreen() {
           Deterministic compliance audit gate & document packager
         </AppText>
       </View>
-
       <View style={styles.formatsRow}>
         {formats.map((f) => {
           const Icon = f.icon;
@@ -1656,15 +2113,14 @@ export default function ExportScreen() {
           );
         })}
       </View>
-
       <View style={styles.statusRow}>
         <StatusBadge
           label={
             locked
-              ? `Export locked — confidence ${confidenceScore} below ${CONSTANTS.CONFIDENCE_THRESHOLD}`
+              ? `Export locked — confidence ${confidenceScore} below ${TIERS.confidence.pass}`
               : `Export unlocked — confidence ${confidenceScore}`
           }
-          variant={locked ? 'failure' : 'verified'}
+          variant={gateTier}
         />
         <AppButton
           label={exported ? 'Exported Successfully' : 'Export Bundle'}
@@ -1674,14 +2130,12 @@ export default function ExportScreen() {
           onPress={() => setExported(true)}
         />
       </View>
-
       <AppTextArea
         label="Document Body"
         value={exportDocument}
         onChangeText={setExportDocument}
-        charLimit={CONSTANTS.MAX_INPUT_CHARS}
+        charLimit={MAX_INPUT_CHARS}
       />
-
       {exported && (
         <View
           style={[
@@ -1700,15 +2154,8 @@ export default function ExportScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    marginBottom: 16,
-  },
-  formatsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
+  header: { marginBottom: 16 },
+  formatsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   formatBtn: {
     flex: 1,
     minWidth: 140,
@@ -1725,12 +2172,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14,
   },
-  checksumBox: {
-    marginTop: 16,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
+  checksumBox: { marginTop: 16, padding: 12, borderRadius: 8, borderWidth: 1 },
 });
 </file>
 
@@ -2854,30 +3296,24 @@ import { View, StyleSheet } from 'react-native';
 import { MetricGauge } from '../atoms/MetricGauge';
 import { StatusBadge } from '../atoms/StatusBadge';
 import { AppText } from '../atoms/AppText';
-import { scoreTier } from '@/utils/scoring';
-import { CONFIDENCE_TIER } from '@/config/constants';
+import { scoreTier, isExportUnlocked } from '@/utils/scoring';
+import { TIERS } from '@/config/constants';
 
 export interface ConfidenceGaugeReadoutProps {
   score: number;
-  threshold?: number;
 }
 
-export function ConfidenceGaugeReadout({
-  score,
-  threshold = CONFIDENCE_TIER.pass,
-}: ConfidenceGaugeReadoutProps) {
-  const status = scoreTier(score, CONFIDENCE_TIER);
+export function ConfidenceGaugeReadout({ score }: ConfidenceGaugeReadoutProps) {
+  const status = scoreTier(score, TIERS.confidence);
+  const unlocked = isExportUnlocked(score);
 
   return (
     <View style={styles.container}>
-      <MetricGauge value={score} label="confidence" />
+      <MetricGauge value={score} tier={status} label="confidence" />
       <View style={styles.readout}>
-        <StatusBadge
-          label={score >= threshold ? 'Export unlocked' : 'Export locked'}
-          variant={status}
-        />
+        <StatusBadge label={unlocked ? 'Export unlocked' : 'Export locked'} variant={status} />
         <AppText variant="caption" color="muted" style={styles.thresholdText}>
-          Threshold: {threshold} confidence
+          Threshold: <AppText variant="metric-sm">{TIERS.confidence.pass}</AppText> confidence
         </AppText>
       </View>
     </View>
@@ -2885,19 +3321,9 @@ export function ConfidenceGaugeReadout({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 20,
-    width: '100%',
-  },
-  readout: {
-    flex: 1,
-    gap: 8,
-  },
-  thresholdText: {
-    maxWidth: 176,
-  },
+  container: { flexDirection: 'row', alignItems: 'center', gap: 20, width: '100%' },
+  readout: { flex: 1, gap: 8 },
+  thresholdText: { maxWidth: 176 },
 });
 </file>
 
@@ -3405,73 +3831,55 @@ const styles = StyleSheet.create({
 </file>
 
 <file path="src/config/constants.ts">
-export const CONSTANTS = {
-  // Volatile required-section universe per Next.js V7.2
-  REQUIRED_DRAFT_SECTIONS: [
-    'Mission',
-    'Pain',
-    'Solution',
-    'Market',
-    'Competitors',
-    'Moat',
-  ] as const,
+export const DEFAULT_REQUIRED_SECTIONS: readonly string[] = [
+  'Mission',
+  'Pain',
+  'Solution',
+  'Market',
+  'Competitors',
+  'Moat',
+] as const;
 
-  // Compliance and audit thresholds (Strict single source)
-  CONFIDENCE_THRESHOLD: 85,
-  MATCH_THRESHOLD: 80,
-  WARN_THRESHOLD: 40,
-
-  // Timing and input invariants
-  MAX_INPUT_CHARS: 10000,
-  SCAN_SETTLE_MS: 3000,
-  HISTORY_CAP: 19,
-  DEFAULT_POLLING_MS: 3000,
+export const TIERS = {
+  match: { pass: 80, warn: 40 },
+  confidence: { pass: 85, warn: 40 },
 } as const;
 
-export const MATCH_TIER = {
-  pass: CONSTANTS.MATCH_THRESHOLD,
-  warn: CONSTANTS.WARN_THRESHOLD,
-} as const;
-
-export const CONFIDENCE_TIER = {
-  pass: CONSTANTS.CONFIDENCE_THRESHOLD,
-  warn: CONSTANTS.WARN_THRESHOLD,
-} as const;
+export const MAX_INPUT_CHARS = 10_000;
+export const SCAN_SETTLE_MS = 3_000;
+export const HISTORY_CAP = 19;
+export const DEFAULT_POLLING_MS = 1_000;
 </file>
 
 <file path="src/store/useDraftStore.ts">
 import { create } from 'zustand';
-import { CONSTANTS } from '@/config/constants';
+import { DEFAULT_REQUIRED_SECTIONS } from '@/config/constants';
 import { draftConfidenceScore } from '@/utils/scoring';
-import { ChatMessage } from '@/types/api';
+import type { ChatEntry } from '@/types/chat';
 import { generateId } from '@/utils/uuid';
 
 interface DraftState {
   completedSections: string[];
   requiredSections: string[];
   confidenceScore: number;
-  draftingMessages: ChatMessage[];
-  auditMessages: ChatMessage[];
+  draftingMessages: ChatEntry[];
+  auditMessages: ChatEntry[];
   exportDocument: string;
   isScanning: boolean;
-
-  // Section Mutations
   removeCompletedSection: (name: string) => void;
   restoreCompletedSections: () => void;
   addRequiredSection: (name: string) => void;
   deleteRequiredSection: (name: string) => void;
-
-  // Chat Mutations
-  addDraftingMessage: (text: string, variant: ChatMessage['variant']) => void;
-  addAuditMessage: (text: string, variant: ChatMessage['variant']) => void;
+  addDraftingMessage: (text: string, variant: ChatEntry['variant']) => void;
+  addAuditMessage: (text: string, variant: ChatEntry['variant']) => void;
   setExportDocument: (doc: string) => void;
   setScanning: (status: boolean) => void;
   resetDraftForGrant: (grantId: string, grantTitle: string, funder: string) => void;
 }
 
 export const useDraftStore = create<DraftState>((set, get) => ({
-  completedSections: [...CONSTANTS.REQUIRED_DRAFT_SECTIONS],
-  requiredSections: [...CONSTANTS.REQUIRED_DRAFT_SECTIONS],
+  completedSections: [...DEFAULT_REQUIRED_SECTIONS],
+  requiredSections: [...DEFAULT_REQUIRED_SECTIONS],
   confidenceScore: 100,
   draftingMessages: [
     {
@@ -3491,7 +3899,6 @@ export const useDraftStore = create<DraftState>((set, get) => ({
   ],
   exportDocument: 'Executive summary\n\nGrantum Autonomous Proposal System initialized.',
   isScanning: false,
-
   removeCompletedSection: (name) => {
     const { completedSections, requiredSections } = get();
     const nextCompleted = completedSections.filter((s) => s !== name);
@@ -3500,7 +3907,6 @@ export const useDraftStore = create<DraftState>((set, get) => ({
       confidenceScore: draftConfidenceScore(nextCompleted, requiredSections),
     });
   },
-
   restoreCompletedSections: () => {
     const { requiredSections } = get();
     set({
@@ -3508,7 +3914,6 @@ export const useDraftStore = create<DraftState>((set, get) => ({
       confidenceScore: 100,
     });
   },
-
   addRequiredSection: (name) => {
     if (!name.trim()) return;
     const { completedSections, requiredSections } = get();
@@ -3521,7 +3926,6 @@ export const useDraftStore = create<DraftState>((set, get) => ({
       confidenceScore: draftConfidenceScore(nextCompleted, nextRequired),
     });
   },
-
   deleteRequiredSection: (name) => {
     const { completedSections, requiredSections } = get();
     const nextRequired = requiredSections.filter((s) => s !== name);
@@ -3532,7 +3936,6 @@ export const useDraftStore = create<DraftState>((set, get) => ({
       confidenceScore: draftConfidenceScore(nextCompleted, nextRequired),
     });
   },
-
   addDraftingMessage: (text, variant) => {
     set((state) => ({
       draftingMessages: [
@@ -3541,7 +3944,6 @@ export const useDraftStore = create<DraftState>((set, get) => ({
       ],
     }));
   },
-
   addAuditMessage: (text, variant) => {
     set((state) => ({
       auditMessages: [
@@ -3550,15 +3952,12 @@ export const useDraftStore = create<DraftState>((set, get) => ({
       ],
     }));
   },
-
   setExportDocument: (doc) => set({ exportDocument: doc }),
-
   setScanning: (status) => set({ isScanning: status }),
-
   resetDraftForGrant: (grantId, grantTitle, funder) => {
     set({
-      completedSections: [...CONSTANTS.REQUIRED_DRAFT_SECTIONS],
-      requiredSections: [...CONSTANTS.REQUIRED_DRAFT_SECTIONS],
+      completedSections: [...DEFAULT_REQUIRED_SECTIONS],
+      requiredSections: [...DEFAULT_REQUIRED_SECTIONS],
       confidenceScore: 100,
       exportDocument: `Executive summary\n\n${grantTitle} seeks allocation from ${funder}. Verified audit trace anchored.`,
       draftingMessages: [
@@ -3575,8 +3974,9 @@ export const useDraftStore = create<DraftState>((set, get) => ({
 </file>
 
 <file path="src/types/api.ts">
-export type ApiStatus = 'idle' | 'loading' | 'success' | 'error';
+import type { Grant, GrantDetail } from './grant';
 
+export type ApiStatus = 'idle' | 'loading' | 'success' | 'error';
 export type ScoreTier = 'verified' | 'pending' | 'failure';
 
 export interface AuditEvent {
@@ -3597,7 +3997,29 @@ export interface ProposalDraft {
   body: string;
 }
 
-export interface AuditScanResponse {
+export type SectionAction =
+  | 'markMissing'
+  | 'restoreAll'
+  | 'addRequirement'
+  | 'deleteRequirement'
+  | 'remove'
+  | 'add'
+  | 'restore';
+
+export interface SectionMutation {
+  action: SectionAction;
+  sectionName?: string;
+}
+
+export interface SectionState {
+  grantId: string;
+  completedSections: string[];
+  requiredSections: string[];
+  confidenceScore: number;
+  updatedAt: string;
+}
+
+export interface AuditScan {
   scanId: string;
   status: 'running' | 'passed' | 'failed';
   confidenceScore: number;
@@ -3605,10 +4027,85 @@ export interface AuditScanResponse {
   events: AuditEvent[];
 }
 
+export type AuditScanResponse = AuditScan;
+
+export type ExportFormat = 'word' | 'pdf' | 'notebook' | 'markdown';
+
+export interface ExportRequest {
+  format: ExportFormat;
+  documentBody: string;
+}
+
 export interface ExportResponse {
   success: boolean;
   checksum: string;
   downloadUrl: string;
+}
+
+export interface AwardRecord {
+  grantId: string;
+  status: 'awarded' | 'submitted' | 'in_review';
+  submittedAt: string;
+  nextReportAt: string;
+  amount: string;
+  contractStatus: string;
+  events: AuditEvent[];
+}
+
+export interface FunnelStage {
+  label: string;
+  count: number;
+}
+
+export interface DashboardSummary {
+  greetingName: string;
+  pipeline: FunnelStage[];
+  profileCompletionPct: number;
+  activeDraft: {
+    grantId: string;
+    title: string;
+    completionPct: number;
+  } | null;
+}
+
+export interface GrantSearchParams {
+  q?: string;
+  region?: string[];
+  category?: string[];
+}
+
+export interface AuthMe {
+  id: string;
+  isOnboarded: boolean;
+  status: 'active' | 'suspended';
+}
+
+export interface OAuthResult {
+  token: string;
+  isNewUser: boolean;
+}
+
+export interface BountyInput {
+  title: string;
+  url?: string;
+  note?: string;
+}
+
+export interface DataSource {
+  getGrants(params?: GrantSearchParams): Promise<Grant[]>;
+  getGrant(id: string): Promise<GrantDetail>;
+  getProposalDraft(grantId: string): Promise<ProposalDraft>;
+  mutateSections(grantId: string, input: SectionMutation): Promise<SectionState>;
+  runAudit(grantId: string): Promise<AuditScan>;
+  getAuditScan(grantId: string, scanId: string): Promise<AuditScan>;
+  exportBundle(grantId: string, input: ExportRequest): Promise<ExportResponse>;
+  getAward(grantId: string): Promise<AwardRecord>;
+  getDashboardSummary(): Promise<DashboardSummary>;
+  getMe(): Promise<AuthMe>;
+  sendMagicLink(email: string): Promise<{ success: true }>;
+  oauthLogin(provider: string): Promise<OAuthResult>;
+  finishOnboarding(): Promise<{ success: true; isOnboarded: true }>;
+  submitBounty(input: BountyInput): Promise<{ queued: true }>;
 }
 
 export interface ChatMessage {
@@ -3623,20 +4120,25 @@ export interface ChatMessage {
 <file path="src/types/theme.ts">
 export type ThemeMode = 'dark' | 'light';
 
-export interface ThemePalette {
+export interface ThemeColors {
   background: string;
   surface: string;
   subtle: string;
+  surfaceMuted: string;
   border: string;
   borderStrong: string;
+  inputBorder: string;
   textMain: string;
   textMuted: string;
   primary: string;
   primaryForeground: string;
   verified: string;
+  mint: string;
   pending: string;
   failure: string;
+  failureText: string;
   gold: string;
+  overlay: string;
   tint: string;
 }
 </file>
@@ -3654,37 +4156,89 @@ export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength)}…`;
 }
+
+export function splitRegion(region: string): { region: string; category: string } {
+  const parts = region.split(' · ');
+  return {
+    region: parts[0] ?? region,
+    category: parts[1] ?? '',
+  };
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+export function formatLongDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+export function clamp(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, n));
+}
 </file>
 
 <file path="src/utils/scoring.ts">
-import { CONSTANTS, CONFIDENCE_TIER } from '@/config/constants';
-import { ScoreTier } from '@/types/api';
+import { DEFAULT_REQUIRED_SECTIONS, TIERS } from '@/config/constants';
+import type { ScoreTier, ProposalDraft, SectionMutation } from '@/types/api';
 
-/**
- * Calculates score tier according to constitutional thresholds
- */
 export function scoreTier(
   score: number,
-  thresholds: { pass: number; warn: number } = CONFIDENCE_TIER
+  thresholds: { pass: number; warn: number } = TIERS.confidence
 ): ScoreTier {
   if (score >= thresholds.pass) return 'verified';
   if (score >= thresholds.warn) return 'pending';
   return 'failure';
 }
 
-/**
- * Volatile denominator formula ported directly from Next.js V7.2
- * Each section is worth 100 / required.length points
- */
+export function isExportUnlocked(score: number): boolean {
+  return score >= TIERS.confidence.pass;
+}
+
 export function draftConfidenceScore(
   completedSections: string[],
-  requiredSections: readonly string[] | string[] = CONSTANTS.REQUIRED_DRAFT_SECTIONS
+  requiredSections: readonly string[] | string[] = DEFAULT_REQUIRED_SECTIONS
 ): number {
   if (!requiredSections.length) return 100;
   const completed = completedSections.filter((section) =>
     requiredSections.includes(section)
   ).length;
   return Math.round((completed / requiredSections.length) * 100);
+}
+
+export function applySectionMutation(draft: ProposalDraft, input: SectionMutation): ProposalDraft {
+  const name = input.sectionName?.trim() ?? '';
+  let completed = [...draft.completedSections];
+  let required = [...draft.requiredSections];
+
+  switch (input.action) {
+    case 'markMissing':
+    case 'remove':
+      completed = completed.filter((item) => item !== name);
+      break;
+    case 'restoreAll':
+    case 'restore':
+      completed = [...required];
+      break;
+    case 'addRequirement':
+    case 'add':
+      if (name && !required.includes(name)) {
+        required = [...required, name];
+        completed = [...completed, name];
+      }
+      break;
+    case 'deleteRequirement':
+      required = required.filter((item) => item !== name);
+      completed = completed.filter((item) => item !== name);
+      break;
+  }
+
+  return {
+    ...draft,
+    completedSections: completed,
+    requiredSections: required,
+    confidenceScore: draftConfidenceScore(completed, required),
+  };
 }
 </file>
 
@@ -3694,28 +4248,6 @@ export function generateId(prefix = 'id'): string {
   const randomStr = Math.random().toString(36).substring(2, 8);
   return `${prefix}-${timestamp}-${randomStr}`;
 }
-</file>
-
-<file path=".eslintrc.js">
-module.exports = {
-  root: true,
-  extends: ['expo', 'prettier'],
-  plugins: ['prettier'],
-  ignorePatterns: ['node_modules/', '.expo/', 'dist/', 'web-build/', 'assets/', 'expo-env.d.ts'],
-  rules: {
-    'prettier/prettier': 'error',
-    'no-console': ['warn', { allow: ['warn', 'error'] }],
-    'react-hooks/exhaustive-deps': 'error',
-    '@typescript-eslint/no-unused-vars': [
-      'warn',
-      { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
-    ],
-  },
-  overrides: [
-    { files: ['scripts/**/*.ts'], rules: { 'no-console': 'off' } },
-    { files: ['*.js'], rules: { '@typescript-eslint/no-unused-vars': 'off' } },
-  ],
-};
 </file>
 
 <file path=".prettierignore">
@@ -3799,6 +4331,13 @@ module.exports = function (api) {
 };
 </file>
 
+<file path="lint-staged.config.js">
+module.exports = {
+  '*.{js,jsx,ts,tsx}': ['eslint --fix', 'prettier --write'],
+  '*.{json,md,css}': ['prettier --write'],
+};
+</file>
+
 <file path="metro.config.js">
 const { getDefaultConfig } = require('expo/metro-config');
 
@@ -3820,6 +4359,7 @@ module.exports = getDefaultConfig(__dirname);
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "verify:scoring": "tsx scripts/verify-scoring.ts",
     "prepare": "husky"
   },
   "dependencies": {
@@ -3855,6 +4395,7 @@ module.exports = getDefaultConfig(__dirname);
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.9",
+    "tsx": "4.23.15",
     "typescript": "~6.0.3"
   },
   "packageManager": "pnpm@12.10.1",
@@ -3914,6 +4455,32 @@ Feature branches → Conventional Commits → PR → Squash & Merge only. Husky 
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
 }
+</file>
+
+<file path=".eslintrc.js">
+module.exports = {
+  root: true,
+  extends: ['expo', 'prettier'],
+  plugins: ['prettier'],
+  ignorePatterns: ['node_modules/', '.expo/', 'dist/', 'web-build/', 'assets/', 'expo-env.d.ts'],
+  rules: {
+    'prettier/prettier': 'error',
+    'no-console': ['warn', { allow: ['warn', 'error'] }],
+    'react-hooks/exhaustive-deps': 'error',
+    '@typescript-eslint/no-unused-vars': [
+      'warn',
+      {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      },
+    ],
+  },
+  overrides: [
+    { files: ['scripts/**/*.ts'], rules: { 'no-console': 'off' } },
+    { files: ['*.js'], rules: { '@typescript-eslint/no-unused-vars': 'off' } },
+  ],
+};
 </file>
 
 </files>

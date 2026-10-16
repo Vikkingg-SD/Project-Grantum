@@ -3,30 +3,24 @@ import { View, StyleSheet } from 'react-native';
 import { MetricGauge } from '../atoms/MetricGauge';
 import { StatusBadge } from '../atoms/StatusBadge';
 import { AppText } from '../atoms/AppText';
-import { scoreTier } from '@/utils/scoring';
-import { CONFIDENCE_TIER } from '@/config/constants';
+import { scoreTier, isExportUnlocked } from '@/utils/scoring';
+import { TIERS } from '@/config/constants';
 
 export interface ConfidenceGaugeReadoutProps {
   score: number;
-  threshold?: number;
 }
 
-export function ConfidenceGaugeReadout({
-  score,
-  threshold = CONFIDENCE_TIER.pass,
-}: ConfidenceGaugeReadoutProps) {
-  const status = scoreTier(score, CONFIDENCE_TIER);
+export function ConfidenceGaugeReadout({ score }: ConfidenceGaugeReadoutProps) {
+  const status = scoreTier(score, TIERS.confidence);
+  const unlocked = isExportUnlocked(score);
 
   return (
     <View style={styles.container}>
-      <MetricGauge value={score} label="confidence" />
+      <MetricGauge value={score} tier={status} label="confidence" />
       <View style={styles.readout}>
-        <StatusBadge
-          label={score >= threshold ? 'Export unlocked' : 'Export locked'}
-          variant={status}
-        />
+        <StatusBadge label={unlocked ? 'Export unlocked' : 'Export locked'} variant={status} />
         <AppText variant="caption" color="muted" style={styles.thresholdText}>
-          Threshold: {threshold} confidence
+          Threshold: <AppText variant="metric-sm">{TIERS.confidence.pass}</AppText> confidence
         </AppText>
       </View>
     </View>
@@ -34,17 +28,7 @@ export function ConfidenceGaugeReadout({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 20,
-    width: '100%',
-  },
-  readout: {
-    flex: 1,
-    gap: 8,
-  },
-  thresholdText: {
-    maxWidth: 176,
-  },
+  container: { flexDirection: 'row', alignItems: 'center', gap: 20, width: '100%' },
+  readout: { flex: 1, gap: 8 },
+  thresholdText: { maxWidth: 176 },
 });

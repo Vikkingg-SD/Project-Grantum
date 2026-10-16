@@ -1,35 +1,31 @@
 import { create } from 'zustand';
-import { CONSTANTS } from '@/config/constants';
+import { DEFAULT_REQUIRED_SECTIONS } from '@/config/constants';
 import { draftConfidenceScore } from '@/utils/scoring';
-import { ChatMessage } from '@/types/api';
+import type { ChatEntry } from '@/types/chat';
 import { generateId } from '@/utils/uuid';
 
 interface DraftState {
   completedSections: string[];
   requiredSections: string[];
   confidenceScore: number;
-  draftingMessages: ChatMessage[];
-  auditMessages: ChatMessage[];
+  draftingMessages: ChatEntry[];
+  auditMessages: ChatEntry[];
   exportDocument: string;
   isScanning: boolean;
-
-  // Section Mutations
   removeCompletedSection: (name: string) => void;
   restoreCompletedSections: () => void;
   addRequiredSection: (name: string) => void;
   deleteRequiredSection: (name: string) => void;
-
-  // Chat Mutations
-  addDraftingMessage: (text: string, variant: ChatMessage['variant']) => void;
-  addAuditMessage: (text: string, variant: ChatMessage['variant']) => void;
+  addDraftingMessage: (text: string, variant: ChatEntry['variant']) => void;
+  addAuditMessage: (text: string, variant: ChatEntry['variant']) => void;
   setExportDocument: (doc: string) => void;
   setScanning: (status: boolean) => void;
   resetDraftForGrant: (grantId: string, grantTitle: string, funder: string) => void;
 }
 
 export const useDraftStore = create<DraftState>((set, get) => ({
-  completedSections: [...CONSTANTS.REQUIRED_DRAFT_SECTIONS],
-  requiredSections: [...CONSTANTS.REQUIRED_DRAFT_SECTIONS],
+  completedSections: [...DEFAULT_REQUIRED_SECTIONS],
+  requiredSections: [...DEFAULT_REQUIRED_SECTIONS],
   confidenceScore: 100,
   draftingMessages: [
     {
@@ -49,7 +45,6 @@ export const useDraftStore = create<DraftState>((set, get) => ({
   ],
   exportDocument: 'Executive summary\n\nGrantum Autonomous Proposal System initialized.',
   isScanning: false,
-
   removeCompletedSection: (name) => {
     const { completedSections, requiredSections } = get();
     const nextCompleted = completedSections.filter((s) => s !== name);
@@ -58,7 +53,6 @@ export const useDraftStore = create<DraftState>((set, get) => ({
       confidenceScore: draftConfidenceScore(nextCompleted, requiredSections),
     });
   },
-
   restoreCompletedSections: () => {
     const { requiredSections } = get();
     set({
@@ -66,7 +60,6 @@ export const useDraftStore = create<DraftState>((set, get) => ({
       confidenceScore: 100,
     });
   },
-
   addRequiredSection: (name) => {
     if (!name.trim()) return;
     const { completedSections, requiredSections } = get();
@@ -79,7 +72,6 @@ export const useDraftStore = create<DraftState>((set, get) => ({
       confidenceScore: draftConfidenceScore(nextCompleted, nextRequired),
     });
   },
-
   deleteRequiredSection: (name) => {
     const { completedSections, requiredSections } = get();
     const nextRequired = requiredSections.filter((s) => s !== name);
@@ -90,7 +82,6 @@ export const useDraftStore = create<DraftState>((set, get) => ({
       confidenceScore: draftConfidenceScore(nextCompleted, nextRequired),
     });
   },
-
   addDraftingMessage: (text, variant) => {
     set((state) => ({
       draftingMessages: [
@@ -99,7 +90,6 @@ export const useDraftStore = create<DraftState>((set, get) => ({
       ],
     }));
   },
-
   addAuditMessage: (text, variant) => {
     set((state) => ({
       auditMessages: [
@@ -108,15 +98,12 @@ export const useDraftStore = create<DraftState>((set, get) => ({
       ],
     }));
   },
-
   setExportDocument: (doc) => set({ exportDocument: doc }),
-
   setScanning: (status) => set({ isScanning: status }),
-
   resetDraftForGrant: (grantId, grantTitle, funder) => {
     set({
-      completedSections: [...CONSTANTS.REQUIRED_DRAFT_SECTIONS],
-      requiredSections: [...CONSTANTS.REQUIRED_DRAFT_SECTIONS],
+      completedSections: [...DEFAULT_REQUIRED_SECTIONS],
+      requiredSections: [...DEFAULT_REQUIRED_SECTIONS],
       confidenceScore: 100,
       exportDocument: `Executive summary\n\n${grantTitle} seeks allocation from ${funder}. Verified audit trace anchored.`,
       draftingMessages: [

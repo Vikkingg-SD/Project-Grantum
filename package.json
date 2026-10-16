@@ -12,6 +12,7 @@
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "verify:scoring": "tsx scripts/verify-scoring.ts",
     "prepare": "husky"
   },
   "dependencies": {
@@ -47,6 +48,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.9",
+    "tsx": "4.23.15",
     "typescript": "~6.0.3"
   },
   "packageManager": "pnpm@12.10.1",

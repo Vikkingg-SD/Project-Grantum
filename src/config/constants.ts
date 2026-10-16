@@ -1,32 +1,18 @@
-export const CONSTANTS = {
-  // Volatile required-section universe per Next.js V7.2
-  REQUIRED_DRAFT_SECTIONS: [
-    'Mission',
-    'Pain',
-    'Solution',
-    'Market',
-    'Competitors',
-    'Moat',
-  ] as const,
+export const DEFAULT_REQUIRED_SECTIONS: readonly string[] = [
+  'Mission',
+  'Pain',
+  'Solution',
+  'Market',
+  'Competitors',
+  'Moat',
+] as const;
 
-  // Compliance and audit thresholds (Strict single source)
-  CONFIDENCE_THRESHOLD: 85,
-  MATCH_THRESHOLD: 80,
-  WARN_THRESHOLD: 40,
-
-  // Timing and input invariants
-  MAX_INPUT_CHARS: 10000,
-  SCAN_SETTLE_MS: 3000,
-  HISTORY_CAP: 19,
-  DEFAULT_POLLING_MS: 3000,
+export const TIERS = {
+  match: { pass: 80, warn: 40 },
+  confidence: { pass: 85, warn: 40 },
 } as const;
 
-export const MATCH_TIER = {
-  pass: CONSTANTS.MATCH_THRESHOLD,
-  warn: CONSTANTS.WARN_THRESHOLD,
-} as const;
-
-export const CONFIDENCE_TIER = {
-  pass: CONSTANTS.CONFIDENCE_THRESHOLD,
-  warn: CONSTANTS.WARN_THRESHOLD,
-} as const;
+export const MAX_INPUT_CHARS = 10_000;
+export const SCAN_SETTLE_MS = 3_000;
+export const HISTORY_CAP = 19;
+export const DEFAULT_POLLING_MS = 1_000;
