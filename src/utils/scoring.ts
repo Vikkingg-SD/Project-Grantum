@@ -1,29 +1,68 @@
-import { CONSTANTS, CONFIDENCE_TIER } from '@/config/constants';
-import { ScoreTier } from '@/types/api';
+import { DEFAULT_REQUIRED_SECTIONS, TIERS } from '@/config/constants';
+import type { ProposalDraft, ScoreTier, SectionMutation } from '@/types/api';
 
-/**
- * Calculates score tier according to constitutional thresholds
- */
 export function scoreTier(
   score: number,
-  thresholds: { pass: number; warn: number } = CONFIDENCE_TIER
+  thresholds: { pass: number; warn: number } = TIERS.confidence
 ): ScoreTier {
   if (score >= thresholds.pass) return 'verified';
   if (score >= thresholds.warn) return 'pending';
   return 'failure';
 }
 
-/**
- * Volatile denominator formula ported directly from Next.js V7.2
- * Each section is worth 100 / required.length points
- */
+export function isExportUnlocked(score: number): boolean {
+  return score >= TIERS.confidence.pass;
+}
+
 export function draftConfidenceScore(
   completedSections: string[],
-  requiredSections: readonly string[] | string[] = CONSTANTS.REQUIRED_DRAFT_SECTIONS
+  requiredSections: readonly string[] | string[] = DEFAULT_REQUIRED_SECTIONS
 ): number {
   if (!requiredSections.length) return 100;
-  const completed = completedSections.filter((section) =>
-    requiredSections.includes(section)
-  ).length;
-  return Math.round((completed / requiredSections.length) * 100);
+  const requiredSet = new Set(requiredSections);
+  const done = new Set(completedSections.filter((section) => requiredSet.has(section)));
+  return Math.round((done.size / requiredSections.length) * 100);
+}
+
+export function missingSections(
+  completedSections: string[],
+  requiredSections: readonly string[] | string[] = DEFAULT_REQUIRED_SECTIONS
+): string[] {
+  const done = new Set(completedSections);
+  return requiredSections.filter((name) => !done.has(name));
+}
+
+export function applySectionMutation(draft: ProposalDraft, input: SectionMutation): ProposalDraft {
+  const name = input.sectionName?.trim() ?? '';
+  let completed = [...draft.completedSections];
+  let required = [...draft.requiredSections];
+
+  switch (input.action) {
+    case 'markMissing':
+    case 'remove':
+      completed = completed.filter((item) => item !== name);
+      break;
+    case 'restoreAll':
+    case 'restore':
+      completed = [...required];
+      break;
+    case 'addRequirement':
+    case 'add':
+      if (name && !required.includes(name)) {
+        required = [...required, name];
+        completed = [...completed, name];
+      }
+      break;
+    case 'deleteRequirement':
+      required = required.filter((item) => item !== name);
+      completed = completed.filter((item) => item !== name);
+      break;
+  }
+
+  return {
+    ...draft,
+    completedSections: completed,
+    requiredSections: required,
+    confidenceScore: draftConfidenceScore(completed, required),
+  };
 }

@@ -4,9 +4,11 @@ import Svg, { Circle } from 'react-native-svg';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE } from '@/config/theme';
+import type { ScoreTier } from '@/types/api';
 
 export interface MetricGaugeProps {
-  value: number; // 0 - 100
+  value: number;
+  tier: ScoreTier;
   label?: string;
   size?: number;
 }
@@ -14,16 +16,15 @@ export interface MetricGaugeProps {
 const GAUGE_RADIUS = 50;
 const GAUGE_CIRCUMFERENCE = 2 * Math.PI * GAUGE_RADIUS;
 
-export function MetricGauge({ value, label = 'confidence', size = 128 }: MetricGaugeProps) {
+export function MetricGauge({ value, tier, label = 'confidence', size = 128 }: MetricGaugeProps) {
   const { mode } = useThemeStore();
   const theme = PALETTE[mode];
-
   const clamped = Math.max(0, Math.min(100, value));
   const strokeDashoffset = GAUGE_CIRCUMFERENCE * (1 - clamped / 100);
 
   const getTierColor = () => {
-    if (clamped >= 85) return theme.verified;
-    if (clamped >= 40) return theme.pending;
+    if (tier === 'verified') return theme.verified;
+    if (tier === 'pending') return theme.pending;
     return theme.failure;
   };
 
@@ -66,17 +67,7 @@ export function MetricGauge({ value, label = 'confidence', size = 128 }: MetricG
 }
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  svg: {
-    transform: [{ rotate: '-90deg' }],
-  },
-  textContainer: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  container: { position: 'relative', alignItems: 'center', justifyContent: 'center' },
+  svg: { transform: [{ rotate: '-90deg' }] },
+  textContainer: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
 });

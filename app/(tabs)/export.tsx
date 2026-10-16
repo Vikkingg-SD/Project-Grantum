@@ -9,7 +9,8 @@ import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { useDraftStore } from '@/store/useDraftStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE } from '@/config/theme';
-import { CONSTANTS } from '@/config/constants';
+import { TIERS, MAX_INPUT_CHARS } from '@/config/constants';
+import { scoreTier, isExportUnlocked } from '@/utils/scoring';
 
 export default function ExportScreen() {
   const { mode } = useThemeStore();
@@ -17,8 +18,8 @@ export default function ExportScreen() {
   const { confidenceScore, exportDocument, setExportDocument } = useDraftStore();
   const [format, setFormat] = useState('word');
   const [exported, setExported] = useState(false);
-
-  const locked = confidenceScore < CONSTANTS.CONFIDENCE_THRESHOLD;
+  const locked = !isExportUnlocked(confidenceScore);
+  const gateTier = scoreTier(confidenceScore, TIERS.confidence);
 
   const formats = [
     { id: 'word', label: 'Word (.docx)', icon: FileText },
@@ -35,7 +36,6 @@ export default function ExportScreen() {
           Deterministic compliance audit gate & document packager
         </AppText>
       </View>
-
       <View style={styles.formatsRow}>
         {formats.map((f) => {
           const Icon = f.icon;
@@ -63,15 +63,14 @@ export default function ExportScreen() {
           );
         })}
       </View>
-
       <View style={styles.statusRow}>
         <StatusBadge
           label={
             locked
-              ? `Export locked — confidence ${confidenceScore} below ${CONSTANTS.CONFIDENCE_THRESHOLD}`
+              ? `Export locked — confidence ${confidenceScore} below ${TIERS.confidence.pass}`
               : `Export unlocked — confidence ${confidenceScore}`
           }
-          variant={locked ? 'failure' : 'verified'}
+          variant={gateTier}
         />
         <AppButton
           label={exported ? 'Exported Successfully' : 'Export Bundle'}
@@ -81,14 +80,12 @@ export default function ExportScreen() {
           onPress={() => setExported(true)}
         />
       </View>
-
       <AppTextArea
         label="Document Body"
         value={exportDocument}
         onChangeText={setExportDocument}
-        charLimit={CONSTANTS.MAX_INPUT_CHARS}
+        charLimit={MAX_INPUT_CHARS}
       />
-
       {exported && (
         <View
           style={[
@@ -107,15 +104,8 @@ export default function ExportScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    marginBottom: 16,
-  },
-  formatsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
+  header: { marginBottom: 16 },
+  formatsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   formatBtn: {
     flex: 1,
     minWidth: 140,
@@ -132,10 +122,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14,
   },
-  checksumBox: {
-    marginTop: 16,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
+  checksumBox: { marginTop: 16, padding: 12, borderRadius: 8, borderWidth: 1 },
 });

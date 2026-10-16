@@ -8,3 +8,7 @@ export interface Grant {
   region: string;
   summary: string;
 }
+
+export interface GrantDetail extends Grant {
+  requirements: string[];
+}
