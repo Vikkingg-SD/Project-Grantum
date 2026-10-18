@@ -8,11 +8,12 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "verify:scoring": "tsx scripts/verify-scoring.ts",
+    "gate": "node scripts/grantum-preflight.mjs && pnpm typecheck && pnpm lint && pnpm format:check && pnpm verify:scoring",
     "prepare": "husky"
   },
   "dependencies": {
