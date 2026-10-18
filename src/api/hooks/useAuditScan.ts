@@ -1,15 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../client';
-import { ENDPOINTS } from '../endpoint';
+import { getDataSource } from '../dataSource';
 import { AuditScanResponse } from '@/types/api';
 import { ENV } from '@/config/env';
 
 export function useAuditStatus(grantId: string, isScanning: boolean) {
-  return useQuery<AuditScanResponse>({
+  return useQuery<AuditScanResponse | null>({
     queryKey: ['audit-status', grantId],
     queryFn: async () => {
-      const response = await apiClient.get(ENDPOINTS.PROPOSAL_AUDIT(grantId));
-      return response.data;
+      const ds = getDataSource();
+      return ds.getLatestAuditScan(grantId);
     },
     enabled: Boolean(grantId),
     refetchInterval: isScanning ? ENV.POLLING_INTERVAL_MS : false,
@@ -20,10 +19,8 @@ export function useTriggerAuditScan(grantId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const response = await apiClient.post(ENDPOINTS.PROPOSAL_AUDIT(grantId), {
-        triggerMode: 'full_scan',
-      });
-      return response.data;
+      const ds = getDataSource();
+      return ds.runAudit(grantId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['audit-status', grantId] });
