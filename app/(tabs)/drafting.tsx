@@ -9,26 +9,26 @@ import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { ChatInputRow } from '@/components/molecules/ChatInputRow';
 import { ChatMessageBubble } from '@/components/molecules/ChatMessageBubble';
 import { useDraftStore } from '@/store/useDraftStore';
+import { useUIStore } from '@/store/useUIStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE } from '@/config/theme';
 
 export default function DraftingScreen() {
   const { mode } = useThemeStore();
   const theme = PALETTE[mode];
-  const {
-    completedSections,
-    requiredSections,
-    draftingMessages,
-    addDraftingMessage,
-    removeCompletedSection,
-    restoreCompletedSections,
-    addRequiredSection,
-    deleteRequiredSection,
-  } = useDraftStore();
+  const grantId = useUIStore((s) => s.activeGrantId);
+
+  const draft = useDraftStore((s) => s.drafts[grantId] ?? s.getDraft(grantId));
+  const { completedSections, requiredSections, draftingMessages } = draft;
+
+  const removeCompletedSection = useDraftStore((s) => s.removeCompletedSection);
+  const restoreCompletedSections = useDraftStore((s) => s.restoreCompletedSections);
+  const addRequiredSection = useDraftStore((s) => s.addRequiredSection);
+  const deleteRequiredSection = useDraftStore((s) => s.deleteRequiredSection);
+  const addDraftingMessage = useDraftStore((s) => s.addDraftingMessage);
 
   const [inputMessage, setInputMessage] = useState('');
   const [newSectionName, setNewSectionName] = useState('');
-
   const chips = [
     'Tighten the mission statement',
     'Align budget to funder cap',
@@ -37,11 +37,12 @@ export default function DraftingScreen() {
 
   const handleSend = () => {
     if (!inputMessage.trim()) return;
-    addDraftingMessage(inputMessage, 'user');
+    addDraftingMessage(grantId, inputMessage, 'user');
     const msg = inputMessage;
     setInputMessage('');
     setTimeout(() => {
       addDraftingMessage(
+        grantId,
         `Noted. Revising draft for: "${msg}". Narrative remains aligned with funder criteria.`,
         'assistant-narrative'
       );
@@ -57,7 +58,6 @@ export default function DraftingScreen() {
           variant={completedSections.length === requiredSections.length ? 'verified' : 'pending'}
         />
       </View>
-
       <View
         style={[styles.sectionsCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
       >
@@ -77,17 +77,22 @@ export default function DraftingScreen() {
                 {sec}
               </AppText>
               <View style={styles.secActions}>
-                <Pressable onPress={() => removeCompletedSection(sec)} style={styles.iconBtn}>
+                <Pressable
+                  onPress={() => removeCompletedSection(grantId, sec)}
+                  style={styles.iconBtn}
+                >
                   <X size={14} color={theme.textMuted} />
                 </Pressable>
-                <Pressable onPress={() => deleteRequiredSection(sec)} style={styles.iconBtn}>
+                <Pressable
+                  onPress={() => deleteRequiredSection(grantId, sec)}
+                  style={styles.iconBtn}
+                >
                   <Trash2 size={14} color={theme.failure} />
                 </Pressable>
               </View>
             </View>
           ))}
         </View>
-
         <View style={styles.addSectionRow}>
           <View style={styles.addInput}>
             <AppInput
@@ -101,7 +106,7 @@ export default function DraftingScreen() {
             size="sm"
             onPress={() => {
               if (newSectionName.trim()) {
-                addRequiredSection(newSectionName);
+                addRequiredSection(grantId, newSectionName);
                 setNewSectionName('');
               }
             }}
@@ -112,20 +117,20 @@ export default function DraftingScreen() {
             label="Restore all sections"
             variant="outline"
             size="sm"
-            onPress={restoreCompletedSections}
+            onPress={() => restoreCompletedSections(grantId)}
           />
         )}
       </View>
-
       <View style={styles.chipRow}>
         {chips.map((chip) => (
           <Pressable
             key={chip}
             style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={() => {
-              addDraftingMessage(chip, 'user');
+              addDraftingMessage(grantId, chip, 'user');
               setTimeout(() => {
                 addDraftingMessage(
+                  grantId,
                   `Automated revision pass executed for: ${chip}.`,
                   'assistant-narrative'
                 );
@@ -136,14 +141,12 @@ export default function DraftingScreen() {
           </Pressable>
         ))}
       </View>
-
       <FlatList
         data={draftingMessages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <ChatMessageBubble {...item} />}
         contentContainerStyle={styles.chatList}
       />
-
       <ChatInputRow value={inputMessage} onChangeText={setInputMessage} onSend={handleSend} />
     </ScreenContainer>
   );
