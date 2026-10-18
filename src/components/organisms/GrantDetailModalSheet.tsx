@@ -28,7 +28,7 @@ export function GrantDetailModalSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.scrim}>
+      <View style={[styles.scrim, { backgroundColor: theme.overlay }]}>
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={[styles.sheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={[styles.header, { borderBottomColor: theme.border }]}>
@@ -88,7 +88,6 @@ export function GrantDetailModalSheet({
 const styles = StyleSheet.create({
   scrim: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'flex-end',
   },
   backdrop: {
