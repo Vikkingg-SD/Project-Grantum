@@ -5,6 +5,7 @@ import { AppButton } from '../atoms/AppButton';
 import { StatusBadge } from '../atoms/StatusBadge';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE } from '@/config/theme';
+import { matchTier } from '@/utils/scoring';
 import { Grant } from '@/types/grant';
 
 export interface GrantCardProps {
@@ -16,13 +17,6 @@ export interface GrantCardProps {
 export function GrantCard({ grant, onSelect, onApply }: GrantCardProps) {
   const { mode } = useThemeStore();
   const theme = PALETTE[mode];
-
-  const getMatchVariant = (pct: number) => {
-    if (pct >= 80) return 'verified';
-    if (pct >= 40) return 'pending';
-    return 'failure';
-  };
-
   return (
     <Pressable
       onPress={onSelect}
@@ -36,13 +30,11 @@ export function GrantCard({ grant, onSelect, onApply }: GrantCardProps) {
     >
       <View style={styles.header}>
         <StatusBadge label={grant.funder} variant="neutral" />
-        <StatusBadge label={`${grant.matchPct}% match`} variant={getMatchVariant(grant.matchPct)} />
+        <StatusBadge label={`${grant.matchPct}% match`} variant={matchTier(grant.matchPct)} />
       </View>
-
       <AppText variant="h3" style={styles.title} numberOfLines={2}>
         {grant.title}
       </AppText>
-
       <View style={styles.metricsGrid}>
         <View style={styles.metricColumn}>
           <AppText variant="caption" color="muted">
@@ -61,7 +53,6 @@ export function GrantCard({ grant, onSelect, onApply }: GrantCardProps) {
           </AppText>
         </View>
       </View>
-
       <View style={[styles.footer, { borderTopColor: theme.border }]}>
         <AppText variant="caption" color="muted" style={styles.region}>
           {grant.region}

@@ -8,11 +8,12 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "verify:scoring": "tsx scripts/verify-scoring.ts",
+    "gate": "node scripts/grantum-preflight.mjs && pnpm typecheck && pnpm lint && pnpm format:check && pnpm verify:scoring",
     "prepare": "husky"
   },
   "dependencies": {
@@ -20,7 +21,6 @@
     "@expo-google-fonts/jetbrains-mono": "^0.2.3",
     "@expo/metro-runtime": "~57.0.16",
     "@tanstack/react-query": "^5.104.1",
-    "axios": "^1.20.0",
     "expo": "~57.0.28",
     "expo-constants": "^57.0.21",
     "expo-font": "~57.0.4",

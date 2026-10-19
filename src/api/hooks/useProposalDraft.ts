@@ -1,14 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../client';
-import { ENDPOINTS } from '../endpoint';
-import { ProposalDraft } from '@/types/api';
+import { getDataSource } from '../dataSource';
+import { ProposalDraft, SectionMutation } from '@/types/api';
 
 export function useProposalDraft(grantId: string) {
   return useQuery<ProposalDraft>({
     queryKey: ['proposal-draft', grantId],
     queryFn: async () => {
-      const response = await apiClient.get(ENDPOINTS.PROPOSAL_DRAFT(grantId));
-      return response.data;
+      const ds = getDataSource();
+      return ds.getProposalDraft(grantId);
     },
     enabled: Boolean(grantId),
   });
@@ -17,9 +16,9 @@ export function useProposalDraft(grantId: string) {
 export function useMutateProposalSections(grantId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { action: 'remove' | 'add' | 'restore'; sectionName: string }) => {
-      const response = await apiClient.patch(ENDPOINTS.PROPOSAL_SECTIONS(grantId), payload);
-      return response.data;
+    mutationFn: async (payload: SectionMutation) => {
+      const ds = getDataSource();
+      return ds.mutateSections(grantId, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposal-draft', grantId] });

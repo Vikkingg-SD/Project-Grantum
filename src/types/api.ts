@@ -122,6 +122,7 @@ export interface DataSource {
   mutateSections(grantId: string, input: SectionMutation): Promise<SectionState>;
   runAudit(grantId: string): Promise<AuditScan>;
   getAuditScan(grantId: string, scanId: string): Promise<AuditScan>;
+  getLatestAuditScan(grantId: string): Promise<AuditScan | null>;
   exportBundle(grantId: string, input: ExportRequest): Promise<ExportResponse>;
   getAward(grantId: string): Promise<AwardRecord>;
   getDashboardSummary(): Promise<DashboardSummary>;

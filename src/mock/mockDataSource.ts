@@ -61,6 +61,10 @@ export const mockDataSource: DataSource = {
     if (!scan) throw new Error('Scan not found');
     return scan;
   },
+  async getLatestAuditScan(_grantId: string) {
+    await sleep(ENV.MOCK_LATENCY_MS);
+    return null; // WP-G will wire real polling; mock relies on local store for now.
+  },
   async exportBundle(grantId: string, input: ExportRequest) {
     await sleep(ENV.MOCK_LATENCY_MS);
     updateMockDraft(grantId, { body: input.documentBody });
