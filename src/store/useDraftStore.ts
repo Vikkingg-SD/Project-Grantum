@@ -1,119 +1,148 @@
 import { create } from 'zustand';
 import { DEFAULT_REQUIRED_SECTIONS } from '@/config/constants';
-import { draftConfidenceScore } from '@/utils/scoring';
 import type { ChatEntry } from '@/types/chat';
 import { generateId } from '@/utils/uuid';
 
-interface DraftState {
+export interface GrantDraftState {
   completedSections: string[];
   requiredSections: string[];
-  confidenceScore: number;
   draftingMessages: ChatEntry[];
   auditMessages: ChatEntry[];
   exportDocument: string;
   isScanning: boolean;
-  removeCompletedSection: (name: string) => void;
-  restoreCompletedSections: () => void;
-  addRequiredSection: (name: string) => void;
-  deleteRequiredSection: (name: string) => void;
-  addDraftingMessage: (text: string, variant: ChatEntry['variant']) => void;
-  addAuditMessage: (text: string, variant: ChatEntry['variant']) => void;
-  setExportDocument: (doc: string) => void;
-  setScanning: (status: boolean) => void;
+}
+
+interface DraftStoreState {
+  drafts: Record<string, GrantDraftState>;
+  getDraft: (grantId: string) => GrantDraftState;
+  removeCompletedSection: (grantId: string, name: string) => void;
+  restoreCompletedSections: (grantId: string) => void;
+  addRequiredSection: (grantId: string, name: string) => void;
+  deleteRequiredSection: (grantId: string, name: string) => void;
+  addDraftingMessage: (grantId: string, text: string, variant: ChatEntry['variant']) => void;
+  addAuditMessage: (grantId: string, text: string, variant: ChatEntry['variant']) => void;
+  setExportDocument: (grantId: string, doc: string) => void;
+  setScanning: (grantId: string, status: boolean) => void;
   resetDraftForGrant: (grantId: string, grantTitle: string, funder: string) => void;
 }
 
-export const useDraftStore = create<DraftState>((set, get) => ({
+const createDefaultDraft = (grantTitle?: string, funder?: string): GrantDraftState => ({
   completedSections: [...DEFAULT_REQUIRED_SECTIONS],
   requiredSections: [...DEFAULT_REQUIRED_SECTIONS],
-  confidenceScore: 100,
   draftingMessages: [
     {
-      id: 'init-draft',
-      text: 'Welcome to the drafting assistant. Narrative generation armed.',
+      id: generateId('msg'),
+      text: grantTitle
+        ? `Welcome to the drafting assistant. Current file: ${grantTitle} (${funder}). Describe revisions to align with requirements.`
+        : 'Welcome to the drafting assistant. Narrative generation armed.',
       variant: 'assistant-narrative',
       timestamp: 'now',
     },
   ],
   auditMessages: [
     {
-      id: 'init-audit',
+      id: generateId('msg'),
       text: 'AUDIT AGENT ONLINE · Deterministic pass armed. Awaiting compliance check.',
       variant: 'assistant-auditor',
       timestamp: 'now',
     },
   ],
-  exportDocument: 'Executive summary\n\nGrantum Autonomous Proposal System initialized.',
+  exportDocument: grantTitle
+    ? `Executive summary\n\n${grantTitle} seeks allocation from ${funder}. Verified audit trace anchored.`
+    : 'Executive summary\n\nGrantum Autonomous Proposal System initialized.',
   isScanning: false,
-  removeCompletedSection: (name) => {
-    const { completedSections, requiredSections } = get();
-    const nextCompleted = completedSections.filter((s) => s !== name);
-    set({
-      completedSections: nextCompleted,
-      confidenceScore: draftConfidenceScore(nextCompleted, requiredSections),
-    });
+});
+
+export const useDraftStore = create<DraftStoreState>((set, get) => ({
+  drafts: {
+    '1': createDefaultDraft('Climate Resilience Infrastructure', 'Northstar Foundation'),
   },
-  restoreCompletedSections: () => {
-    const { requiredSections } = get();
-    set({
-      completedSections: [...requiredSections],
-      confidenceScore: 100,
-    });
+  getDraft: (grantId) => get().drafts[grantId] ?? createDefaultDraft(),
+  removeCompletedSection: (grantId, name) => {
+    const draft = get().getDraft(grantId);
+    const nextCompleted = draft.completedSections.filter((s) => s !== name);
+    set((state) => ({
+      drafts: { ...state.drafts, [grantId]: { ...draft, completedSections: nextCompleted } },
+    }));
   },
-  addRequiredSection: (name) => {
+  restoreCompletedSections: (grantId) => {
+    const draft = get().getDraft(grantId);
+    set((state) => ({
+      drafts: {
+        ...state.drafts,
+        [grantId]: { ...draft, completedSections: [...draft.requiredSections] },
+      },
+    }));
+  },
+  addRequiredSection: (grantId, name) => {
     if (!name.trim()) return;
-    const { completedSections, requiredSections } = get();
-    if (requiredSections.includes(name)) return;
-    const nextRequired = [...requiredSections, name.trim()];
-    const nextCompleted = [...completedSections, name.trim()];
-    set({
-      requiredSections: nextRequired,
-      completedSections: nextCompleted,
-      confidenceScore: draftConfidenceScore(nextCompleted, nextRequired),
-    });
-  },
-  deleteRequiredSection: (name) => {
-    const { completedSections, requiredSections } = get();
-    const nextRequired = requiredSections.filter((s) => s !== name);
-    const nextCompleted = completedSections.filter((s) => s !== name);
-    set({
-      requiredSections: nextRequired,
-      completedSections: nextCompleted,
-      confidenceScore: draftConfidenceScore(nextCompleted, nextRequired),
-    });
-  },
-  addDraftingMessage: (text, variant) => {
+    const draft = get().getDraft(grantId);
+    if (draft.requiredSections.includes(name)) return;
+    const nextRequired = [...draft.requiredSections, name.trim()];
+    const nextCompleted = [...draft.completedSections, name.trim()];
     set((state) => ({
-      draftingMessages: [
-        ...state.draftingMessages,
-        { id: generateId('msg'), text, variant, timestamp: 'now' },
-      ],
+      drafts: {
+        ...state.drafts,
+        [grantId]: { ...draft, requiredSections: nextRequired, completedSections: nextCompleted },
+      },
     }));
   },
-  addAuditMessage: (text, variant) => {
+  deleteRequiredSection: (grantId, name) => {
+    const draft = get().getDraft(grantId);
+    const nextRequired = draft.requiredSections.filter((s) => s !== name);
+    const nextCompleted = draft.completedSections.filter((s) => s !== name);
     set((state) => ({
-      auditMessages: [
-        ...state.auditMessages,
-        { id: generateId('msg'), text, variant, timestamp: 'now' },
-      ],
+      drafts: {
+        ...state.drafts,
+        [grantId]: { ...draft, requiredSections: nextRequired, completedSections: nextCompleted },
+      },
     }));
   },
-  setExportDocument: (doc) => set({ exportDocument: doc }),
-  setScanning: (status) => set({ isScanning: status }),
-  resetDraftForGrant: (grantId, grantTitle, funder) => {
-    set({
-      completedSections: [...DEFAULT_REQUIRED_SECTIONS],
-      requiredSections: [...DEFAULT_REQUIRED_SECTIONS],
-      confidenceScore: 100,
-      exportDocument: `Executive summary\n\n${grantTitle} seeks allocation from ${funder}. Verified audit trace anchored.`,
-      draftingMessages: [
-        {
-          id: generateId('msg'),
-          text: `Welcome to the drafting assistant. Current file: ${grantTitle} (${funder}). Describe revisions to align with requirements.`,
-          variant: 'assistant-narrative',
-          timestamp: 'now',
+  addDraftingMessage: (grantId, text, variant) => {
+    const draft = get().getDraft(grantId);
+    set((state) => ({
+      drafts: {
+        ...state.drafts,
+        [grantId]: {
+          ...draft,
+          draftingMessages: [
+            ...draft.draftingMessages,
+            { id: generateId('msg'), text, variant, timestamp: 'now' },
+          ],
         },
-      ],
-    });
+      },
+    }));
+  },
+  addAuditMessage: (grantId, text, variant) => {
+    const draft = get().getDraft(grantId);
+    set((state) => ({
+      drafts: {
+        ...state.drafts,
+        [grantId]: {
+          ...draft,
+          auditMessages: [
+            ...draft.auditMessages,
+            { id: generateId('msg'), text, variant, timestamp: 'now' },
+          ],
+        },
+      },
+    }));
+  },
+  setExportDocument: (grantId, doc) => {
+    const draft = get().getDraft(grantId);
+    set((state) => ({
+      drafts: { ...state.drafts, [grantId]: { ...draft, exportDocument: doc } },
+    }));
+  },
+  setScanning: (grantId, status) => {
+    const draft = get().getDraft(grantId);
+    set((state) => ({
+      drafts: { ...state.drafts, [grantId]: { ...draft, isScanning: status } },
+    }));
+  },
+  resetDraftForGrant: (grantId, grantTitle, funder) => {
+    set((state) => ({
+      drafts: { ...state.drafts, [grantId]: createDefaultDraft(grantTitle, funder) },
+    }));
   },
 }));

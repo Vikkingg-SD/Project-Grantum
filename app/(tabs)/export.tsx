@@ -7,15 +7,23 @@ import { AppButton } from '@/components/atoms/AppButton';
 import { AppTextArea } from '@/components/atoms/AppTextArea';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { useDraftStore } from '@/store/useDraftStore';
+import { useUIStore } from '@/store/useUIStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE } from '@/config/theme';
 import { TIERS, MAX_INPUT_CHARS } from '@/config/constants';
-import { scoreTier, isExportUnlocked } from '@/utils/scoring';
+import { scoreTier, isExportUnlocked, draftConfidenceScore } from '@/utils/scoring';
 
 export default function ExportScreen() {
   const { mode } = useThemeStore();
   const theme = PALETTE[mode];
-  const { confidenceScore, exportDocument, setExportDocument } = useDraftStore();
+  const grantId = useUIStore((s) => s.activeGrantId);
+
+  const draft = useDraftStore((s) => s.drafts[grantId] ?? s.getDraft(grantId));
+  const { exportDocument } = draft;
+  const confidenceScore = draftConfidenceScore(draft.completedSections, draft.requiredSections);
+
+  const setExportDocument = useDraftStore((s) => s.setExportDocument);
+
   const [format, setFormat] = useState('word');
   const [exported, setExported] = useState(false);
   const locked = !isExportUnlocked(confidenceScore);
@@ -83,7 +91,7 @@ export default function ExportScreen() {
       <AppTextArea
         label="Document Body"
         value={exportDocument}
-        onChangeText={setExportDocument}
+        onChangeText={(text) => setExportDocument(grantId, text)}
         charLimit={MAX_INPUT_CHARS}
       />
       {exported && (

@@ -8,20 +8,27 @@ import { ConfidenceGaugeReadout } from '@/components/molecules/ConfidenceGaugeRe
 import { ChatMessageBubble } from '@/components/molecules/ChatMessageBubble';
 import { ChatInputRow } from '@/components/molecules/ChatInputRow';
 import { useDraftStore } from '@/store/useDraftStore';
+import { useUIStore } from '@/store/useUIStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE } from '@/config/theme';
+import { draftConfidenceScore } from '@/utils/scoring';
 
 export default function AuditScreen() {
   const { mode } = useThemeStore();
   const theme = PALETTE[mode];
-  const { completedSections, requiredSections, confidenceScore, auditMessages, addAuditMessage } =
-    useDraftStore();
+  const grantId = useUIStore((s) => s.activeGrantId);
+
+  const draft = useDraftStore((s) => s.drafts[grantId] ?? s.getDraft(grantId));
+  const { completedSections, requiredSections, auditMessages } = draft;
+  const confidenceScore = draftConfidenceScore(completedSections, requiredSections);
+
+  const addAuditMessage = useDraftStore((s) => s.addAuditMessage);
 
   const [inputMessage, setInputMessage] = useState('');
 
   const handleSend = () => {
     if (!inputMessage.trim()) return;
-    addAuditMessage(inputMessage, 'user');
+    addAuditMessage(grantId, inputMessage, 'user');
     const msg = inputMessage;
     setInputMessage('');
     setTimeout(() => {
@@ -30,7 +37,7 @@ export default function AuditScreen() {
         missing.length === 0
           ? `AUDIT OK · ${msg}: Zero arithmetic inconsistencies. Confidence index 100.`
           : `AUDIT ALERT · ${msg}: Blocked on omitted sections: ${missing.join(', ')}. Confidence: ${confidenceScore}.`;
-      addAuditMessage(res, 'assistant-auditor');
+      addAuditMessage(grantId, res, 'assistant-auditor');
     }, 600);
   };
 
@@ -40,7 +47,6 @@ export default function AuditScreen() {
         <AppText variant="h1">Deterministic Auditor</AppText>
         <StatusBadge label="Agent-2 Deterministic" variant="verified" />
       </View>
-
       <View
         style={[styles.scanCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
       >
@@ -74,19 +80,16 @@ export default function AuditScreen() {
             );
           })}
         </View>
-
         <View style={[styles.gaugeBox, { borderTopColor: theme.border }]}>
           <ConfidenceGaugeReadout score={confidenceScore} />
         </View>
       </View>
-
       <FlatList
         data={auditMessages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <ChatMessageBubble {...item} />}
         contentContainerStyle={styles.chatList}
       />
-
       <ChatInputRow
         value={inputMessage}
         onChangeText={setInputMessage}
