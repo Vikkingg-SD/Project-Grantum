@@ -12,7 +12,7 @@ export interface ChipProps {
 }
 
 export function Chip({ label, selected = false, onToggle, disabled = false }: ChipProps) {
-  const { mode } = useThemeStore();
+  const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
 
   return (
@@ -28,13 +28,7 @@ export function Chip({ label, selected = false, onToggle, disabled = false }: Ch
         },
       ]}
     >
-      <AppText
-        variant="caption"
-        style={{
-          color: selected ? theme.primaryForeground : theme.textMuted,
-          fontWeight: '600',
-        }}
-      >
+      <AppText variant="caption" color={selected ? 'primaryForeground' : 'muted'}>
         {label}
       </AppText>
     </Pressable>
