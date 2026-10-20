@@ -1,5 +1,8 @@
-branch=$(git rev-parse --abbrev-ref HEAD)
-if [ "$branch" = "main" ]; then
-  echo "husky - direct push to main prohibited (Law 14; break-glass RL-15 requires a logged --no-verify)"
-  exit 1
-fi
+# Ref-aware push guard (Route A)
+# Blocks pushes that update refs/heads/main, but allows tag pushes and feature branch pushes.
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    echo "husky - direct push to main prohibited (Law 14; break-glass RL-15 requires a logged --no-verify)"
+    exit 1
+  fi
+done
