@@ -5,8 +5,10 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "grantum",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
     "ios": {
@@ -14,8 +16,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#000000"
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#000000",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
       }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
     },
     "plugins": ["expo-router", "expo-font", "expo-splash-screen"],
     "experiments": {
