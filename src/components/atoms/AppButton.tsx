@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, ActivityIndicator, ViewStyle, StyleProp } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
+import { PALETTE, RADIUS } from '@/config/theme';
 
 export interface AppButtonProps {
   label: string;
@@ -27,7 +27,7 @@ export function AppButton({
   iconPosition = 'left',
   style,
 }: AppButtonProps) {
-  const { mode } = useThemeStore();
+  const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
 
   const getVariantStyle = (pressed: boolean): ViewStyle => {
@@ -66,15 +66,17 @@ export function AppButton({
     }
   };
 
-  const getTextColor = () => {
+  const getTextColor = (): 'main' | 'muted' | 'primary' | 'primaryForeground' | 'failureText' => {
     if (variant === 'primary') return 'primaryForeground';
-    if (variant === 'danger') return 'main';
+    if (variant === 'danger') return 'failureText';
     if (variant === 'ghost') return 'muted';
     return 'main';
   };
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: disabled || isLoading, busy: isLoading }}
       onPress={onPress}
       disabled={disabled || isLoading}
       style={({ pressed }) => [
@@ -94,12 +96,9 @@ export function AppButton({
         <>
           {icon && iconPosition === 'left' && icon}
           <AppText
-            variant={size === 'sm' ? 'caption' : 'body'}
-            style={[
-              styles.text,
-              icon ? (iconPosition === 'left' ? styles.iconRight : styles.iconLeft) : null,
-            ]}
-            color={getTextColor() as any}
+            variant={size === 'sm' ? 'caption' : 'label'}
+            style={[icon ? (iconPosition === 'left' ? styles.iconRight : styles.iconLeft) : null]}
+            color={getTextColor()}
           >
             {label}
           </AppText>
@@ -115,22 +114,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
   },
   sm: {
-    height: 36,
+    height: 44,
     paddingHorizontal: 12,
   },
   md: {
-    height: 44,
+    height: 48,
     paddingHorizontal: 16,
   },
   lg: {
-    height: 50,
+    height: 56,
     paddingHorizontal: 20,
-  },
-  text: {
-    fontWeight: '600',
   },
   iconRight: {
     marginLeft: 8,

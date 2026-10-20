@@ -9,10 +9,11 @@ import {
   Award,
 } from 'lucide-react-native';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
+import { PALETTE, SPACING } from '@/config/theme';
+import { FONT } from '@/config/fonts';
 
 export default function TabsLayout() {
-  const { mode } = useThemeStore();
+  const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
 
   return (
@@ -26,17 +27,16 @@ export default function TabsLayout() {
         },
         headerTitleStyle: {
           color: theme.textMain,
-          fontFamily: 'Inter',
+          fontFamily: FONT.sans.bold,
           fontSize: 18,
-          fontWeight: '700',
         },
         tabBarStyle: {
           backgroundColor: theme.surface,
           borderTopColor: theme.border,
           borderTopWidth: 1,
           height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          paddingBottom: SPACING.sm,
+          paddingTop: SPACING.sm,
         },
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.textMuted,

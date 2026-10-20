@@ -3,7 +3,8 @@ import { View, TextInput, StyleSheet } from 'react-native';
 import { Send } from 'lucide-react-native';
 import { IconButton } from '../atoms/IconButton';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
+import { PALETTE, RADIUS } from '@/config/theme';
+import { FONT } from '@/config/fonts';
 
 export interface ChatInputRowProps {
   value: string;
@@ -20,7 +21,7 @@ export function ChatInputRow({
   placeholder = 'Describe narrative changes or prompt auditor…',
   disabled = false,
 }: ChatInputRowProps) {
-  const { mode } = useThemeStore();
+  const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
 
   return (
@@ -35,7 +36,12 @@ export function ChatInputRow({
         editable={!disabled}
         style={[
           styles.input,
-          { color: theme.textMain, backgroundColor: theme.subtle, borderColor: theme.border },
+          {
+            color: theme.textMain,
+            backgroundColor: theme.subtle,
+            borderColor: theme.border,
+            fontFamily: FONT.sans.regular,
+          },
         ]}
       />
       <IconButton
@@ -59,10 +65,9 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 44,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     paddingHorizontal: 12,
-    fontFamily: 'Inter',
     fontSize: 14,
   },
 });
