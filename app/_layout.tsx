@@ -1,39 +1,32 @@
-import React from 'react';
-import { View, StyleSheet, useWindowDimensions, ActivityIndicator } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
-import {
-  useFonts,
-  Inter_400Regular,
-  Inter_600SemiBold,
-  Inter_700Bold,
-} from '@expo-google-fonts/inter';
-import { JetBrainsMono_500Medium, JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono';
+import * as SplashScreen from 'expo-splash-screen';
 import { queryClient } from '@/api/queryClient';
 import { useThemeStore } from '@/store/useThemeStore';
+import { useAppReady } from '@/hooks/useAppReady';
 import { PALETTE } from '@/config/theme';
+import { LAYOUT } from '@/config/layout';
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
-  const { mode } = useThemeStore();
+  const isReady = useAppReady();
+  const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
   const { width } = useWindowDimensions();
 
-  const [fontsLoaded] = useFonts({
-    Inter: Inter_400Regular,
-    'Inter-SemiBold': Inter_600SemiBold,
-    'Inter-Bold': Inter_700Bold,
-    'JetBrains Mono': JetBrainsMono_500Medium,
-    'JetBrainsMono-Bold': JetBrainsMono_700Bold,
-  });
+  useEffect(() => {
+    if (isReady) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [isReady]);
 
-  if (!fontsLoaded) {
-    return (
-      <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color={theme.primary} />
-      </View>
-    );
+  if (!isReady) {
+    return null;
   }
 
   return (
@@ -41,7 +34,7 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <View style={[styles.container, { backgroundColor: theme.background }]}>
           <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
-          <View style={[styles.stage, width >= 1024 && styles.desktopStage]}>
+          <View style={[styles.stage, width >= LAYOUT.contentMaxWidth && styles.desktopStage]}>
             <Slot />
           </View>
         </View>
@@ -54,17 +47,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   stage: {
     flex: 1,
     width: '100%',
   },
   desktopStage: {
-    maxWidth: 1280,
+    maxWidth: LAYOUT.contentMaxWidth,
     alignSelf: 'center',
   },
 });
