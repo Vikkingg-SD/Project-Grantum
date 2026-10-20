@@ -3,6 +3,7 @@ import { View, TextInput, TextInputProps, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE } from '@/config/theme';
+import { FONT } from '@/config/fonts';
 
 export interface AppTextAreaProps extends TextInputProps {
   label?: string;
@@ -10,7 +11,7 @@ export interface AppTextAreaProps extends TextInputProps {
 }
 
 export function AppTextArea({ label, charLimit, value, style, ...props }: AppTextAreaProps) {
-  const { mode } = useThemeStore();
+  const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
   const count = typeof value === 'string' ? value.length : 0;
   const isOver = charLimit !== undefined && count > charLimit;
@@ -37,7 +38,7 @@ export function AppTextArea({ label, charLimit, value, style, ...props }: AppTex
           placeholderTextColor={theme.textMuted}
           value={value}
           maxLength={charLimit}
-          style={[styles.textArea, { color: theme.textMain }, style]}
+          style={[styles.textArea, { color: theme.textMain, fontFamily: FONT.sans.regular }, style]}
           {...props}
         />
       </View>
@@ -62,7 +63,6 @@ const styles = StyleSheet.create({
   },
   label: {
     marginBottom: 6,
-    fontWeight: '600',
   },
   textWrapper: {
     borderRadius: 8,
@@ -71,7 +71,6 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   textArea: {
-    fontFamily: 'Inter',
     fontSize: 14,
     minHeight: 96,
   },

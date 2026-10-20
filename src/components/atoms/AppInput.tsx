@@ -3,6 +3,7 @@ import { View, TextInput, TextInputProps, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE } from '@/config/theme';
+import { FONT } from '@/config/fonts';
 
 export interface AppInputProps extends TextInputProps {
   label?: string;
@@ -11,7 +12,7 @@ export interface AppInputProps extends TextInputProps {
 }
 
 export function AppInput({ label, error, icon, style, ...props }: AppInputProps) {
-  const { mode } = useThemeStore();
+  const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
 
   return (
@@ -35,7 +36,7 @@ export function AppInput({ label, error, icon, style, ...props }: AppInputProps)
           placeholderTextColor={theme.textMuted}
           style={[
             styles.input,
-            { color: theme.textMain },
+            { color: theme.textMain, fontFamily: FONT.sans.regular },
             icon ? styles.inputWithIcon : null,
             style,
           ]}
@@ -58,7 +59,6 @@ const styles = StyleSheet.create({
   },
   label: {
     marginBottom: 6,
-    fontWeight: '600',
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -73,7 +73,6 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontFamily: 'Inter',
     fontSize: 14,
     height: '100%',
   },

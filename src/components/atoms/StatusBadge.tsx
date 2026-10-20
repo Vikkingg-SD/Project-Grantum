@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
+import { PALETTE, RADIUS, withAlpha } from '@/config/theme';
 
 export interface StatusBadgeProps {
   label: string;
@@ -10,21 +10,41 @@ export interface StatusBadgeProps {
 }
 
 export function StatusBadge({ label, variant = 'neutral' }: StatusBadgeProps) {
-  const { mode } = useThemeStore();
+  const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
 
   const getColors = () => {
     switch (variant) {
       case 'verified':
-        return { bg: theme.verified + '1A', border: theme.verified + '66', text: theme.verified };
+        return {
+          bg: withAlpha(theme.verified, 0.1),
+          border: withAlpha(theme.verified, 0.4),
+          text: theme.verified,
+        };
       case 'pending':
-        return { bg: theme.pending + '1A', border: theme.pending + '66', text: theme.pending };
+        return {
+          bg: withAlpha(theme.pending, 0.1),
+          border: withAlpha(theme.pending, 0.4),
+          text: theme.pending,
+        };
       case 'failure':
-        return { bg: theme.failure + '1A', border: theme.failure + '66', text: theme.failure };
+        return {
+          bg: withAlpha(theme.failure, 0.1),
+          border: withAlpha(theme.failure, 0.4),
+          text: theme.failure,
+        };
       case 'brand':
-        return { bg: theme.primary + '1A', border: theme.primary + '66', text: theme.primary };
+        return {
+          bg: withAlpha(theme.primary, 0.1),
+          border: withAlpha(theme.primary, 0.4),
+          text: theme.primary,
+        };
       case 'gold':
-        return { bg: theme.gold + '1A', border: theme.gold + '66', text: theme.gold };
+        return {
+          bg: withAlpha(theme.gold, 0.1),
+          border: withAlpha(theme.gold, 0.4),
+          text: theme.gold,
+        };
       case 'neutral':
       default:
         return { bg: theme.subtle, border: theme.border, text: theme.textMuted };
@@ -35,7 +55,7 @@ export function StatusBadge({ label, variant = 'neutral' }: StatusBadgeProps) {
 
   return (
     <View style={[styles.badge, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-      <AppText variant="caption" style={{ color: colors.text, fontWeight: '600' }}>
+      <AppText variant="caption" style={{ color: colors.text }}>
         {label}
       </AppText>
     </View>
@@ -46,7 +66,7 @@ const styles = StyleSheet.create({
   badge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     alignSelf: 'flex-start',
   },
