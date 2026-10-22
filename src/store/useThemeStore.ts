@@ -2,16 +2,10 @@ import { Appearance } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { ThemeMode } from '@/types/theme';
+import { partializeTheme, type ThemeState } from './themePersist';
 
-interface ThemeState {
-  mode: ThemeMode;
-  hasExplicitChoice: boolean;
-  toggleTheme: () => void;
-  setTheme: (mode: ThemeMode) => void;
-}
-
-const getSystemMode = (): ThemeMode => (Appearance.getColorScheme() === 'light' ? 'light' : 'dark');
+const getSystemMode = (): ThemeState['mode'] =>
+  Appearance.getColorScheme() === 'light' ? 'light' : 'dark';
 
 export const useThemeStore = create<ThemeState>()(
   persist(
@@ -28,7 +22,17 @@ export const useThemeStore = create<ThemeState>()(
     {
       name: 'grantum-theme-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({ mode: state.mode, hasExplicitChoice: state.hasExplicitChoice }),
+      partialize: partializeTheme,
     }
   )
 );
+
+// Listen to system theme changes
+if (Appearance && Appearance.addChangeListener) {
+  Appearance.addChangeListener(({ colorScheme }) => {
+    const state = useThemeStore.getState();
+    if (!state.hasExplicitChoice && colorScheme) {
+      useThemeStore.setState({ mode: colorScheme === 'light' ? 'light' : 'dark' });
+    }
+  });
+}
