@@ -8,7 +8,7 @@ import { AppInput } from '@/components/atoms/AppInput';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { ChatInputRow } from '@/components/molecules/ChatInputRow';
 import { ChatMessageBubble } from '@/components/molecules/ChatMessageBubble';
-import { useDraftStore } from '@/store/useDraftStore';
+import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useUIStore } from '@/store/useUIStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE } from '@/config/theme';
@@ -17,18 +17,16 @@ export default function DraftingScreen() {
   const { mode } = useThemeStore();
   const theme = PALETTE[mode];
   const grantId = useUIStore((s) => s.activeGrantId);
-
-  const draft = useDraftStore((s) => s.drafts[grantId] ?? s.getDraft(grantId));
+  const draft = useDraftStore((s) => s.drafts[grantId] ?? EMPTY_DRAFT);
   const { completedSections, requiredSections, draftingMessages } = draft;
-
   const removeCompletedSection = useDraftStore((s) => s.removeCompletedSection);
   const restoreCompletedSections = useDraftStore((s) => s.restoreCompletedSections);
   const addRequiredSection = useDraftStore((s) => s.addRequiredSection);
   const deleteRequiredSection = useDraftStore((s) => s.deleteRequiredSection);
   const addDraftingMessage = useDraftStore((s) => s.addDraftingMessage);
-
   const [inputMessage, setInputMessage] = useState('');
   const [newSectionName, setNewSectionName] = useState('');
+
   const chips = [
     'Tighten the mission statement',
     'Align budget to funder cap',
@@ -58,6 +56,7 @@ export default function DraftingScreen() {
           variant={completedSections.length === requiredSections.length ? 'verified' : 'pending'}
         />
       </View>
+
       <View
         style={[styles.sectionsCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
       >
@@ -93,6 +92,7 @@ export default function DraftingScreen() {
             </View>
           ))}
         </View>
+
         <View style={styles.addSectionRow}>
           <View style={styles.addInput}>
             <AppInput
@@ -112,6 +112,7 @@ export default function DraftingScreen() {
             }}
           />
         </View>
+
         {completedSections.length < requiredSections.length && (
           <AppButton
             label="Restore all sections"
@@ -121,6 +122,7 @@ export default function DraftingScreen() {
           />
         )}
       </View>
+
       <View style={styles.chipRow}>
         {chips.map((chip) => (
           <Pressable
@@ -141,12 +143,14 @@ export default function DraftingScreen() {
           </Pressable>
         ))}
       </View>
+
       <FlatList
         data={draftingMessages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <ChatMessageBubble {...item} />}
         contentContainerStyle={styles.chatList}
       />
+
       <ChatInputRow value={inputMessage} onChangeText={setInputMessage} onSend={handleSend} />
     </ScreenContainer>
   );
