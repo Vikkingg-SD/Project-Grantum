@@ -14,6 +14,7 @@ export interface GrantDraftState {
 
 interface DraftStoreState {
   drafts: Record<string, GrantDraftState>;
+  ensureDraft: (grantId: string, grantTitle?: string, funder?: string) => void;
   getDraft: (grantId: string) => GrantDraftState;
   removeCompletedSection: (grantId: string, name: string) => void;
   restoreCompletedSections: (grantId: string) => void;
@@ -53,11 +54,27 @@ const createDefaultDraft = (grantTitle?: string, funder?: string): GrantDraftSta
   isScanning: false,
 });
 
+export const EMPTY_DRAFT: GrantDraftState = Object.freeze({
+  completedSections: [],
+  requiredSections: [],
+  draftingMessages: [],
+  auditMessages: [],
+  exportDocument: '',
+  isScanning: false,
+});
+
 export const useDraftStore = create<DraftStoreState>((set, get) => ({
   drafts: {
     '1': createDefaultDraft('Climate Resilience Infrastructure', 'Northstar Foundation'),
   },
-  getDraft: (grantId) => get().drafts[grantId] ?? createDefaultDraft(),
+  ensureDraft: (grantId, grantTitle, funder) => {
+    if (!get().drafts[grantId]) {
+      set((state) => ({
+        drafts: { ...state.drafts, [grantId]: createDefaultDraft(grantTitle, funder) },
+      }));
+    }
+  },
+  getDraft: (grantId) => get().drafts[grantId] ?? EMPTY_DRAFT,
   removeCompletedSection: (grantId, name) => {
     const draft = get().getDraft(grantId);
     const nextCompleted = draft.completedSections.filter((s) => s !== name);

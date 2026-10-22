@@ -7,7 +7,7 @@ import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { ConfidenceGaugeReadout } from '@/components/molecules/ConfidenceGaugeReadout';
 import { ChatMessageBubble } from '@/components/molecules/ChatMessageBubble';
 import { ChatInputRow } from '@/components/molecules/ChatInputRow';
-import { useDraftStore } from '@/store/useDraftStore';
+import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useUIStore } from '@/store/useUIStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE } from '@/config/theme';
@@ -17,13 +17,10 @@ export default function AuditScreen() {
   const { mode } = useThemeStore();
   const theme = PALETTE[mode];
   const grantId = useUIStore((s) => s.activeGrantId);
-
-  const draft = useDraftStore((s) => s.drafts[grantId] ?? s.getDraft(grantId));
+  const draft = useDraftStore((s) => s.drafts[grantId] ?? EMPTY_DRAFT);
   const { completedSections, requiredSections, auditMessages } = draft;
   const confidenceScore = draftConfidenceScore(completedSections, requiredSections);
-
   const addAuditMessage = useDraftStore((s) => s.addAuditMessage);
-
   const [inputMessage, setInputMessage] = useState('');
 
   const handleSend = () => {
@@ -47,6 +44,7 @@ export default function AuditScreen() {
         <AppText variant="h1">Deterministic Auditor</AppText>
         <StatusBadge label="Agent-2 Deterministic" variant="verified" />
       </View>
+
       <View
         style={[styles.scanCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
       >
@@ -84,12 +82,14 @@ export default function AuditScreen() {
           <ConfidenceGaugeReadout score={confidenceScore} />
         </View>
       </View>
+
       <FlatList
         data={auditMessages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <ChatMessageBubble {...item} />}
         contentContainerStyle={styles.chatList}
       />
+
       <ChatInputRow
         value={inputMessage}
         onChangeText={setInputMessage}

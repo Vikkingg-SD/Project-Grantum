@@ -6,7 +6,7 @@ import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppTextArea } from '@/components/atoms/AppTextArea';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
-import { useDraftStore } from '@/store/useDraftStore';
+import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useUIStore } from '@/store/useUIStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE } from '@/config/theme';
@@ -17,15 +17,13 @@ export default function ExportScreen() {
   const { mode } = useThemeStore();
   const theme = PALETTE[mode];
   const grantId = useUIStore((s) => s.activeGrantId);
-
-  const draft = useDraftStore((s) => s.drafts[grantId] ?? s.getDraft(grantId));
+  const draft = useDraftStore((s) => s.drafts[grantId] ?? EMPTY_DRAFT);
   const { exportDocument } = draft;
   const confidenceScore = draftConfidenceScore(draft.completedSections, draft.requiredSections);
-
   const setExportDocument = useDraftStore((s) => s.setExportDocument);
-
   const [format, setFormat] = useState('word');
   const [exported, setExported] = useState(false);
+
   const locked = !isExportUnlocked(confidenceScore);
   const gateTier = scoreTier(confidenceScore, TIERS.confidence);
 
@@ -44,6 +42,7 @@ export default function ExportScreen() {
           Deterministic compliance audit gate & document packager
         </AppText>
       </View>
+
       <View style={styles.formatsRow}>
         {formats.map((f) => {
           const Icon = f.icon;
@@ -71,6 +70,7 @@ export default function ExportScreen() {
           );
         })}
       </View>
+
       <View style={styles.statusRow}>
         <StatusBadge
           label={
@@ -88,12 +88,14 @@ export default function ExportScreen() {
           onPress={() => setExported(true)}
         />
       </View>
+
       <AppTextArea
         label="Document Body"
         value={exportDocument}
         onChangeText={(text) => setExportDocument(grantId, text)}
         charLimit={MAX_INPUT_CHARS}
       />
+
       {exported && (
         <View
           style={[
