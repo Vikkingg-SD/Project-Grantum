@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "requiredEveryGate": [
+    "ROOT-STRAY",
+    "REPOMIX-TRACKED",
+    "EMPTY-FILE",
+    "MISSING-FILE",
+    "EMPTY-TARGET",
+    "NO-DEFAULT",
+    "MISSING-EXPORT",
+    "BANNED-DEP",
+    "MOCK-LEAK",
+    "TIER-LITERAL",
+    "ENV-READ",
+    "SCRIPT-MISSING",
+    "LINT-WARN-LEAK",
+    "LINT-UNDECLARED",
+    "STAGED-GAP",
+    "MANIFEST-MISSING",
+    "MANIFEST-UNKNOWN-CODE",
+    "WARN-RATCHET"
+  ],
+  "warnEveryGate": [
+    "DEAD-CODE",
+    "RADIUS-LITERAL",
+    "FONTWEIGHT",
+    "STORE-WHOLE",
+    "ENV-UNUSED",
+    "PLAN-MISSING",
+    "PLAN-EMPTY",
+    "EXPORT-LOST",
+    "STAGED-WARN",
+    "PM-PIN",
+    "CONSOLE",
+    "PLACEHOLDER"
+  ],
+  "infoEveryGate": ["REPOMIX-AT-ROOT", "PLAN-COVERAGE"],
+  "closureCadence": [
+    {
+      "code": "EXPORT-REGRESSION",
+      "input": "prevPack",
+      "reason": "Baseline packs are regenerated, renamed and untracked every cycle (RUL-V3-01). The check runs at closure with an explicitly named previous -green pack via --prev-pack or config.grantum.prevPack. A declared-but-missing baseline is SKIPPED and fails strict; an undeclared baseline prints this INFO line every run, never silent."
+    }
+  ],
+  "excludedExtensions": []
+}
