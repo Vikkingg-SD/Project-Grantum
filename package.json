@@ -13,7 +13,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "verify:scoring": "tsx scripts/verify-scoring.ts",
-    "gate": "node scripts/grantum-preflight.mjs --strict && pnpm typecheck && pnpm lint && pnpm format:check && pnpm verify:scoring",
+    "verify:drafts": "tsx scripts/verify-drafts.ts",
+    "gate": "node scripts/grantum-preflight.mjs --strict && pnpm typecheck && pnpm lint && pnpm format:check && pnpm verify:scoring && pnpm verify:drafts",
     "prepare": "husky"
   },
   "config": {
