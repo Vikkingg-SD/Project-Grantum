@@ -23,24 +23,6 @@ const PREV = argVal('--prev-pack') || pkgConfig.prevPack || null;
 const findings = [];
 const activeExemptions = [];
 
-const add = (level, code, msg, targetPath = '') => {
-  if (level === 'FAIL') {
-    const exempt = exemptions.find(
-      (e) => e.code === code && (e.path === targetPath || msg.includes(e.path))
-    );
-    if (exempt) {
-      activeExemptions.push({
-        code,
-        path: exempt.path,
-        ruling: exempt.ruling,
-        expires: exempt.expires,
-      });
-      return;
-    }
-  }
-  findings.push({ level, code, msg });
-};
-
 // ---------- 0. gate manifest (B-6.3) ----------
 const KNOWN_CODES = new Set([
   'ROOT-STRAY',
@@ -78,6 +60,8 @@ const KNOWN_CODES = new Set([
   'MANIFEST-MISSING',
   'MANIFEST-UNKNOWN-CODE',
   'WARN-RATCHET',
+  'EXEMPT-MALFORMED',
+  'EXEMPT-EXPIRED',
 ]);
 
 const MANIFEST_PATH = 'docs/gate-manifest.json';
@@ -90,7 +74,11 @@ if (fs.existsSync(path.join(ROOT, MANIFEST_PATH))) {
   }
 }
 if (!manifest) {
-  findings.push({ level: 'FAIL', code: 'MANIFEST-MISSING', msg: `${MANIFEST_PATH} absent or unparsable (B-6.3)` });
+  findings.push({
+    level: 'FAIL',
+    code: 'MANIFEST-MISSING',
+    msg: `${MANIFEST_PATH} absent or unparsable (B-6.3)`,
+  });
 } else {
   const listed = [
     ...(manifest.requiredEveryGate ?? []),
@@ -100,21 +88,82 @@ if (!manifest) {
   ];
   for (const code of listed) {
     if (!KNOWN_CODES.has(code))
-      findings.push({ level: 'FAIL', code: 'MANIFEST-UNKNOWN-CODE', msg: `manifest lists unknown code ${code}` });
+      findings.push({
+        level: 'FAIL',
+        code: 'MANIFEST-UNKNOWN-CODE',
+        msg: `manifest lists unknown code ${code}`,
+      });
   }
 }
 
 // ---------- 0b. exemption register (B-6.5) ----------
 let exemptions = [];
 const EXEMPTIONS_PATH = 'docs/exemptions.json';
+const todayIso = new Date().toISOString().slice(0, 10);
 if (fs.existsSync(path.join(ROOT, EXEMPTIONS_PATH))) {
   try {
     const raw = JSON.parse(fs.readFileSync(path.join(ROOT, EXEMPTIONS_PATH), 'utf8'));
-    if (Array.isArray(raw)) exemptions = raw;
+    if (!Array.isArray(raw)) {
+      findings.push({
+        level: 'FAIL',
+        code: 'EXEMPT-MALFORMED',
+        msg: `${EXEMPTIONS_PATH} is not an array`,
+      });
+    } else {
+      for (const e of raw) {
+        const okShape =
+          e &&
+          typeof e.code === 'string' &&
+          typeof e.path === 'string' &&
+          typeof e.ruling === 'string' &&
+          e.ruling.trim().length > 0 &&
+          typeof e.expires === 'string' &&
+          /^\d{4}-\d{2}-\d{2}$/.test(e.expires);
+        if (!okShape) {
+          findings.push({
+            level: 'FAIL',
+            code: 'EXEMPT-MALFORMED',
+            msg: `exemption entry missing code/path/ruling/expiry: ${JSON.stringify(e)}`,
+          });
+          continue;
+        }
+        if (e.expires < todayIso) {
+          findings.push({
+            level: 'FAIL',
+            code: 'EXEMPT-EXPIRED',
+            msg: `exemption ${e.code} ${e.path} expired ${e.expires} (ruling ${e.ruling})`,
+          });
+          continue;
+        }
+        exemptions.push(e);
+      }
+    }
   } catch {
-    findings.push({ level: 'FAIL', code: 'MANIFEST-MISSING', msg: `${EXEMPTIONS_PATH} unparsable` });
+    findings.push({
+      level: 'FAIL',
+      code: 'EXEMPT-MALFORMED',
+      msg: `${EXEMPTIONS_PATH} unparsable`,
+    });
   }
 }
+
+const add = (level, code, msg, targetPath = '') => {
+  if (level === 'FAIL' || level === 'WARN') {
+    const exempt = exemptions.find(
+      (e) => e.code === code && (e.path === targetPath || msg.includes(e.path))
+    );
+    if (exempt) {
+      activeExemptions.push({
+        code,
+        path: exempt.path,
+        ruling: exempt.ruling,
+        expires: exempt.expires,
+      });
+      return;
+    }
+  }
+  findings.push({ level, code, msg });
+};
 
 // ---------- 0c. warn ratchet baseline (B-6.6) ----------
 let baseline = null;
@@ -384,7 +433,7 @@ const rules = [
   [
     'PLACEHOLDER',
     /Coming Soon|Signal Lost/i,
-    () => false,
+    (f) => f.startsWith('scripts/'),
     'WARN',
     'undeclared placeholder text',
   ],
@@ -395,7 +444,7 @@ for (const [code, re, allowed, level, msg] of rules) {
     if (allowed(f)) continue;
     const lines = body(f).split('\n');
     lines.forEach((l, i) => {
-      if (re.test(l)) add(level, code, `${f}:${i + 1} ${msg}`);
+      if (re.test(l)) add(level, code, `${f}:${i + 1} ${msg}`, f);
     });
   }
 }
@@ -558,7 +607,9 @@ console.log(
 );
 console.log(`ACTIVE EXEMPTIONS: ${activeExemptions.length}`);
 for (const ex of activeExemptions) {
-  console.log(`  EXEMPT ${ex.code.padEnd(18)} ${ex.path} (ruling: ${ex.ruling}, expires: ${ex.expires})`);
+  console.log(
+    `  EXEMPT ${ex.code.padEnd(18)} ${ex.path} (ruling: ${ex.ruling}, expires: ${ex.expires})`
+  );
 }
 for (const f of findings) console.log(`${f.level.padEnd(4)} ${f.code.padEnd(18)} ${f.msg}`);
 process.exit(effectiveFail > 0 ? 1 : 0);
