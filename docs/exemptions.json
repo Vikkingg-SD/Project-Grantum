@@ -1,0 +1,23 @@
+[
+  {
+    "code": "PLACEHOLDER",
+    "path": "app/(tabs)/discovery.tsx",
+    "ruling": "RUL-A1-08",
+    "expires": "2027-01-31",
+    "note": "Real discovery copy ships at S7-H1; entry deleted in that MB."
+  },
+  {
+    "code": "PLACEHOLDER",
+    "path": "app/+not-found.tsx",
+    "ruling": "RUL-A1-08",
+    "expires": "2027-01-31",
+    "note": "404 parity row P-09 ships at S7; entry deleted in that MB."
+  },
+  {
+    "code": "PLACEHOLDER",
+    "path": "app/onboarding.tsx",
+    "ruling": "RUL-A1-08",
+    "expires": "2027-01-31",
+    "note": "Onboarding screen ships at S8; entry deleted in that MB."
+  }
+]
