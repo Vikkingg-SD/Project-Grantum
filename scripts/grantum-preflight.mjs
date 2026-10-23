@@ -21,7 +21,25 @@ const PLAN = argVal('--plan') || pkgConfig.plan || null;
 const PREV = argVal('--prev-pack') || pkgConfig.prevPack || null;
 
 const findings = [];
-const add = (level, code, msg) => findings.push({ level, code, msg });
+const activeExemptions = [];
+
+const add = (level, code, msg, targetPath = '') => {
+  if (level === 'FAIL') {
+    const exempt = exemptions.find(
+      (e) => e.code === code && (e.path === targetPath || msg.includes(e.path))
+    );
+    if (exempt) {
+      activeExemptions.push({
+        code,
+        path: exempt.path,
+        ruling: exempt.ruling,
+        expires: exempt.expires,
+      });
+      return;
+    }
+  }
+  findings.push({ level, code, msg });
+};
 
 // ---------- 0. gate manifest (B-6.3) ----------
 const KNOWN_CODES = new Set([
@@ -61,6 +79,7 @@ const KNOWN_CODES = new Set([
   'MANIFEST-UNKNOWN-CODE',
   'WARN-RATCHET',
 ]);
+
 const MANIFEST_PATH = 'docs/gate-manifest.json';
 let manifest = null;
 if (fs.existsSync(path.join(ROOT, MANIFEST_PATH))) {
@@ -71,7 +90,7 @@ if (fs.existsSync(path.join(ROOT, MANIFEST_PATH))) {
   }
 }
 if (!manifest) {
-  add('FAIL', 'MANIFEST-MISSING', `${MANIFEST_PATH} absent or unparsable (B-6.3)`);
+  findings.push({ level: 'FAIL', code: 'MANIFEST-MISSING', msg: `${MANIFEST_PATH} absent or unparsable (B-6.3)` });
 } else {
   const listed = [
     ...(manifest.requiredEveryGate ?? []),
@@ -81,11 +100,23 @@ if (!manifest) {
   ];
   for (const code of listed) {
     if (!KNOWN_CODES.has(code))
-      add('FAIL', 'MANIFEST-UNKNOWN-CODE', `manifest lists unknown code ${code}`);
+      findings.push({ level: 'FAIL', code: 'MANIFEST-UNKNOWN-CODE', msg: `manifest lists unknown code ${code}` });
   }
 }
 
-// ---------- 0b. warn ratchet baseline (B-6.6) ----------
+// ---------- 0b. exemption register (B-6.5) ----------
+let exemptions = [];
+const EXEMPTIONS_PATH = 'docs/exemptions.json';
+if (fs.existsSync(path.join(ROOT, EXEMPTIONS_PATH))) {
+  try {
+    const raw = JSON.parse(fs.readFileSync(path.join(ROOT, EXEMPTIONS_PATH), 'utf8'));
+    if (Array.isArray(raw)) exemptions = raw;
+  } catch {
+    findings.push({ level: 'FAIL', code: 'MANIFEST-MISSING', msg: `${EXEMPTIONS_PATH} unparsable` });
+  }
+}
+
+// ---------- 0c. warn ratchet baseline (B-6.6) ----------
 let baseline = null;
 try {
   baseline = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/gate-baseline.json'), 'utf8'));
@@ -157,6 +188,7 @@ const ROOT_ALLOW = new Set([
   'LICENSE',
 ]);
 const PACK_RE = /^repomix-output.*\.xml$/;
+
 for (const f of all.filter((x) => !x.includes('/'))) {
   if (PACK_RE.test(f)) {
     add('INFO', 'REPOMIX-AT-ROOT', `pack at root (normal regen workflow): ${f}`);
@@ -165,6 +197,7 @@ for (const f of all.filter((x) => !x.includes('/'))) {
   if (!ROOT_ALLOW.has(f))
     add('FAIL', 'ROOT-STRAY', `unexpected root file "${f}" (${body(f).length} bytes)`);
 }
+
 if (fs.existsSync(path.join(ROOT, '.git'))) {
   try {
     const tracked = execSync('git ls-files -- "repomix-output*.xml"', {
@@ -177,16 +210,15 @@ if (fs.existsSync(path.join(ROOT, '.git'))) {
 }
 
 // ---------- 2. empty src/app files ----------
-const DEFERRED_OK = new Set(['src/components/templates/ModalSheetLayout.tsx']);
 for (const f of srcFiles) {
-  if (isEmpty(f) && !DEFERRED_OK.has(f)) add('FAIL', 'EMPTY-FILE', `${f} is empty`);
+  if (isEmpty(f)) add('FAIL', 'EMPTY-FILE', `${f} is empty`, f);
 }
 
 // ---------- 3. import/export closure ----------
 const IMP = /import\s+(type\s+)?([^;]*?)\s+from\s+['"]([^'"]+)['"]/gs;
 const REEXP = /export\s+(?:type\s+)?{([^}]*)}\s*from\s+['"]([^'"]+)['"]/gs;
 const EXPNAMED =
-  /export\s+(?:declare\s+)?(?:const|let|var|function\s*\*?|class|type|interface|enum|async\s+function)\s+([A-Za-z_$][\w$]*)/g;
+  /export\s+(?:declare\s+)?(?:const|let|var|function\s*?|class|type|interface|enum|async\s+function)\s+([A-Za-z_$][\w$]*)/g;
 const EXPLIST = /export\s+{([^}]*)}/gs;
 const EXPDEF = /export\s+default\b/;
 
@@ -212,6 +244,7 @@ function resolveImport(from, spec) {
   else if (spec.startsWith('.'))
     base = path.posix.normalize(path.posix.join(path.posix.dirname(from), spec));
   else return null;
+
   for (const c of [
     base,
     base + '.ts',
@@ -234,18 +267,18 @@ for (const f of srcFiles) {
     const r = resolveImport(f, m[3]);
     if (r === null) continue;
     if (typeof r === 'object') {
-      add('FAIL', 'MISSING-FILE', `${f} imports "${m[3]}" -> no file`);
+      add('FAIL', 'MISSING-FILE', `${f} imports "${m[3]}" -> no file`, f);
       continue;
     }
     deps.add(r);
     if (isEmpty(r)) {
-      add('FAIL', 'EMPTY-TARGET', `${f} imports "${m[3]}" -> ${r} is empty`);
+      add('FAIL', 'EMPTY-TARGET', `${f} imports "${m[3]}" -> ${r} is empty`, f);
       continue;
     }
     const { names, hasDefault } = exportsOf(r);
     const clause = m[2].trim();
     if (/^[A-Za-z_$][\w$]*\s*(,|$)/.test(clause) && !hasDefault)
-      add('FAIL', 'NO-DEFAULT', `${f} default-imports "${m[3]}" but ${r} has no default export`);
+      add('FAIL', 'NO-DEFAULT', `${f} default-imports "${m[3]}" but ${r} has no default export`, f);
     const nm = clause.match(/{([^}]*)}/s);
     if (nm)
       for (const it of nm[1].split(',')) {
@@ -258,7 +291,8 @@ for (const f of srcFiles) {
           add(
             'FAIL',
             'MISSING-EXPORT',
-            `${f} imports { ${orig} } from "${m[3]}" but ${r} does not export it`
+            `${f} imports { ${orig} } from "${m[3]}" but ${r} does not export it`,
+            f
           );
       }
   }
@@ -307,7 +341,7 @@ const rules = [
   ['RADIUS-LITERAL', /borderRadius:\s*\d/, () => false, 'WARN', 'numeric borderRadius literal'],
   [
     'TIER-LITERAL',
-    / >=\s*(85|80|40)\b/,
+    /\b>=\s*(85|80|40)\b/,
     (f) => /scoring|constants/.test(f),
     'FAIL',
     'tier threshold literal',
@@ -350,7 +384,7 @@ const rules = [
   [
     'PLACEHOLDER',
     /Coming Soon|Signal Lost/i,
-    (f) => !f.includes('dev-gallery'),
+    () => false,
     'WARN',
     'undeclared placeholder text',
   ],
@@ -374,6 +408,7 @@ if (fs.existsSync(pkgPath)) {
     ...Object.keys(pkg.dependencies ?? {}),
     ...Object.keys(pkg.devDependencies ?? {}),
   ]);
+
   const REQUIRED_SCRIPTS = [
     'start',
     'android',
@@ -390,6 +425,7 @@ if (fs.existsSync(pkgPath)) {
   if (pkg.scripts?.lint && !/--max-warnings=0/.test(pkg.scripts.lint))
     add('FAIL', 'LINT-WARN-LEAK', '"lint" script does not pass --max-warnings=0');
   if (!pkg.packageManager) add('WARN', 'PM-PIN', 'no packageManager pin');
+
   if (fs.existsSync(path.join(ROOT, '.eslintrc.js'))) {
     const eslintRc = body('.eslintrc.js');
     const refs = [
@@ -412,6 +448,7 @@ if (fs.existsSync(pkgPath)) {
         '.eslintrc.js uses plugin "prettier" but eslint-plugin-prettier is not declared'
       );
   }
+
   const lsPath = path.join(ROOT, 'lint-staged.config.js');
   if (fs.existsSync(lsPath)) {
     const ls = fs.readFileSync(lsPath, 'utf8');
@@ -427,7 +464,7 @@ if (fs.existsSync(pkgPath)) {
 // ---------- 7. dead configuration ----------
 const envSrc = body('src/config/env.ts');
 if (envSrc) {
-  for (const m of envSrc.matchAll(/^\s{2}([A-Z_]+):/gm)) {
+  for (const m of envSrc.matchAll(/^\s*([A-Z_]+):/gm)) {
     const key = m[1];
     const used = liveFiles.some(
       (f) => f !== 'src/config/env.ts' && new RegExp(`ENV\\.${key}\\b`).test(body(f))
@@ -508,16 +545,20 @@ if (baseline && typeof baseline.warnBaseline === 'number' && warnCount > baselin
     `WARN ${warnCount} exceeds baseline ${baseline.warnBaseline} (B-6.6)`
   );
 }
+
 const order = { FAIL: 0, SKIPPED: 1, WARN: 2, INFO: 3 };
 findings.sort((a, b) => order[a.level] - order[b.level]);
 const counts = findings.reduce((a, f) => ((a[f.level] = (a[f.level] ?? 0) + 1), a), {});
-
 const effectiveFail = (counts.FAIL ?? 0) + (IS_STRICT ? (counts.SKIPPED ?? 0) : 0);
-
 const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+
 console.log(`grantum-preflight root=${ROOT} strict=${IS_STRICT} elapsed=${elapsed}s`);
 console.log(
   `FAIL ${effectiveFail} · WARN ${counts.WARN ?? 0} · INFO ${counts.INFO ?? 0} · SKIPPED ${counts.SKIPPED ?? 0}`
 );
+console.log(`ACTIVE EXEMPTIONS: ${activeExemptions.length}`);
+for (const ex of activeExemptions) {
+  console.log(`  EXEMPT ${ex.code.padEnd(18)} ${ex.path} (ruling: ${ex.ruling}, expires: ${ex.expires})`);
+}
 for (const f of findings) console.log(`${f.level.padEnd(4)} ${f.code.padEnd(18)} ${f.msg}`);
 process.exit(effectiveFail > 0 ? 1 : 0);
