@@ -68,6 +68,7 @@ export const useDraftStore = create<DraftStoreState>((set, get) => ({
     '1': createDefaultDraft('Climate Resilience Infrastructure', 'Northstar Foundation'),
   },
   ensureDraft: (grantId, grantTitle, funder) => {
+    if (!grantId) return;
     if (!get().drafts[grantId]) {
       set((state) => ({
         drafts: { ...state.drafts, [grantId]: createDefaultDraft(grantTitle, funder) },
@@ -76,6 +77,7 @@ export const useDraftStore = create<DraftStoreState>((set, get) => ({
   },
   getDraft: (grantId) => get().drafts[grantId] ?? EMPTY_DRAFT,
   removeCompletedSection: (grantId, name) => {
+    if (!grantId) return;
     const draft = get().getDraft(grantId);
     const nextCompleted = draft.completedSections.filter((s) => s !== name);
     set((state) => ({
@@ -83,6 +85,7 @@ export const useDraftStore = create<DraftStoreState>((set, get) => ({
     }));
   },
   restoreCompletedSections: (grantId) => {
+    if (!grantId) return;
     const draft = get().getDraft(grantId);
     set((state) => ({
       drafts: {
@@ -92,6 +95,7 @@ export const useDraftStore = create<DraftStoreState>((set, get) => ({
     }));
   },
   addRequiredSection: (grantId, name) => {
+    if (!grantId) return;
     if (!name.trim()) return;
     const draft = get().getDraft(grantId);
     if (draft.requiredSections.includes(name)) return;
@@ -105,6 +109,7 @@ export const useDraftStore = create<DraftStoreState>((set, get) => ({
     }));
   },
   deleteRequiredSection: (grantId, name) => {
+    if (!grantId) return;
     const draft = get().getDraft(grantId);
     const nextRequired = draft.requiredSections.filter((s) => s !== name);
     const nextCompleted = draft.completedSections.filter((s) => s !== name);
@@ -116,6 +121,7 @@ export const useDraftStore = create<DraftStoreState>((set, get) => ({
     }));
   },
   addDraftingMessage: (grantId, text, variant) => {
+    if (!grantId) return;
     const draft = get().getDraft(grantId);
     set((state) => ({
       drafts: {
@@ -131,6 +137,7 @@ export const useDraftStore = create<DraftStoreState>((set, get) => ({
     }));
   },
   addAuditMessage: (grantId, text, variant) => {
+    if (!grantId) return;
     const draft = get().getDraft(grantId);
     set((state) => ({
       drafts: {
@@ -146,18 +153,21 @@ export const useDraftStore = create<DraftStoreState>((set, get) => ({
     }));
   },
   setExportDocument: (grantId, doc) => {
+    if (!grantId) return;
     const draft = get().getDraft(grantId);
     set((state) => ({
       drafts: { ...state.drafts, [grantId]: { ...draft, exportDocument: doc } },
     }));
   },
   setScanning: (grantId, status) => {
+    if (!grantId) return;
     const draft = get().getDraft(grantId);
     set((state) => ({
       drafts: { ...state.drafts, [grantId]: { ...draft, isScanning: status } },
     }));
   },
   resetDraftForGrant: (grantId, grantTitle, funder) => {
+    if (!grantId) return;
     set((state) => ({
       drafts: { ...state.drafts, [grantId]: createDefaultDraft(grantTitle, funder) },
     }));
