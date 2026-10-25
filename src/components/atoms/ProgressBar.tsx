@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
+import { PALETTE, RADIUS } from '@/config/theme';
 
 export interface ProgressBarProps {
   percent: number;
@@ -45,12 +45,12 @@ const styles = StyleSheet.create({
   },
   track: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: RADIUS.full,
     overflow: 'hidden',
     width: '100%',
   },
   fill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: RADIUS.full,
   },
 });
