@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { Bot, User } from 'lucide-react-native';
 import { AppText } from '../atoms/AppText';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
+import { PALETTE, RADIUS } from '@/config/theme';
 import { ChatMessage } from '@/types/api';
 
 export function ChatMessageBubble({ text, variant, timestamp = 'now' }: ChatMessage) {
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   },
   bubble: {
     maxWidth: '85%',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     padding: 12,
   },

@@ -4,7 +4,7 @@ import { AppText } from '../atoms/AppText';
 import { AppButton } from '../atoms/AppButton';
 import { StatusBadge } from '../atoms/StatusBadge';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
+import { PALETTE, RADIUS } from '@/config/theme';
 import { matchTier } from '@/utils/scoring';
 import { Grant } from '@/types/grant';
 
@@ -17,6 +17,7 @@ export interface GrantCardProps {
 export function GrantCard({ grant, onSelect, onApply }: GrantCardProps) {
   const { mode } = useThemeStore();
   const theme = PALETTE[mode];
+
   return (
     <Pressable
       onPress={onSelect}
@@ -68,7 +69,7 @@ export function GrantCard({ grant, onSelect, onApply }: GrantCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     padding: 16,
     marginBottom: 16,

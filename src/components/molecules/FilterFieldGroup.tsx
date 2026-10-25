@@ -45,7 +45,6 @@ const styles = StyleSheet.create({
   },
   label: {
     marginBottom: 6,
-    fontWeight: '600',
   },
   row: {
     flexDirection: 'row',

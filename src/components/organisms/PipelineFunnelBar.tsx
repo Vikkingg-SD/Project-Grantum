@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { AppText } from '../atoms/AppText';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
+import { PALETTE, RADIUS } from '@/config/theme';
 
 export interface FunnelStage {
   label: string;
@@ -23,6 +23,7 @@ export function PipelineFunnelBar({ stages }: PipelineFunnelBarProps) {
         const terminal = index === stages.length - 1;
         const valueColor = terminal ? theme.gold : theme.primary;
         const labelColor = terminal ? theme.gold : theme.textMuted;
+
         return (
           <React.Fragment key={stage.label}>
             <View style={styles.stage}>
@@ -49,7 +50,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     paddingHorizontal: 24,
     paddingVertical: 20,
@@ -61,7 +62,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   label: {
-    fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 1.4,
   },
