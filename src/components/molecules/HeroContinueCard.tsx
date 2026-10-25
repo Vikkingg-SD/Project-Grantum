@@ -5,7 +5,7 @@ import { AppText } from '../atoms/AppText';
 import { AppButton } from '../atoms/AppButton';
 import { ProgressBar } from '../atoms/ProgressBar';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
+import { PALETTE, RADIUS } from '@/config/theme';
 
 export interface HeroContinueCardProps {
   projectTitle: string;
@@ -19,7 +19,7 @@ export function HeroContinueCard({ projectTitle, completionPct, onResume }: Hero
 
   return (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      <AppText variant="caption" color="primary" style={styles.eyebrow}>
+      <AppText variant="eyebrow" color="primary">
         ACTIVE SESSION · DRAFTING PIPELINE
       </AppText>
       <AppText variant="h2" color="main" style={styles.title} numberOfLines={2}>
@@ -41,15 +41,10 @@ export function HeroContinueCard({ projectTitle, completionPct, onResume }: Hero
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     padding: 16,
     marginVertical: 8,
-  },
-  eyebrow: {
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: 4,
   },
   title: {
     marginBottom: 12,
