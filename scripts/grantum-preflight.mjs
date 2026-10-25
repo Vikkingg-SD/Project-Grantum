@@ -23,6 +23,29 @@ const PREV = argVal('--prev-pack') || pkgConfig.prevPack || null;
 const findings = [];
 const activeExemptions = [];
 
+// ---------- 00. git hygiene (Law 14 / B-5.1) ----------
+try {
+  const branch = execSync('git branch --show-current', { encoding: 'utf8' }).trim();
+  if (branch === 'main') {
+    findings.push({
+      level: 'FAIL',
+      code: 'GIT-HYGIENE',
+      msg: 'Working directly on main is prohibited (Law 14). Create a feature branch.',
+    });
+  }
+  try {
+    execSync('git fetch', { stdio: 'ignore' });
+    const behind = execSync('git rev-list --count HEAD..@{u}', { encoding: 'utf8' }).trim();
+    if (parseInt(behind, 10) > 0) {
+      findings.push({
+        level: 'WARN',
+        code: 'GIT-BEHIND',
+        msg: `Branch is ${behind} commits behind upstream. Pull before merging.`,
+      });
+    }
+  } catch {}
+} catch {}
+
 // ---------- 0. gate manifest (B-6.3) ----------
 const KNOWN_CODES = new Set([
   'ROOT-STRAY',
@@ -62,6 +85,8 @@ const KNOWN_CODES = new Set([
   'WARN-RATCHET',
   'EXEMPT-MALFORMED',
   'EXEMPT-EXPIRED',
+  'GIT-HYGIENE',
+  'GIT-BEHIND',
 ]);
 
 const MANIFEST_PATH = 'docs/gate-manifest.json';

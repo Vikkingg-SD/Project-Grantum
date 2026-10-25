@@ -1,4 +1,4 @@
-import type { TextStyle, ViewStyle } from 'react-native';
+import type { TextStyle } from 'react-native';
 import { FONT } from '@/config/fonts';
 import type { ThemeColors, ThemeMode } from '@/types/theme';
 
@@ -48,6 +48,7 @@ export const PALETTE: Record<ThemeMode, ThemeColors> = {
 };
 
 export const RADIUS = { sm: 8, md: 12, full: 9999 } as const;
+
 export const SPACING = {
   xs: 4,
   sm: 8,
@@ -82,9 +83,9 @@ export const TYPOGRAPHY = {
 
 export type TypographyVariant = keyof typeof TYPOGRAPHY;
 
-export const ELEVATION: Record<ThemeMode, { card: ViewStyle }> = {
-  dark: { card: { boxShadow: '0 8px 32px rgba(0,0,0,0.6)' } },
-  light: { card: { boxShadow: '0 4px 16px rgba(17,24,39,0.08)' } },
+export const SHADOWS: Record<ThemeMode, string> = {
+  dark: '0 8px 32px rgba(0,0,0,0.6)',
+  light: '0 4px 16px rgba(17,24,39,0.08)',
 };
 
 export function withAlpha(hex: string, alpha: number): string {
@@ -93,8 +94,4 @@ export function withAlpha(hex: string, alpha: number): string {
     .padStart(2, '0')
     .toUpperCase();
   return `${hex}${a}`;
-}
-
-export function glow(color: string): ViewStyle {
-  return { boxShadow: `0 0 12px ${withAlpha(color, 0.24)}` };
 }

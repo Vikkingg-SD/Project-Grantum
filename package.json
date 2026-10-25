@@ -15,7 +15,7 @@
     "verify:scoring": "tsx scripts/verify-scoring.ts",
     "verify:drafts": "tsx scripts/verify-drafts.ts",
     "verify:theme": "tsx scripts/verify-theme.ts",
-    "gate": "node scripts/grantum-preflight.mjs --strict && pnpm typecheck && pnpm lint && pnpm format:check && pnpm verify:scoring && pnpm verify:drafts && pnpm verify:theme",
+    "gate": "node scripts/grantum-preflight.mjs --strict && pnpm format && pnpm typecheck && pnpm lint && pnpm format:check && pnpm verify:scoring && pnpm verify:drafts && pnpm verify:theme",
     "prepare": "husky"
   },
   "config": {

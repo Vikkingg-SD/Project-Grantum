@@ -8,3 +8,4 @@ export * from './ProgressBar';
 export * from './ToggleSwitch';
 export * from './Chip';
 export * from './IconButton';
+export * from './Loader';
