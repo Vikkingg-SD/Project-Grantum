@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
+import { PALETTE, RADIUS } from '@/config/theme';
 
 export interface ChipProps {
   label: string;
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     marginRight: 6,
     marginBottom: 6,

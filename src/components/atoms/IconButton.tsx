@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
+import { PALETTE, RADIUS } from '@/config/theme';
 
 export interface IconButtonProps {
   icon: React.ReactNode;
@@ -42,9 +42,9 @@ export function IconButton({
 
 const styles = StyleSheet.create({
   button: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

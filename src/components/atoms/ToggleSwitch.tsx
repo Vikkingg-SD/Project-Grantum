@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, View, StyleSheet } from 'react-native';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
+import { PALETTE, RADIUS } from '@/config/theme';
 
 export interface ToggleSwitchProps {
   checked: boolean;
@@ -43,13 +43,13 @@ const styles = StyleSheet.create({
   track: {
     width: 48,
     height: 28,
-    borderRadius: 14,
+    borderRadius: RADIUS.full,
     borderWidth: 1,
     justifyContent: 'center',
   },
   thumb: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: RADIUS.full,
   },
 });

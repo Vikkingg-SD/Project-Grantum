@@ -35,7 +35,10 @@ try {
   }
   try {
     execSync('git fetch', { stdio: 'ignore' });
-    const behind = execSync('git rev-list --count HEAD..@{u}', { encoding: 'utf8' }).trim();
+    const behind = execSync('git rev-list --count HEAD..@{u}', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
     if (parseInt(behind, 10) > 0) {
       findings.push({
         level: 'WARN',
