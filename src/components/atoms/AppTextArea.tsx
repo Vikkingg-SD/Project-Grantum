@@ -2,7 +2,7 @@ import React from 'react';
 import { View, TextInput, TextInputProps, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
+import { PALETTE, RADIUS } from '@/config/theme';
 import { FONT } from '@/config/fonts';
 
 export interface AppTextAreaProps extends TextInputProps {
@@ -15,7 +15,6 @@ export function AppTextArea({ label, charLimit, value, style, ...props }: AppTex
   const theme = PALETTE[mode];
   const count = typeof value === 'string' ? value.length : 0;
   const isOver = charLimit !== undefined && count > charLimit;
-
   return (
     <View style={styles.container}>
       {label && (
@@ -65,7 +64,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   textWrapper: {
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     minHeight: 120,
     padding: 12,
