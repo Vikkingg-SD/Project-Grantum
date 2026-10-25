@@ -2,7 +2,7 @@ import React from 'react';
 import { View, TextInput, TextInputProps, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
+import { PALETTE, RADIUS } from '@/config/theme';
 import { FONT } from '@/config/fonts';
 
 export interface AppInputProps extends TextInputProps {
@@ -14,7 +14,6 @@ export interface AppInputProps extends TextInputProps {
 export function AppInput({ label, error, icon, style, ...props }: AppInputProps) {
   const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
-
   return (
     <View style={styles.container}>
       {label && (
@@ -63,7 +62,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     minHeight: 44,
     paddingHorizontal: 12,

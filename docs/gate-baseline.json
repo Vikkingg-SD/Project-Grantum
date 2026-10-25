@@ -1,5 +1,5 @@
 {
-  "warnBaseline": 96,
-  "setAtStage": "S1-MB1",
-  "note": "First strict-gate baseline (B-6.6). Lower at each closure; raise only by ruling."
+  "warnBaseline": 79,
+  "setAtStage": "S3-MB7",
+  "note": "Re-declared at S3-MB7 (AD-55): 79 measured post-#21, 68 measured at S3-MB7 gate. Lower at each closure; raise only by ruling."
 }
