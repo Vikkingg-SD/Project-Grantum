@@ -1,7 +1,6 @@
 import { useDraftStore } from '../src/store/useDraftStore';
 
 const getState = () => useDraftStore.getState();
-
 let failed = 0;
 const assert = (name: string, condition: boolean) => {
   if (condition) {
@@ -36,6 +35,13 @@ const d4 = getState().getDraft('4');
 const d1 = getState().getDraft('1');
 assert('mutation applies to target grant', d4.requiredSections.includes('Test Section'));
 assert('mutation does not leak to other grants', !d1.requiredSections.includes('Test Section'));
+
+// 4. Empty grant id is inert on the write path (AD-36 / RUL-A1-10)
+getState().addRequiredSection('', 'Ghost Section');
+getState().addDraftingMessage('', 'ghost', 'user');
+getState().setExportDocument('', 'ghost doc');
+assert('empty-id mutation creates no draft', getState().drafts[''] === undefined);
+assert('empty-id getDraft is EMPTY_DRAFT', getState().getDraft('') === getState().getDraft(''));
 
 if (failed > 0) {
   console.log(`\n${failed} DRAFT CASES FAILED`);

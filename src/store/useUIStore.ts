@@ -10,7 +10,7 @@ interface UIState {
 }
 
 export const useUIStore = create<UIState>((set) => ({
-  activeGrantId: '1',
+  activeGrantId: '',
   isFilterSheetOpen: false,
   selectedFormat: 'word',
   setActiveGrantId: (id) => set({ activeGrantId: id }),
