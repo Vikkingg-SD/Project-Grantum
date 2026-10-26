@@ -1,79 +1,70 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Bot, User } from 'lucide-react-native';
 import { AppText } from '../atoms/AppText';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE, RADIUS } from '@/config/theme';
-import { ChatMessage } from '@/types/api';
+import { PALETTE, RADIUS, SPACING } from '@/config/theme';
+import { CHAT_COPY } from '@/config/copy';
+import type { ChatMessage } from '@/types/api';
 
-export function ChatMessageBubble({ text, variant, timestamp = 'now' }: ChatMessage) {
-  const { mode } = useThemeStore();
+export interface ChatMessageBubbleProps extends Omit<ChatMessage, 'id' | 'variant'> {
+  id?: string;
+  variant?: ChatMessage['variant'];
+}
+
+export const ChatMessageBubble = memo(function ChatMessageBubble({
+  text,
+  variant = 'assistant-narrative',
+  timestamp,
+  status,
+}: ChatMessageBubbleProps) {
+  const mode = useThemeStore((state) => state.mode);
   const theme = PALETTE[mode];
   const isUser = variant === 'user';
   const isAudit = variant === 'assistant-auditor';
-
   return (
     <View style={[styles.row, isUser ? styles.userRow : styles.assistantRow]}>
       <View
         style={[
           styles.bubble,
-          isUser
-            ? { backgroundColor: theme.subtle, borderColor: theme.border }
-            : isAudit
-              ? { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }
-              : { backgroundColor: theme.surface, borderColor: theme.border },
+          { backgroundColor: isUser ? theme.subtle : theme.surface, borderColor: theme.border },
         ]}
       >
         <View style={styles.header}>
           {isUser ? (
-            <User size={14} color={theme.textMuted} />
+            <User size={SPACING.lg} color={theme.textMuted} />
           ) : (
-            <Bot size={14} color={isAudit ? theme.verified : theme.primary} />
+            <Bot size={SPACING.lg} color={isAudit ? theme.primary : theme.textMuted} />
           )}
-          <AppText variant="caption" color="muted" style={styles.timestamp}>
-            {timestamp}
+          <AppText variant="caption" color="muted">
+            {timestamp ?? CHAT_COPY.now}
           </AppText>
         </View>
-        <AppText
-          variant={isAudit ? 'metric-sm' : 'body'}
-          color="main"
-          style={isAudit ? styles.monoText : null}
-        >
+        <AppText variant={isAudit ? 'metric-sm' : 'body'} color={isAudit ? 'muted' : 'main'}>
           {text}
         </AppText>
+        {status === 'error' && (
+          <AppText variant="caption" color="failure" style={styles.error}>
+            {CHAT_COPY.failed}
+          </AppText>
+        )}
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
-  row: {
-    width: '100%',
-    flexDirection: 'row',
-    marginVertical: 6,
-  },
-  userRow: {
-    justifyContent: 'flex-end',
-  },
-  assistantRow: {
-    justifyContent: 'flex-start',
-  },
+  row: { width: '100%', flexDirection: 'row', marginVertical: SPACING.xs },
+  userRow: { justifyContent: 'flex-end' },
+  assistantRow: { justifyContent: 'flex-start' },
   bubble: {
     maxWidth: '85%',
+    minWidth: 0,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    padding: 12,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  timestamp: {
-    fontSize: 11,
-  },
-  monoText: {
-    fontSize: 13,
-  },
+  header: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.xs },
+  error: { marginTop: SPACING.sm },
 });

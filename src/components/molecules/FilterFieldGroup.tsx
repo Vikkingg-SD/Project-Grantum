@@ -1,53 +1,49 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import React, { memo } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { AppText } from '../atoms/AppText';
 import { Chip } from '../atoms/Chip';
+import { SPACING } from '@/config/theme';
 
 export interface FilterFieldGroupProps {
   label: string;
   options: string[];
-  selected?: string[];
+  selected?: readonly string[];
   onToggle?: (option: string) => void;
+  disabled?: boolean;
 }
 
-export function FilterFieldGroup({
+const EMPTY_SELECTION: readonly string[] = [];
+
+export const FilterFieldGroup = memo(function FilterFieldGroup({
   label,
   options,
-  selected = [],
+  selected = EMPTY_SELECTION,
   onToggle,
+  disabled = false,
 }: FilterFieldGroupProps) {
+  const isDisabled = disabled || !onToggle;
   return (
     <View style={styles.container}>
       <AppText variant="caption" color="muted" style={styles.label}>
         {label}
       </AppText>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}
-      >
-        {options.map((opt) => (
+      <View style={styles.row}>
+        {options.map((option) => (
           <Chip
-            key={opt}
-            label={opt}
-            selected={selected.includes(opt)}
-            onToggle={() => onToggle?.(opt)}
+            key={option}
+            label={option}
+            selected={selected.includes(option)}
+            onToggle={() => onToggle?.(option)}
+            disabled={isDisabled}
           />
         ))}
-      </ScrollView>
+      </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
-  container: {
-    marginVertical: 6,
-  },
-  label: {
-    marginBottom: 6,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  container: { marginVertical: SPACING.sm },
+  label: { marginBottom: SPACING.sm },
+  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.sm },
 });
