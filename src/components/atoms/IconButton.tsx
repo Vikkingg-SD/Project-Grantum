@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS } from '@/config/theme';
+import { LAYOUT } from '@/config/layout';
 
 export interface IconButtonProps {
   icon: React.ReactNode;
@@ -18,12 +19,13 @@ export function IconButton({
   active = false,
   disabled = false,
 }: IconButtonProps) {
-  const { mode } = useThemeStore();
+  const mode = useThemeStore((state) => state.mode);
   const theme = PALETTE[mode];
-
   return (
     <Pressable
+      accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled }}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
@@ -42,8 +44,8 @@ export function IconButton({
 
 const styles = StyleSheet.create({
   button: {
-    width: 44,
-    height: 44,
+    width: LAYOUT.minTouchTarget,
+    height: LAYOUT.minTouchTarget,
     borderRadius: RADIUS.sm,
     borderWidth: 1,
     alignItems: 'center',
