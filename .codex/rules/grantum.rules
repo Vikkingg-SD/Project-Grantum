@@ -1,0 +1,54 @@
+# Project rules. Loaded from the trusted .codex layer at session startup.
+# Prefix rules are defense in depth; server-side branch protection and AGENTS.md also apply.
+# The owner alone performs GitHub squash-merges. Feature-branch Git work is permitted.
+prefix_rule(
+    pattern = [["gh", "gh.exe"], "pr", "merge"],
+    decision = "forbidden",
+    justification = "Only the owner may squash-merge a GitHub pull request. Prepare the PR and report its checks; leave merging to the owner.",
+    match = ["gh pr merge 1 --squash", "gh pr merge 1 --auto", "gh.exe pr merge 1 --merge"],
+    not_match = ["gh pr create --draft", "gh pr checks 1", "git status", "git push origin codex/agent-governance"],
+)
+
+prefix_rule(
+    pattern = [["git", "git.exe"], "push", "origin", ["main", "HEAD:main", "HEAD:refs/heads/main", "refs/heads/main"]],
+    decision = "forbidden",
+    justification = "Direct pushes to main violate the protected PR workflow. Push the feature branch and let the owner squash-merge after review.",
+    match = ["git push origin main", "git push origin HEAD:main"],
+    not_match = ["git push origin codex/agent-governance"],
+)
+
+prefix_rule(
+    pattern = [["git", "git.exe"], "push", ["--force", "-f", "--force-with-lease", "--mirror"]],
+    decision = "prompt",
+    justification = "History rewriting requires an explicit owner instruction; it is not part of routine task completion.",
+    match = ["git push --force", "git push --force-with-lease"],
+)
+
+prefix_rule(
+    pattern = [["git", "git.exe"], "commit", "--no-verify"],
+    decision = "forbidden",
+    justification = "Do not bypass Husky, lint-staged or commitlint to finish a task. Resolve the failure or ask the owner for a documented ruling.",
+    match = ["git commit --no-verify -m test"],
+)
+
+prefix_rule(
+    pattern = [["git", "git.exe"], "push", "--no-verify"],
+    decision = "forbidden",
+    justification = "Do not bypass the protected-branch push guard.",
+    match = ["git push --no-verify origin main"],
+)
+
+prefix_rule(
+    pattern = [["npx", "npx.cmd"], "expo", "lint"],
+    decision = "forbidden",
+    justification = "Expo lint scaffolding conflicts with this project's ESLint 8 and .eslintrc.js. Run pnpm lint.",
+    match = ["npx expo lint"],
+    not_match = ["pnpm lint"],
+)
+
+prefix_rule(
+    pattern = [["npm", "npm.cmd"], ["install", "i", "add", "update"]],
+    decision = "forbidden",
+    justification = "Use pnpm and retain the lockfile and owner-ruling requirement for dependency changes.",
+    match = ["npm install", "npm i eslint"],
+)
