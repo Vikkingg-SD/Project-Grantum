@@ -1,5 +1,5 @@
 {
-  "warnBaseline": 79,
-  "setAtStage": "S3-MB7",
-  "note": "Re-declared at S3-MB7 (AD-55): 79 measured post-#21, 68 measured at S3-MB7 gate. Lower at each closure; raise only by ruling."
+  "warnBaseline": 63,
+  "setAtStage": "S4-closure",
+  "note": "Re-declared at S4 closure under RUL-AG-09: 63 measured after PR #27 (entry 68; previous ceiling 79). Full gate and explicit owner-designated V7 RN export-regression check passed. Lower at each closure; raise only by ruling."
 }
