@@ -23,3 +23,10 @@ export const HERO_CONTINUE_COPY = {
   resume: 'Continue drafting',
   start: 'Start application',
 } as const;
+
+export const CHAT_COPY = {
+  placeholder: 'Describe what you want to draft',
+  send: 'Send message',
+  now: 'now',
+  failed: 'Message failed to send.',
+} as const;
