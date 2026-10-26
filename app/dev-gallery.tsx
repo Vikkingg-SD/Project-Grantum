@@ -185,16 +185,30 @@ export default function DevGalleryScreen() {
       <AppText variant="h2" style={styles.section}>
         Molecules
       </AppText>
-      <ConfidenceGaugeReadout score={85} />
+      {[39, 40, 84, 85, 100].map((score) => (
+        <ConfidenceGaugeReadout key={score} score={score} />
+      ))}
       <HeroContinueCard
         projectTitle={GALLERY_GRANTS[0].title}
         completionPct={42}
         onResume={() => setLastAction('resume')}
       />
+      <HeroContinueCard completionPct={0} onResume={() => setLastAction('resume-untitled')} />
+      <HeroContinueCard variant="no-session" onStartNew={() => setLastAction('start')} />
       <GrantCard
         grant={GALLERY_GRANTS[0]}
         onSelect={() => setLastAction('card-select')}
         onApply={() => setLastAction('card-apply')}
+      />
+      <GrantCard
+        grant={{
+          ...GALLERY_GRANTS[1],
+          title:
+            'Gallery stress fixture: a long application title that must wrap without hiding either action',
+          region: 'Gallery stress fixture: a long region and category description that must wrap',
+        }}
+        onSelect={() => setLastAction('stress-select')}
+        onApply={() => setLastAction('stress-apply')}
       />
       <FilterFieldGroup
         label="Regions"
