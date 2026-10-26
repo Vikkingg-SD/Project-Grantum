@@ -138,3 +138,84 @@ It was corrected with same-directory prepared-file moves; no gate/control bypass
 A final full gate is run after this append and before the explicit four-path commit/push.
 Documentation batch is PATCH 13, applied pending independent PR/CI and owner merge evidence.
 Product batch remains a separate five-file delivery; the previous dashboard is superseded by this entry.
+
+## PATCH — S4 closure continuation (2026-10-27)
+
+This append supersedes the earlier open dashboard without rewriting its historical entries.
+Owner instruction: "latest PR squashed. lets close S4."
+Owner authorization: "Authorize the scoped closure writes in C:\grantum-rn".
+Four-file administrative scope: docs/gate-baseline.json, docs/parity-register.md,
+docs/action-ledger-v7-session2.md and docs/s4-closure.md. Original attachments remain unchanged.
+Authority: adopted B-6.6, B-7.5/7.7/7.9/7.12/7.13/7.15, B-10.21, B-14 and RUL-AG-09.
+
+### Source delivery reconciliation
+
+- MB1 / PATCH 14: owner-approved spec; PR #25 squash 200ead3035a61d799f7f804aef66d40478117b4e.
+  Strict Gate passed. Five source files, measured WARN 68 -> 66.
+- MB2 owner answer: "Approve the complete MB2 specification".
+  The approved R2 is .expo/agent-evidence/v7-mb2/S4-MB2-R2.md.
+- MB2-A: five-file PR #26; squash 45b48d449afacbf8d2f5bc91f4f4cf03b391db9e.
+  Composer policy and 20-case verifier added to the full gate without removing prior checks.
+  Local full gate 0/66; independent Strict Gate passed at 39c845124e2b94ccf2ad4f63f091dae9bfe7bd3c.
+- MB2-B: five-file PR #27; squash 95ac9b2f956d8486ed52886b4a223cc2f1ea6717.
+  Local full gate 0/63; independent Strict Gate passed at e91b8743ed7b3d04b618d11c6b9703e76b027eb2.
+  Final local gate 13.30 s. Whole-tree SHA scope and committed tree matched the approved five files.
+  Checked-state browser finding was fixed with the supported aria-checked alias before final gate.
+- Same-session GitHub merged=true and fetched main verify the latest merge and matching source tree.
+  No merge, protected push, hook bypass or branch deletion was performed by the agent.
+- Three source deliveries, fourteen unique paths. MB2 action evidence was local-only until
+  this append; missing historical PATCH numbers are not invented or backfilled.
+
+### Baseline, parity and comparison evidence
+
+Owner designated the attached repomix-output-V7.0-start.xml with "use V7 for reference".
+Its exact RN path is C:/Users/Vikking/Desktop/PROJECT GRANTUM-RN/Repomixes/Actual/repomix-output-V7.0-start.xml.
+SHA-256 E59592D392C9B95FD0A7CC0F6CCA4A275F5E8DAD64A0069C7FE9457A830D68B1.
+The previous warning not to promote the local start pack without owner designation is discharged
+by that explicit designation and provenance audit; the original filename/content is unchanged.
+109 files map to green a84807590dc51d196fa83767ed26aaab93714d24: 107 normalized exact matches;
+only two hook trailing-whitespace differences. Canary counts 26 / 2 / 1 / 242.
+Strict explicit --prev-pack comparison: FAIL 0 / WARN 63 / INFO 2 / SKIPPED 0;
+no EXPORT-LOST or EXPORT-REGRESSION finding. This is separate from the regular full gate.
+The V7.2 Next.js product reference and its full SHA remain pinned; it is not the RN baseline.
+Twenty shared literal fragments match the exact reference molecule entry by ordinal comparison.
+
+RUL-AG-09: baseline 79 -> measured 63 at S4 closure; no new exemption or suppression.
+S4 measured entry 68 -> exit 63; 96 planned / 71 filled / 0 empty / 25 missing unchanged.
+Warning composition: DEAD-CODE 11, FONTWEIGHT 5, PLAN-MISSING 25, RADIUS-LITERAL 10, STORE-WHOLE 12.
+Three existing exemptions remain valid through 2027-01-31. Scoring14/drafts8/theme6/composer20 pass.
+Parity stage exit updates current subject, S4 component contributions and B-10.21 translations.
+Remaining screen copy, glow and global accessibility items keep their original stage owners.
+
+### Owner evidence and full-closure decision
+
+Owner web log: 1240 ms / 2932 modules, then cached 67 ms / 66 ms, application main running.
+No ERROR appears in that pasted excerpt. This is development web evidence, not a native checklist.
+Inspected dark desktop Dashboard: C:/Users/Vikking/Desktop/PROJECT GRANTUM-RN/AIDeology/Other/V7-S4-dark.jpg,
+133919 bytes; SHA-256 A7E91DB1E2C5A5ED10A3DE58EE924C6182ABE43AF9876253C21C97C25E517D0C.
+Original file unchanged. Earlier owner phone screenshots establish boot/light renders only.
+Both-theme gallery checks remain agent evidence; actual native IME/paste is not inferred from unit tests.
+
+After the outstanding B-7.5/R2 evidence requirement and B-7.7 partial option were stated,
+owner directed, verbatim:
+"there is no toggle switch for light theme in the interface yet, cant confirm but I auth closure anyways, consider full."
+
+Disposition: S4 CLOSED-FULL by explicit owner acceptance exception.
+Light-theme owner confirmation, full native composer/IME/paste outcomes and the full viewport
+matrix remain UNVERIFIED and carried to later validation under this S4-only disposition.
+No individual PASS, future gate waiver or new ruling ID is fabricated.
+The earlier "completed" answer is not promoted to individual device outcomes after this clarification.
+
+### Closure dashboard
+
+docs/s4-closure.md contains the current state/copy/translation/acceptance card.
+Closure documentation remains subject to its own full gate, CI and owner-only squash merge.
+Fresh ignored closure pack and SHA inventory are generated after the documentation gate.
+Tag inventory read; no tag minted because the approved R2 reserves tag operations to the owner.
+Native app MCP catalog activation remains UNVERIFIED; pinned five-tool scoped session bridge re-proven.
+Window-share is unmeasured because no opening telemetry was captured; no quota percentage invented.
+Retrospective: source completion evidence stayed in ignored handoff until closure; promote it promptly.
+
+Next prerequisite before S5+: separate AD-58/AD-59 checker chore.
+RUL-AG-04/05 complete token alignment/verifier stay separate; AD-61/platform polish remain at S9 latest.
+S5 and later stages are unstarted by this closure record. No backend/dependency/polishing work added.
