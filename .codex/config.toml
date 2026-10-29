@@ -1,13 +1,13 @@
-# Project-specific defaults for C:\grantum-rn.
+# Project-specific defaults for C:\grantum-r-n.
 # Activate only after owner review on a feature branch, then restart this project's session.
 # Local command execution is read-only by default. MCP has its own scope below.
 approval_policy = "on-request"
 sandbox_mode = "read-only"
 
 [mcp_servers.grantum_repomix]
-command = 'C:\Users\Vikking\AppData\Roaming\npm\node_modules\pnpm\pnpm.exe'
-args = ["dlx", "repomix@1.18.1", "--mcp", "--sandbox", 'C:\grantum-rn']
-cwd = 'C:\grantum-rn'
+command = 'C:\Users\snees\AppData\Roaming\npm\node_modules\pnpm\pnpm.exe'
+args = ["dlx", "repomix@1.18.1", "--mcp", "--sandbox", 'C:\grantum-r-n']
+cwd = 'C:\grantum-r-n'
 enabled = true
 required = true
 startup_timeout_sec = 60

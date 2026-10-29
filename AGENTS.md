@@ -113,7 +113,7 @@ this file and the applicable attached doctrine after compaction; resume from ver
 ## MCP boundaries
 
 Use the project-scoped Repomix server in `.codex/config.toml`. It must run with
-`--mcp --sandbox C:\grantum-rn`, a pinned version, and the five read-only sandbox tools.
+`--mcp --sandbox C:\grantum-r-n`, a pinned version, and the five read-only sandbox tools.
 Use relative paths, narrow include patterns, and incremental searches/reads. Exclude secrets,
 generated folders, dependencies, Git metadata, and old packs when packaging.
 
