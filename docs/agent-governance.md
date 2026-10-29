@@ -2,7 +2,7 @@
 
 ## Owner decisions for this setup
 
-- Scope: `C:\grantum-rn` and documents the owner explicitly attaches or names.
+- Scope: `C:\grantum-r-n` and documents the owner explicitly attaches or names.
 - The owner supplies the constitution, full workplan, and ruling/decision ledger as attachments.
   Do not discover them by searching other folders or connecting a document account.
 - Git commands and feature-branch work are allowed. Only the owner may squash-merge into GitHub.
@@ -132,7 +132,7 @@ gate. The owner selected manual checks only.
 ## MCP connection and access
 
 The project `.codex/config.toml` launches Repomix 1.18.1 through pnpm with
-`--mcp --sandbox C:\grantum-rn`. It pins the root and allows only:
+`--mcp --sandbox C:\grantum-r-n`. It pins the root and allows only:
 
 - `pack_codebase`
 - `read_repomix_output`
