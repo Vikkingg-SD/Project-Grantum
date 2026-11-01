@@ -8,13 +8,17 @@ import { generateId } from '@/utils/uuid';
 
 const drafts: Record<string, ProposalDraft> = {};
 const scans: Record<string, AuditScan> = {};
+const scanGrants: Record<string, string> = {};
+const latestScans: Record<string, string> = {};
 
 export function getMockGrantDetail(id: string): GrantDetail {
-  const grant = mockGrants.find((g) => g.id === id) ?? mockGrants[0];
+  const grant = mockGrants.find((g) => g.id === id);
+  if (!grant) throw new Error('Grant not found.');
   return { ...grant, requirements: [...DEFAULT_REQUIRED_SECTIONS] };
 }
 
 export function getMockDraft(grantId: string): ProposalDraft {
+  const grant = getMockGrantDetail(grantId);
   if (!drafts[grantId]) {
     drafts[grantId] = {
       id: `prop-${grantId}`,
@@ -23,7 +27,7 @@ export function getMockDraft(grantId: string): ProposalDraft {
       requiredSections: [...DEFAULT_REQUIRED_SECTIONS],
       completionPct: 42,
       confidenceScore: 100,
-      body: seedExportDoc(mockGrants.find((g) => g.id === grantId) ?? mockGrants[0]),
+      body: seedExportDoc(grant),
     };
   }
   return drafts[grantId];
@@ -33,6 +37,7 @@ export function updateMockDraft(grantId: string, update: Partial<ProposalDraft>)
   const current = getMockDraft(grantId);
   const next = { ...current, ...update };
   drafts[grantId] = next;
+  if (update.completedSections || update.requiredSections) delete latestScans[grantId];
   return next;
 }
 
@@ -57,18 +62,28 @@ export function createMockScan(grantId: string): AuditScan {
     events,
   };
   scans[scanId] = scan;
+  scanGrants[scanId] = grantId;
+  latestScans[grantId] = scanId;
   return scan;
 }
 
-export function getMockScan(scanId: string): AuditScan | undefined {
+export function getMockScan(scanId: string, grantId?: string): AuditScan | undefined {
+  if (grantId && scanGrants[scanId] !== grantId) return undefined;
   const scan = scans[scanId];
   if (scan && scan.status === 'running') {
-    scan.status = scan.missingSections.length === 0 ? 'passed' : 'failed';
+    scans[scanId] = { ...scan, status: scan.missingSections.length === 0 ? 'passed' : 'failed' };
   }
-  return scan;
+  return scans[scanId];
+}
+
+export function getLatestMockScan(grantId: string): AuditScan | null {
+  getMockGrantDetail(grantId);
+  const scanId = latestScans[grantId];
+  return scanId ? (getMockScan(scanId, grantId) ?? null) : null;
 }
 
 export function getMockAward(grantId: string): AwardRecord {
+  getMockGrantDetail(grantId);
   return {
     grantId,
     status: 'awarded',
