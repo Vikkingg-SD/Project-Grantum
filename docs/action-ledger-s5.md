@@ -132,3 +132,29 @@ the full provenance result remains distinct from byte-identical pack verificatio
 
 S5 remains OPEN. Control, product, native-device and closure evidence must be recorded as
 they occur; this recovery append does not ratify unfinished product specifications or close S5.
+
+## PR #31 merge verification and owner decisions — 2026-11-01 [A]
+
+Owner continuation: "PR merged. continue".
+PR #31 is verified merged as `7bdfb22b1d98715789f7e3d16bb6e03706d354ba`.
+The merged tree equals tested recovery head `f0b415b` with no content differences.
+PR Strict Gate run 41298877540 and merged-main run 41299735865 both succeeded.
+The feature branch for the next checker work is `codex/s5-checker-20261101`, cut from
+the fetched merged main; prior branches and the original local-main commit are preserved.
+
+The owner's exact answers to the two concrete checkpoint questions were:
+
+- "Approve the Node verifier" — revised T specification, exact five-file scope from
+  `s5-next-checkpoint.md` delivered with the recovery handoff. This supersedes only the
+  Python/tomllib implementation requirement; no dependency or MCP boundary change.
+- "Use the verified supplied S4 pack" — S5 previous-green comparison input is
+  `C:/Users/Vikking/Desktop/PROJECT GRANTUM-RN/Repomixes/Actual/repomix-output-S4-green.xml`,
+  SHA-256 `d40f047afa32b656e4bb118531f9f2a47794bdd8a58450ac2a6abf79e09adef8`.
+  Its normalized source-content equivalence to `4755d31` is recorded above; original
+  packed-byte identity with the canon's stale digest is not claimed.
+
+The next source batch is C under adopted RUL-II-04 and the existing five-file specification.
+It must preserve current severities, baseline 63 and all existing suites, add the 24 named
+analysis fixtures and explicit lint coverage, and explain any reachability finding delta.
+The approved Node verifier follows under revised T; token alignment remains its separate K PR.
+No S5 product implementation or stage closure follows from this merge alone.
