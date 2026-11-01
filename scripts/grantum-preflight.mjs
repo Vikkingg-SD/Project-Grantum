@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
+import { analyzeModules, compareModuleExports } from './module-exports.mjs';
 
 const startTime = Date.now();
 const args = process.argv.slice(2);
@@ -90,6 +91,7 @@ const KNOWN_CODES = new Set([
   'EXEMPT-EXPIRED',
   'GIT-HYGIENE',
   'GIT-BEHIND',
+  'MODULE-ANALYSIS',
 ]);
 
 const MANIFEST_PATH = 'docs/gate-manifest.json';
@@ -292,89 +294,11 @@ for (const f of srcFiles) {
 }
 
 // ---------- 3. import/export closure ----------
-const IMP = /import\s+(type\s+)?([^;]*?)\s+from\s+['"]([^'"]+)['"]/gs;
-const REEXP = /export\s+(?:type\s+)?{([^}]*)}\s*from\s+['"]([^'"]+)['"]/gs;
-const EXPNAMED =
-  /export\s+(?:declare\s+)?(?:const|let|var|function\s*?|class|type|interface|enum|async\s+function)\s+([A-Za-z_$][\w$]*)/g;
-const EXPLIST = /export\s+{([^}]*)}/gs;
-const EXPDEF = /export\s+default\b/;
-
-function exportsOf(f) {
-  const s = body(f);
-  const names = new Set([...s.matchAll(EXPNAMED)].map((m) => m[1]));
-  for (const m of s.matchAll(EXPLIST))
-    m[1].split(',').forEach((i) => {
-      const t = i.trim().replace(/^type\s+/, '');
-      if (t) names.add(t.split(' as ').pop().trim());
-    });
-  for (const m of s.matchAll(REEXP))
-    m[1].split(',').forEach((i) => {
-      const t = i.trim().replace(/^type\s+/, '');
-      if (t) names.add(t.split(' as ').pop().trim());
-    });
-  return { names, hasDefault: EXPDEF.test(s) };
+const moduleAnalysis = analyzeModules(new Map(srcFiles.map((file) => [file, body(file)])));
+for (const diagnostic of moduleAnalysis.diagnostics) {
+  add(diagnostic.level, diagnostic.code, diagnostic.msg, diagnostic.file);
 }
-
-function resolveImport(from, spec) {
-  let base;
-  if (spec.startsWith('@/')) base = 'src/' + spec.slice(2);
-  else if (spec.startsWith('.'))
-    base = path.posix.normalize(path.posix.join(path.posix.dirname(from), spec));
-  else return null;
-
-  for (const c of [
-    base,
-    base + '.ts',
-    base + '.tsx',
-    base + '/index.ts',
-    base + '/index.tsx',
-    base + '.js',
-    base + '.mjs',
-  ]) {
-    if (content.has(c)) return c;
-  }
-  return { missing: base };
-}
-
-const importGraph = new Map();
-for (const f of srcFiles) {
-  if (isEmpty(f)) continue;
-  const deps = new Set();
-  for (const m of body(f).matchAll(IMP)) {
-    const r = resolveImport(f, m[3]);
-    if (r === null) continue;
-    if (typeof r === 'object') {
-      add('FAIL', 'MISSING-FILE', `${f} imports "${m[3]}" -> no file`, f);
-      continue;
-    }
-    deps.add(r);
-    if (isEmpty(r)) {
-      add('FAIL', 'EMPTY-TARGET', `${f} imports "${m[3]}" -> ${r} is empty`, f);
-      continue;
-    }
-    const { names, hasDefault } = exportsOf(r);
-    const clause = m[2].trim();
-    if (/^[A-Za-z_$][\w$]*\s*(,|$)/.test(clause) && !hasDefault)
-      add('FAIL', 'NO-DEFAULT', `${f} default-imports "${m[3]}" but ${r} has no default export`, f);
-    const nm = clause.match(/{([^}]*)}/s);
-    if (nm)
-      for (const it of nm[1].split(',')) {
-        const orig = it
-          .trim()
-          .replace(/^type\s+/, '')
-          .split(' as ')[0]
-          .trim();
-        if (orig && !names.has(orig))
-          add(
-            'FAIL',
-            'MISSING-EXPORT',
-            `${f} imports { ${orig} } from "${m[3]}" but ${r} does not export it`,
-            f
-          );
-      }
-  }
-  importGraph.set(f, deps);
-}
+const importGraph = moduleAnalysis.graph;
 
 // ---------- 4. reachability ----------
 const entries = srcFiles.filter((f) => f.startsWith('app/') && !isEmpty(f));
@@ -579,28 +503,17 @@ if (PREV) {
   if (fs.existsSync(PREV)) {
     const xml = fs.readFileSync(PREV, 'utf8');
     const prev = new Map(
-      [...xml.matchAll(/<file path="([^"]+)">\n?([\s\S]*?)<\/file>/g)].map((m) => [m[1], m[2]])
+      [...xml.matchAll(/<file path="([^"]+)">\r?\n?([\s\S]*?)<\/file>/g)]
+        .filter((match) => /^(src|app|scripts)\//.test(match[1]) && SRC_EXT.test(match[1]))
+        .map((match) => [match[1], match[2]])
     );
-    for (const f of srcFiles) {
-      if (!prev.has(f) || !prev.get(f).trim() || isEmpty(f)) continue;
-      const before = new Set([...prev.get(f).matchAll(EXPNAMED)].map((m) => m[1]));
-      const after = exportsOf(f).names;
-      const lost = [...before].filter((n) => !after.has(n));
-      for (const n of lost) {
-        const consumers = srcFiles.filter(
-          (g) =>
-            g !== f &&
-            new RegExp(`\\b${n}\\b`).test(body(g)) &&
-            (importGraph.get(g) ?? new Set()).has(f)
-        );
-        if (consumers.length)
-          add(
-            'FAIL',
-            'EXPORT-REGRESSION',
-            `${f} no longer exports "${n}" but ${consumers.join(', ')} import it`
-          );
-        else add('WARN', 'EXPORT-LOST', `${f} no longer exports "${n}" (no live consumers)`);
-      }
+    const previousAnalysis = analyzeModules(prev);
+    // A damaged baseline cannot certify regression coverage, even if current code is clean.
+    for (const diagnostic of previousAnalysis.diagnostics) {
+      add(diagnostic.level, diagnostic.code, `Previous pack: ${diagnostic.msg}`, diagnostic.file);
+    }
+    for (const diagnostic of compareModuleExports(previousAnalysis, moduleAnalysis)) {
+      add(diagnostic.level, diagnostic.code, diagnostic.msg, diagnostic.file);
     }
   } else {
     add('SKIPPED', 'EXPORT-REGRESSION', `declared baseline pack missing on disk: ${PREV}`);

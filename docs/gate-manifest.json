@@ -18,7 +18,8 @@
     "STAGED-GAP",
     "MANIFEST-MISSING",
     "MANIFEST-UNKNOWN-CODE",
-    "WARN-RATCHET"
+    "WARN-RATCHET",
+    "MODULE-ANALYSIS"
   ],
   "warnEveryGate": [
     "DEAD-CODE",
