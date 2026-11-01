@@ -195,3 +195,88 @@ to the required gate by T and are not claimed as GitHub CI executions. Applicati
 lockfile, hooks, linter config, warning baseline, exemptions and .github remain unchanged.
 Independent CI and owner squash-merge evidence for these batches remain pending until the PR.
 S5 is OPEN; K token alignment is still owed in its own PR, followed by approved product batches.
+
+## PR #32 merge verification and next-task handoff — 2026-11-01 [A]
+
+The owner requested a handoff and boot prompt for the next task; no token/product code is
+implemented in this handoff batch. During the read-only refresh, PR #32 was verified merged
+as `ef26b5b803a8ab26d81ea0adc240027ff9c67e9e`. Its tree equals tested head `0c8089a`
+exactly: `8ab36182eb3b3202237e9f05a730ad301abd58e6`.
+PR Strict Gate run 41301816760 and merged-main run 41302500199 both succeeded.
+This discharges the preceding C/T entry's pending independent-CI/owner-merge status.
+The 20 MCP fixture groups and live smoke remain manual evidence, not CI executions.
+
+Next-task branch: `codex/s5-token-alignment-20261101`, based on fetched `origin/main@ef26b5b`.
+This one-file ledger append is its handoff prelude; the five-file K implementation has not started.
+Local main remains at the preserved `25293bd`; do not reset it or discard its history.
+The next agent should verify live state, prove MCP again for its new session, then execute K
+from the existing specification with an unchanged-warning prediction of 63.
+The earlier dated map's Python/unimplemented and old trunk facts are superseded by the later
+adoption/implementation/merge entries; no second Node migration or repeated approval is owed.
+
+S5 remains OPEN. After K's separate green PR and owner merge, finalize and approve WP-F.1
+just in time, followed by WP-F.2 and the actual browser/native/parity/closure evidence.
+The designated S4 baseline and pinned V7.2 reference remain unchanged. Native catalog attachment
+and native keyboard/IME/paste/safe-area outcomes must not be inferred from the manual protocol proof.
+
+## Token-alignment batch K — 2026-11-01 [A]
+
+Authority: adopted RUL-II-05 and RUL-AG-04/05, exact K contract in s5-control-spec.md.
+The owner explicitly continued the prepared branch and included its PR #32 merge-verification
+prelude in this same K PR. This is the S5 entry batch K, not release work package WP-K.
+Source anchor: tested `2e0f5801db9cd6aa7c8d2a8743114388ec2a4603`, tree
+`0eee89044e8dc90f83c9e4a7c196ace5bf71daa1`; fetched main remains `ef26b5b`.
+Local main remains preserved at `25293bd`. Initial working tree was clean and upstream equal.
+Both owner-supplied II governing-original SHA-256 values match the handoff.
+
+The bounded five-file source set is theme.ts, DESIGN_MANIFESTO.md, verify-tokens.ts,
+package.json and this ledger. The manifesto is the numeric expectations source; semantic
+name mappings in the verifier carry no second numeric/color registry. Direct relative imports
+consume FONT and the live theme exports. Existing AppText/ChatInputRow typography consumers
+and palette/radius consumers retain their interfaces; no barrel or route edit is required.
+Font mappings, palette, unspecified roles, spacing and shadows are preserved. AD-61 stays OPEN.
+Rollback is a corrective feature PR from the verified anchor, never reset or force push.
+
+Fresh pre-edit strict preflight: FAIL 0 / WARN 63 / INFO 3 / SKIPPED 0, three valid exemptions.
+Prediction: warning delta zero, identical code/path findings. A 130-file SHA-256 inventory
+was captured outside the checkout before editing, excluding secrets/generated/dependency files.
+The sequential manual MCP checks passed: 20 fixture groups, static CLI, then live 1.18.1
+with five read-only tools, three specific boundary rejections and graceful process cleanup.
+Live output ID `ecc925149b20c7e2`; config hash `975240cf...`, script hash `b5bcd414...`.
+Native in-chat catalog inspected separately: NOT ATTACHED. These MCP checks are outside
+the mandatory gate and are not represented as GitHub CI executions.
+
+Implementation verification and independent CI are pending at this append's initial write.
+S5 remains OPEN; no product/native acceptance or later work package starts with K OPEN.
+
+Targeted verification now passes: typecheck, zero-warning lint, format:check, scoring 14,
+drafts 8, theme 6, composer 20, preflight 24 and tokens 36 (108 cases total, zero skips).
+The token suite includes live document parity, matching duplicates, a coordinated document/
+implementation mutation proving document-derived expectations, and 33 rejection cases.
+The first fixture run exposed an overbroad test mutation of every 32px occurrence; it was
+restricted to display rows. Initial typecheck then exposed unavailable direct Node typings
+and the palette interface/index signature; lint rejected require imports. The final CLI uses
+typed asynchronous Node boundaries, explicit assertion binding and copied live palette values.
+TS2775 on the interim destructured assertion binding was diagnosed and corrected. No dependency,
+configuration, rule or expected-result change was used to fix these integration findings.
+All targeted checks passed after those corrections; no full gate has run at this write point.
+
+Full mandatory gate subsequently passed: FAIL 0 / WARN 63 / INFO 3 / SKIPPED 0,
+108 cases including all 36 token cases. Warning findings match the fresh baseline by code/path:
+DEAD-CODE 11, FONTWEIGHT 5, PLAN-MISSING 25, RADIUS-LITERAL 10, STORE-WHOLE 12.
+Whole-tree comparison proves exactly the five authorized files changed (130 existing files,
+one new verifier); the gate's repository formatting changed zero bytes. The old gate command
+is preserved byte-for-byte as a prefix, with only verify:tokens appended. Lockfile, dependencies,
+configs, hooks, CI, baseline and exemptions are unchanged. git diff --check passed.
+The designated S4 comparison also passed: FAIL 0 / WARN 63 / INFO 2 / SKIPPED 0,
+no EXPORT-REGRESSION or EXPORT-LOST; S4 and V7.2 pack hashes both match the pinned identities.
+This evidence append is followed by a final full gate before explicit staging/commit/push.
+Independent PR CI is still pending at this record point; its exact tested head/run is recorded
+in the PR and sitting handoff. Only the owner may squash-merge. K remains OPEN for that review.
+
+Remaining S5 work: after K's green PR and owner merge, finalize/approve WP-F.1 R2 just in time
+for recovery harness, supported Router boundaries and ScreenContainer, then WP-F.2 chrome/modal
+composition. Actual rendered recovery, native keyboard/IME/paste/safe-area/light-theme evidence,
+320/768 acceptance, product/reference parity, independent CI/merge and full stage-closure evidence
+remain owed. This token gate supplies none of those device/rendered acceptance outcomes.
+S5 and AD-61 remain OPEN. No later work package was started; no stage closure is claimed.

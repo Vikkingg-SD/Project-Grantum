@@ -47,7 +47,7 @@ export const PALETTE: Record<ThemeMode, ThemeColors> = {
   },
 };
 
-export const RADIUS = { sm: 8, md: 12, full: 9999 } as const;
+export const RADIUS = { sm: 8, md: 12, lg: 16, full: 9999 } as const;
 
 export const SPACING = {
   xs: 4,
@@ -61,13 +61,13 @@ export const SPACING = {
 } as const;
 
 export const TYPOGRAPHY = {
-  display: { fontFamily: FONT.sans.bold, fontSize: 30, lineHeight: 36, letterSpacing: -0.6 },
-  h1: { fontFamily: FONT.sans.bold, fontSize: 24, lineHeight: 32, letterSpacing: -0.24 },
-  h2: { fontFamily: FONT.sans.semibold, fontSize: 20, lineHeight: 28 },
-  h3: { fontFamily: FONT.sans.semibold, fontSize: 16, lineHeight: 24 },
+  display: { fontFamily: FONT.sans.bold, fontSize: 32, lineHeight: 38, letterSpacing: -0.64 },
+  h1: { fontFamily: FONT.sans.bold, fontSize: 24, lineHeight: 30, letterSpacing: -0.24 },
+  h2: { fontFamily: FONT.sans.semibold, fontSize: 20, lineHeight: 26, letterSpacing: 0 },
+  h3: { fontFamily: FONT.sans.semibold, fontSize: 16, lineHeight: 22, letterSpacing: 0.16 },
   label: { fontFamily: FONT.sans.semibold, fontSize: 14, lineHeight: 20 },
-  body: { fontFamily: FONT.sans.regular, fontSize: 14, lineHeight: 20 },
-  caption: { fontFamily: FONT.sans.medium, fontSize: 12, lineHeight: 16 },
+  body: { fontFamily: FONT.sans.regular, fontSize: 14, lineHeight: 20, letterSpacing: 0.14 },
+  caption: { fontFamily: FONT.sans.medium, fontSize: 12, lineHeight: 16, letterSpacing: 0.24 },
   eyebrow: {
     fontFamily: FONT.sans.bold,
     fontSize: 12,
@@ -76,9 +76,9 @@ export const TYPOGRAPHY = {
     textTransform: 'uppercase',
   },
   'metric-xl': { fontFamily: FONT.mono.bold, fontSize: 30, lineHeight: 36 },
-  'metric-lg': { fontFamily: FONT.mono.bold, fontSize: 24, lineHeight: 32 },
+  'metric-lg': { fontFamily: FONT.mono.bold, fontSize: 28, lineHeight: 32, letterSpacing: 0 },
   'metric-md': { fontFamily: FONT.mono.bold, fontSize: 18, lineHeight: 28 },
-  'metric-sm': { fontFamily: FONT.mono.medium, fontSize: 13, lineHeight: 18 },
+  'metric-sm': { fontFamily: FONT.mono.medium, fontSize: 13, lineHeight: 18, letterSpacing: 0.52 },
 } as const satisfies Record<string, TextStyle>;
 
 export type TypographyVariant = keyof typeof TYPOGRAPHY;

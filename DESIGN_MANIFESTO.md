@@ -127,3 +127,18 @@ Grantum uses two distinct typographic roles:
 
 - Mobile: `< 768px` (Single column vertical stacking, bottom navigation tabs, bottom sheet modals).
 - Desktop / Web: `≥ 768px` (Split layout, multi-column grid, centered dialogue modals, sidebar/horizontal controls).
+
+## S5 entry implementation reconciliation — 2026-11-01
+
+Batch K implements the ratified tables under RUL-AG-04/05 and adopted RUL-II-05.
+Typography uses numeric React Native letter spacing (documented em multiplied by font size),
+and the radius registry includes `radius-lg`. Palette values, font-family/weight mappings and
+unspecified roles are preserved; the ratified targets above are unchanged.
+
+`verify:tokens` reads this document as its expectations source: 13 core palette semantics and
+the two derived colors in both modes, eight typography roles and four radii. Matching duplicate
+tables are accepted; conflicting complete rows, missing data and malformed measures fail.
+The first `text-metric-lg` row is incomplete (no closing table delimiter). It is validated
+against the later complete row, which is required; it is never silently selected or discarded.
+This bounded check does not establish complete spacing/shadow parity or visual/native acceptance.
+AD-61's color/contrast decision remains OPEN; no color correction is included.
