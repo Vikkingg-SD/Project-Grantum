@@ -46,6 +46,7 @@ export function createApiClient({ baseUrl, timeoutMs, getToken, fetcher = fetch 
       try {
         return (await response.json()) as T;
       } catch {
+        if (controller.signal.aborted) throw new Error('Request aborted.');
         throw new ApiError(
           'The server returned invalid JSON.',
           response.status,

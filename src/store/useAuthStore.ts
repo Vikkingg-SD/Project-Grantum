@@ -2,12 +2,10 @@ import { create } from 'zustand';
 
 interface AuthState {
   token: string | null;
-  isOnboarded: boolean;
   status: 'anonymous' | 'authenticated';
   hydrated: boolean;
   hydrate: () => Promise<void>;
   setSession: (token: string, isOnboarded: boolean) => Promise<void>;
-  markOnboarded: () => void;
   logout: () => Promise<void>;
 }
 
@@ -37,7 +35,6 @@ function writeToken(token: string | null): Promise<void> {
 
 export const useAuthStore = create<AuthState>((set) => ({
   token: null,
-  isOnboarded: false,
   status: 'anonymous',
   hydrated: false,
   hydrate: () => {
@@ -56,18 +53,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     return hydration;
   },
-  setSession: async (token, isOnboarded) => {
+  setSession: async (token) => {
     if (!token.trim()) throw new Error('A session token is required.');
     const version = ++sessionVersion;
     await writeToken(token);
     if (version === sessionVersion) {
-      set({ token, isOnboarded, status: 'authenticated', hydrated: true });
+      set({ token, status: 'authenticated', hydrated: true });
     }
   },
-  markOnboarded: () => set({ isOnboarded: true }),
   logout: async () => {
     ++sessionVersion;
-    set({ token: null, isOnboarded: false, status: 'anonymous', hydrated: true });
+    set({ token: null, status: 'anonymous', hydrated: true });
     await writeToken(null);
   },
 }));

@@ -45,7 +45,6 @@ export function useAuth() {
   const finishOnboarding = useMutation({
     mutationFn: () => getDataSource().finishOnboarding(),
     onSuccess: () => {
-      useAuthStore.getState().markOnboarded();
       void client.invalidateQueries({ queryKey: queryKeys.me });
     },
   });

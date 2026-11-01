@@ -84,6 +84,7 @@ export function getLatestMockScan(grantId: string): AuditScan | null {
 
 export function getMockAward(grantId: string): AwardRecord {
   getMockGrantDetail(grantId);
+  if (grantId !== '1') throw new Error('No award record exists for this application.');
   return {
     grantId,
     status: 'awarded',
