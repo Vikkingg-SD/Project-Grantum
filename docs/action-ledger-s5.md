@@ -280,3 +280,44 @@ composition. Actual rendered recovery, native keyboard/IME/paste/safe-area/light
 320/768 acceptance, product/reference parity, independent CI/merge and full stage-closure evidence
 remain owed. This token gate supplies none of those device/rendered acceptance outcomes.
 S5 and AD-61 remain OPEN. No later work package was started; no stage closure is claimed.
+
+## PR #33 merge verification and WP-F.1 start — 2026-11-01 [A]
+
+Owner: "PR merged, I approve changes. start implementing".
+PR #33 is verified merged as `4cebed915135383487e72be03628e0afbab94f54`.
+Its tree equals tested K head `6fdf00d` exactly:
+`a7b43cbd0717ee723d227cab87cb9627c45ee24d`.
+PR Strict Gate run 41305743090 succeeded. K's owner-review/merge boundary is discharged;
+S5 remains OPEN. Local main `25293bd` is preserved. The next feature branch is
+`codex/s5-recovery-harness-20261101`, based on fetched merged main.
+
+The owner's continuation authorizes implementing the specified WP-F.1 harness batch F1-A:
+package.json, pnpm-lock.yaml, recovery.playwright.config.ts, verify-recovery.ts and this ledger.
+Pinned dev-only @playwright/test 1.64.1 is available in the registry. The preliminary harness
+will prove a real Chromium render/interaction and exact diagnostic capture with one worker.
+It is not actual app recovery acceptance and will not join the mandatory gate yet.
+Expected preflight WARN delta zero (63); no application consumer changes in F1-A.
+The Playwright test module consumes the config via the CLI; imports are direct package imports.
+Rollback is a corrective feature PR from merged `4cebed9`, never a reset or force push.
+Root/tab recovery and ScreenContainer remain F1-B/C, with exact reference copy and Router
+source checks before dependent changes. CI Chromium provisioning remains owner-applied
+through the Web UI; no agent .github edit is authorized or performed.
+
+F1-A implementation: dev-only @playwright/test/playwright/playwright-core pinned 1.64.1;
+the lockfile adds only that dependency graph (28 lines). The manual Chromium installation
+completed, and verify:recovery:harness passed two real browser tests using one worker:
+render/action and exact known-fault capture. Each context rejects unrelated error/warning
+diagnostics and blocks network requests. Runner timeout is 60 seconds, per-test 15 seconds,
+retries zero, forbidOnly true; fixture-owned browser/context cleanup is handled by Playwright.
+Generated results stay under ignored .expo/recovery-results; no external service is launched.
+The terminal emitted Node's NO_COLOR/FORCE_COLOR interaction warning; browser diagnostics
+were separately asserted. No warning or error suppression was added.
+
+Full mandatory gate passed: FAIL 0 / WARN 63 / INFO 3 / SKIPPED 0; all 108 existing cases.
+The preliminary two browser tests are manual, not members of that gate or claimed CI runs.
+Final source scope and formatting are checked again before explicit staging and push.
+Independent PR gate evidence is pending. The owner must apply Chromium installation and
+the separate harness invocation to the feature branch workflow through the Web UI; the
+agent will supply the exact steps with the reviewable PR. Harness CI is NOT RUN until then.
+F1-A is APPLIED pending independent checks/owner review; WP-F.1 and S5 remain OPEN.
+This is not a claim of root/tab/screen recovery, native physics or product acceptance.
