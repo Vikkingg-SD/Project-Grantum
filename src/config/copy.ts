@@ -40,3 +40,24 @@ export const ERROR_COPY = {
   reload: 'Reload',
   screenReload: 'Reload Grantum',
 } as const;
+
+// Header/navigation labels from the pinned V7.2 header and TopTabNavigation.
+export const HEADER_COPY = { brand: 'Grantum', back: 'Go back' } as const;
+export const NAV_COPY = {
+  primary: 'Primary',
+  dashboard: 'Dashboard',
+  discovery: 'Discovery',
+  drafting: 'Drafting',
+  audit: 'Audit',
+  export: 'Export',
+  postAward: 'Post-award',
+  lockedPreview: 'tier-locked preview, still navigable',
+} as const;
+// Preserve existing sheet copy until its S7 copy disposition; Close is reference-verbatim.
+export const MODAL_COPY = {
+  close: 'Close',
+  funding: 'Funding Amount',
+  deadline: 'Deadline',
+  match: 'Match Score',
+  apply: 'Start Draft',
+} as const;

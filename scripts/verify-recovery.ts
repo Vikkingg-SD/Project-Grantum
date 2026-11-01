@@ -338,10 +338,17 @@ test.describe('app recovery:', () => {
             sessionStorage.setItem('grantum-test-fault', 'clear');
           });
           if (action === 'retry') {
-            await page.keyboard.press('Tab');
-            await expect(
-              page.getByRole('button', { name: 'Try again', exact: true })
-            ).toBeFocused();
+            const retryButton = page.getByRole('button', { name: 'Try again', exact: true });
+            // Header navigation precedes content on wide layouts. Walk genuine Tab
+            // order within the visible-control bound; never force focus or skip it.
+            const focusSteps =
+              (await page.getByRole('tab').count()) + (await page.getByRole('button').count()) + 1;
+            for (let step = 0; step < focusSteps; step++) {
+              await page.keyboard.press('Tab');
+              if (await retryButton.evaluate((element) => element === document.activeElement))
+                break;
+            }
+            await expect(retryButton).toBeFocused();
             await page.keyboard.press('Enter');
           } else {
             await Promise.all([
