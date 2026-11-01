@@ -1,143 +1,132 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList } from 'react-native';
-import { CheckCircle2, AlertCircle } from 'lucide-react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
+import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { AppText } from '@/components/atoms/AppText';
+import { AppButton } from '@/components/atoms/AppButton';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { ConfidenceGaugeReadout } from '@/components/molecules/ConfidenceGaugeReadout';
+import { AuditLogLine } from '@/components/molecules/AuditLogLine';
 import { ChatMessageBubble } from '@/components/molecules/ChatMessageBubble';
 import { ChatInputRow } from '@/components/molecules/ChatInputRow';
+import { useProposalDraft } from '@/api/hooks/useProposalDraft';
+import { useAuditStatus, useTriggerAuditScan } from '@/api/hooks/useAuditScan';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useUIStore } from '@/store/useUIStore';
-import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE } from '@/config/theme';
-import { draftConfidenceScore } from '@/utils/scoring';
+import { useTheme } from '@/hooks/useTheme';
+import { RADIUS, SPACING } from '@/config/theme';
 
 export default function AuditScreen() {
-  const { mode } = useThemeStore();
-  const theme = PALETTE[mode];
-  const grantId = useUIStore((s) => s.activeGrantId);
-  const draft = useDraftStore((s) => s.drafts[grantId] ?? EMPTY_DRAFT);
-  const { completedSections, requiredSections, auditMessages } = draft;
-  const confidenceScore = draftConfidenceScore(completedSections, requiredSections);
-  const addAuditMessage = useDraftStore((s) => s.addAuditMessage);
-  const [inputMessage, setInputMessage] = useState('');
-
-  const handleSend = () => {
-    if (!inputMessage.trim()) return;
-    addAuditMessage(grantId, inputMessage, 'user');
-    const msg = inputMessage;
-    setInputMessage('');
-    setTimeout(() => {
-      const missing = requiredSections.filter((s) => !completedSections.includes(s));
-      const res =
-        missing.length === 0
-          ? `AUDIT OK · ${msg}: Zero arithmetic inconsistencies. Confidence index 100.`
-          : `AUDIT ALERT · ${msg}: Blocked on omitted sections: ${missing.join(', ')}. Confidence: ${confidenceScore}.`;
-      addAuditMessage(grantId, res, 'assistant-auditor');
-    }, 600);
-  };
-
+  const theme = useTheme();
+  const grantId = useUIStore((state) => state.activeGrantId);
+  const draft = useProposalDraft(grantId);
+  const scan = useAuditStatus(grantId);
+  const trigger = useTriggerAuditScan(grantId);
+  const local = useDraftStore((state) => state.drafts[grantId] ?? EMPTY_DRAFT);
+  const addNote = useDraftStore((state) => state.addAuditMessage);
+  const [message, setMessage] = useState('');
+  if (!grantId || draft.isPending || draft.isError || !draft.data) {
+    return (
+      <ScreenContainer>
+        <EmptyStateLayout
+          title={
+            !grantId
+              ? 'Select an opportunity'
+              : draft.isError
+                ? 'Instrument fault'
+                : 'Calibrating instrument…'
+          }
+          description={draft.error?.message ?? 'Open an application to inspect its audit.'}
+          ctaLabel={draft.isError ? 'Try again' : undefined}
+          onCtaPress={() => {
+            void draft.refetch();
+          }}
+        />
+      </ScreenContainer>
+    );
+  }
+  const running = trigger.isPending || scan.data?.status === 'running';
+  const error = trigger.error ?? scan.error;
   return (
-    <ScreenContainer scrollable={false} style={{ padding: 0 }}>
-      <View style={styles.header}>
-        <AppText variant="h1">Deterministic Auditor</AppText>
-        <StatusBadge label="Agent-2 Deterministic" variant="verified" />
-      </View>
-
-      <View
-        style={[styles.scanCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-      >
-        <AppText variant="caption" color="muted" style={styles.cardTitle}>
-          SCAN STATUS · REQUIRED PROPOSAL SECTIONS
+    <ScreenContainer scrollable={false}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
+        <View style={styles.heading}>
+          <AppText variant="h1" style={{ flexShrink: 1 }}>
+            Deterministic Auditor
+          </AppText>
+          <StatusBadge
+            label={
+              running
+                ? 'Scanning…'
+                : scan.data?.status === 'passed'
+                  ? 'Live pass'
+                  : scan.data?.status === 'failed'
+                    ? 'Action required'
+                    : 'Not scanned'
+            }
+            variant={running ? 'pending' : scan.data?.status === 'passed' ? 'verified' : 'neutral'}
+          />
+        </View>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <AppText variant="caption" color="muted">
+            SCAN STATUS · REQUIRED PROPOSAL SECTIONS
+          </AppText>
+          {draft.data.requiredSections.map((section) => (
+            <AppText
+              key={section}
+              color={draft.data.completedSections.includes(section) ? 'main' : 'failure'}
+            >
+              {section}
+            </AppText>
+          ))}
+          <ConfidenceGaugeReadout
+            score={draft.data.requiredSections.length ? draft.data.confidenceScore : 0}
+          />
+          <AppButton
+            label={running ? 'Scanning…' : 'Run audit'}
+            isLoading={running}
+            disabled={!draft.data.requiredSections.length}
+            onPress={() => trigger.mutate()}
+          />
+          {error && (
+            <AppText color="failure" accessibilityRole="alert">
+              {error.message}
+            </AppText>
+          )}
+          {scan.isError && (
+            <AppButton
+              label="Try again"
+              onPress={() => {
+                void scan.refetch();
+              }}
+            />
+          )}
+          {scan.data?.events.map((event) => (
+            <AuditLogLine key={event.id} {...event} />
+          ))}
+        </View>
+        <AppText variant="caption" color="muted">
+          Local audit notes. Run audit to request a compliance scan.
         </AppText>
-        <View style={styles.grid}>
-          {requiredSections.map((sec) => {
-            const passed = completedSections.includes(sec);
-            return (
-              <View
-                key={sec}
-                style={[
-                  styles.gridItem,
-                  { backgroundColor: theme.subtle, borderColor: theme.border },
-                ]}
-              >
-                {passed ? (
-                  <CheckCircle2 size={16} color={theme.verified} />
-                ) : (
-                  <AlertCircle size={16} color={theme.failure} />
-                )}
-                <AppText
-                  variant="caption"
-                  color={passed ? 'main' : 'failure'}
-                  style={{ fontWeight: '600' }}
-                >
-                  {sec}
-                </AppText>
-              </View>
-            );
-          })}
-        </View>
-        <View style={[styles.gaugeBox, { borderTopColor: theme.border }]}>
-          <ConfidenceGaugeReadout score={confidenceScore} />
-        </View>
-      </View>
-
-      <FlatList
-        data={auditMessages}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ChatMessageBubble {...item} />}
-        contentContainerStyle={styles.chatList}
-      />
-
+        {local.auditMessages.map((item) => (
+          <ChatMessageBubble key={item.id} {...item} />
+        ))}
+      </ScrollView>
       <ChatInputRow
-        value={inputMessage}
-        onChangeText={setInputMessage}
-        onSend={handleSend}
-        placeholder="Query the deterministic auditor..."
+        value={message}
+        onChangeText={setMessage}
+        placeholder="Add an audit note…"
+        onSend={() => {
+          if (!message.trim()) return;
+          addNote(grantId, message.trim(), 'user');
+          setMessage('');
+        }}
       />
     </ScreenContainer>
   );
 }
-
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-  },
-  scanCard: {
-    marginHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 14,
-  },
-  cardTitle: {
-    fontWeight: '700',
-    marginBottom: 10,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  gridItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  gaugeBox: {
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-  },
-  chatList: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
+  content: { padding: SPACING.lg, gap: SPACING.lg },
+  heading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.sm },
+  card: { padding: SPACING.md, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACING.md },
 });
