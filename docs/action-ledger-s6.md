@@ -27,6 +27,27 @@ uses the installed SDK source; web token persistence is memory-only.
 | 9     | payload validation, client timeout classification, auth profile ownership, mock award absence | 0/25/0; 129 cases; beac893                                                                        |
 | 10    | contract verifier/package, production mutation options/poll helper, response grant identity   | 0/25/0; 181 cases; expanded gate passed after one TypeScript annotation correction                |
 
+Batch 11: AppButton, StatusBadge, ConfidenceGaugeReadout, gallery and this ledger;
+0 FAIL / 25 WARN / 0 SKIPPED; 181 cases; commit 9f7de5e. Batch 10's corrected
+five-file commit is 77b0cfc.
+
+Commit integrity correction: the agent began batch 11 edits while batch 10's hook
+was still running. The hook absorbed four subsequent paths into an unpublished
+nine-file commit. Before any push, that local commit was split without discarding
+source: 77b0cfc contains the five batch-10 paths; 9f7de5e contains the five batch-11
+paths. Both hook runs completed normally. No shared history was rewritten. Subsequent
+commands wait for commit completion before edits. This was an agent sequencing error,
+not an owner-approved exception to the five-file ceiling.
+
+End-of-implementation evidence: pnpm gate passed 181 cases (14 scoring, 9 drafts,
+6 theme, 20 composer, 24 preflight, 36 tokens, 20 existing recovery, 52 contract).
+FAIL 0 / WARN 25 / INFO 4 / SKIPPED 0. One Android production export also passed:
+Hermes entry-4aa7511828e581b7a3bc37fccb2fffaf.hbc, 5.4 MB. No additional browser matrix,
+web export, standalone doctor, prior S4 comparison or CI polling was run. adb is not
+available on PATH; no device rendering or native secure-store interaction is claimed.
+The final documentation batch updates this ledger, parity and the S6 closure card,
+then receives its required pnpm gate. That final result is reported in the handoff.
+
 All commands above were pnpm gate. Existing hooks ran on every commit. No per-batch
 push, extra standalone verifier, CI polling or new browser matrix was performed.
 The existing recovery cases remained mandatory and unchanged. Two atomic patch
