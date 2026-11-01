@@ -385,3 +385,32 @@ is preserved; stable theme selection predicts WARN 63 -> 62, one STORE-WHOLE fin
 The completed app verifier is appended to the existing gate; the preliminary harness
 remains separately runnable. No native result or stage closure is inferred from that gate.
 Local main `25293bd` remains preserved; rollback is a corrective feature PR from the anchor.
+
+## PR #37 merge verification and remaining chrome/modal work — 2026-11-01 [A/E]
+
+Owner: "PR merged", continuing "finish S5 and close remaining debt".
+PR #37 is verified merged as `926b2a32fcba76cb261cd530fb012c9e9c602d38`.
+Merged tree equals tested `0a6f605` exactly: `257975425b7f33f5834ac6686677a140a1feb454`.
+Independent run 41336263279 passed Chromium provisioning, both preliminary harness
+cases and the full 128-case gate including 20 real-app recovery cases.
+Measured preflight is FAIL 0 / WARN 62 / INFO 3 locally (2 in CI) / SKIPPED 0.
+The warning delta is exactly ScreenContainer STORE-WHOLE; the ceiling remains 63.
+F1-C's source inventory and gate/hook byte comparison passed. The designated S4
+comparison passed at 0/62/2/0 without export loss/regression.
+
+WP-F.1's implementation delivery is complete and owner-merged; named native acceptance
+remains S5 exit debt rather than a fabricated device PASS. The owner supplied Android
+bundle completion logs and two web touch-end warnings, not individual native checklist
+outcomes or device/version identity. Those details are still owed. Four recovery scenarios
+were reproduced with actual browser touch events at 390px: all recovered and exactly five
+known fault diagnostics occurred, with no touch-history warning. The owner's exact warning
+trigger is still requested; no console suppression or dependency change was introduced.
+
+Prepared remaining-work branch: codex/s5-chrome-modal-20261101 from fetched `926b2a3`.
+F2-A keeps the five-file allocation: AppHeader, TopTabNavigation, copy.ts, tab layout and
+gallery. One typed descriptor source serves both native bottom tabs and wide top tabs;
+Router owns selected/back state. Reference labels are copied verbatim; forward remains
+disposed by the adopted platform ruling. Modal copy keys preserve existing content for
+F2-B, adding the reference Close accessibility label. Prediction: WARN 62 -> 60 by filling
+AppHeader and TopTabNavigation only. Rollback is a corrective feature PR from the anchor.
+S5 and AD-61 remain OPEN; only the owner merges; local main `25293bd` stays preserved.
