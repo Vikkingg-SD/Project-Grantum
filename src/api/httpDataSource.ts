@@ -1,6 +1,6 @@
 import { apiClientOptions, ApiError, createApiClient } from './client';
 import { ENDPOINTS } from './endpoint';
-import { useAuthStore } from '@/store/useAuthStore';
+import { getSessionToken } from '@/store/useAuthStore';
 import type { DataSource, SectionMutation } from '@/types/api';
 
 function wireMutation(input: SectionMutation): SectionMutation {
@@ -46,5 +46,5 @@ export function createHttpDataSource(request: ReturnType<typeof createApiClient>
 }
 
 export const httpDataSource = createHttpDataSource(
-  createApiClient({ ...apiClientOptions(), getToken: () => useAuthStore.getState().token })
+  createApiClient({ ...apiClientOptions(), getToken: getSessionToken })
 );
