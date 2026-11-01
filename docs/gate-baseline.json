@@ -1,5 +1,5 @@
 {
-  "warnBaseline": 63,
-  "setAtStage": "S4-closure",
-  "note": "Re-declared at S4 closure under RUL-AG-09: 63 measured after PR #27 (entry 68; previous ceiling 79). Full gate and explicit owner-designated V7 RN export-regression check passed. Lower at each closure; raise only by ruling."
+  "warnBaseline": 58,
+  "setAtStage": "S5-F2-candidate",
+  "note": "Owner approved revised F2-C and lower ceiling on 2026-11-02. Measured 58 after F2-B (previous ceiling 63): ScreenContainer and grant modal STORE-WHOLE removed, plus three S5 planned files supplied. Full gate and designated S4 previous-pack comparison passed. This ratchet does not declare S5 closed; native acceptance and owner merge remain required. Raise only by ruling."
 }
