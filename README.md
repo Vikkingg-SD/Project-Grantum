@@ -1,4 +1,4 @@
-# Project-Grantum (grantum-rn)
+# Project-Grantum (grantum-r-n)
 
 Grantum is an autonomous grant-discovery, drafting, and deterministic compliance-audit engine, ported from the frozen Next.js pitch instrument (`grantum-local`, V7.x) to a universal React Native client.
 

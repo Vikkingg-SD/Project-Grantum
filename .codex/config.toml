@@ -5,7 +5,7 @@ approval_policy = "on-request"
 sandbox_mode = "read-only"
 
 [mcp_servers.grantum_repomix]
-command = 'C:\Users\snees\AppData\Roaming\npm\node_modules\pnpm\pnpm.exe'
+command = 'C:\Users\Vikking\AppData\Local\pnpm\global\v11\82859147b4fec5e788f016e5ca7f0a52c473a92cd2037e4c8bdc7029c86b60f3\node_modules\pnpm\pnpm.exe'
 args = ["dlx", "repomix@1.18.1", "--mcp", "--sandbox", 'C:\grantum-r-n']
 cwd = 'C:\grantum-r-n'
 enabled = true
