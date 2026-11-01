@@ -271,6 +271,14 @@ export default function DevGalleryScreen() {
         Organisms
       </AppText>
       <PipelineFunnelBar stages={GALLERY_FUNNEL} />
+      <AppButton
+        label="Notebook (.ipynb) — long scaled text remains readable"
+        onPress={() => setLastAction('long-button')}
+      />
+      <StatusBadge
+        label="A long verification status remains inside the available width"
+        variant="pending"
+      />
       <MobileTabNavigation
         selectedName="index"
         onSelect={(item) => setLastAction(`mobile-tab-${item.name}`)}
