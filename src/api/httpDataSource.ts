@@ -69,9 +69,22 @@ const scan = shape({
 
 function validPayload(path: string, value: unknown): boolean {
   const route = path.split('?')[0];
+  const proposalId = /^\/api\/v1\/proposals\/([^/]+)\//.exec(route)?.[1];
+  if (
+    proposalId &&
+    typeof value === 'object' &&
+    value !== null &&
+    'grantId' in value &&
+    value.grantId !== decodeURIComponent(proposalId)
+  )
+    return false;
   if (route === '/api/v1/grants') return array(shape(grant))(value);
   if (/^\/api\/v1\/grants\/[^/]+$/.test(route))
-    return shape({ ...grant, requirements: array(text) })(value);
+    return shape({
+      ...grant,
+      id: (item) => item === decodeURIComponent(route.split('/')[4]),
+      requirements: array(text),
+    })(value);
   if (route.endsWith('/draft'))
     return shape({
       id: identifier,

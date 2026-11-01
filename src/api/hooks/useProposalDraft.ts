@@ -1,6 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  type QueryClient,
+  type UseMutationOptions,
+} from '@tanstack/react-query';
 import { getDataSource } from '../dataSource';
-import { ProposalDraft, SectionMutation } from '@/types/api';
+import type { ProposalDraft, SectionMutation, SectionState, DataSource } from '@/types/api';
 import { queryKeys } from '../queryKeys';
 import { applySectionMutation } from '@/utils/scoring';
 
@@ -17,13 +23,25 @@ export function useProposalDraft(grantId: string) {
 
 export function useMutateProposalSections(grantId: string) {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useMutation(sectionMutationOptions(grantId, queryClient));
+}
+
+interface OptimisticContext {
+  previous: ProposalDraft;
+  optimistic: ProposalDraft | undefined;
+}
+
+export function sectionMutationOptions(
+  grantId: string,
+  queryClient: QueryClient,
+  source: DataSource = getDataSource()
+): UseMutationOptions<SectionState, Error, SectionMutation, OptimisticContext | undefined> {
+  return {
     mutationKey: queryKeys.sections(grantId),
     scope: { id: `sections:${grantId}` },
     mutationFn: async (payload: SectionMutation) => {
       if (!grantId) throw new Error('Select a grant before editing sections.');
-      const ds = getDataSource();
-      return ds.mutateSections(grantId, payload);
+      return source.mutateSections(grantId, payload);
     },
     onMutate: async (payload: SectionMutation) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.draft(grantId) });
@@ -32,7 +50,7 @@ export function useMutateProposalSections(grantId: string) {
         return undefined;
       }
       const optimistic = applySectionMutation(previous, payload);
-      const applied = queryClient.setQueryData(queryKeys.draft(grantId), optimistic);
+      const applied = queryClient.setQueryData<ProposalDraft>(queryKeys.draft(grantId), optimistic);
       return { previous, optimistic: applied };
     },
     onError: (_error, _payload, context) => {
@@ -60,5 +78,5 @@ export function useMutateProposalSections(grantId: string) {
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard }),
       ]);
     },
-  });
+  };
 }
