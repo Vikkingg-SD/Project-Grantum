@@ -10,10 +10,13 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { useAppReady } from '@/hooks/useAppReady';
 import { PALETTE } from '@/config/theme';
 import { LAYOUT } from '@/config/layout';
+import { useRecoveryProbe } from '@/components/templates/AppErrorBoundary';
+export { AppErrorBoundary as ErrorBoundary } from '@/components/templates/AppErrorBoundary';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
+  useRecoveryProbe('root');
   const isReady = useAppReady();
   const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];

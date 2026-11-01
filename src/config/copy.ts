@@ -30,3 +30,13 @@ export const CHAT_COPY = {
   now: 'now',
   failed: 'Message failed to send.',
 } as const;
+
+// Pinned V7.2 app/error.tsx and app-root ScreenErrorBoundary, copied verbatim.
+export const ERROR_COPY = {
+  title: 'Instrument fault',
+  routeMessage: 'Something interrupted this view. Try again, or reload to restore the instrument.',
+  screenMessage: 'A rendering error occurred in this view. Reload to restore the instrument.',
+  retry: 'Try again',
+  reload: 'Reload',
+  screenReload: 'Reload Grantum',
+} as const;

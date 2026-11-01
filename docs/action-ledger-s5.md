@@ -343,3 +343,21 @@ Next prepared feature branch: codex/s5-recovery-boundary-20261101 from fetched `
 This merge-evidence prelude may travel with the subsequent recovery work; it does not
 require a separate documentation merge before that work. Local main `25293bd` remains
 preserved. WP-F.1 and S5 remain OPEN; actual app recovery/native acceptance is still owed.
+
+## PR #35 merge verification — 2026-11-01 [A]
+
+Owner: "PR 35 closed. Are we done with S5? If yes create a handoff. if not continue".
+PR #35 is verified merged as `b14c901ccdc4237b73c48a7b555c632594d58cfc`;
+its tree matches tested `022dad1` exactly (`dc1f04382633f377a66727702865256d9c42bb0a`).
+Independent PR Strict Gate run 41309232063 succeeded. The only PR file was this ledger.
+Fetched main still has neither browser installation nor harness execution in gate.yml.
+Browser CI remains NOT RUN, independently of the two passing owner-local tests.
+
+S5 is not complete. A concrete F1-B R2 decision document was prepared outside the checkout
+with exact reference copy, five-file source scope, symbols/consumers, verification and zero
+warning-delta prediction. The inherited draft explicitly requires exact R2/copy approval
+before product edits. A narrow two-step CI transport exception is offered for explicit owner
+decision; no .github change is inferred or applied. This prelude travels with the ensuing
+product work rather than requiring another documentation-only PR/merge.
+Prepared branch: codex/s5-recovery-implementation-20261101 from fetched `b14c901`.
+Local main `25293bd` and prior feature branches are preserved. No S5 closure is claimed.

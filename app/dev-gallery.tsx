@@ -31,6 +31,9 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { RADIUS, SPACING } from '@/config/theme';
 import type { Grant } from '@/types/grant';
 import type { ChatEntry } from '@/types/chat';
+import { armRecoveryFault, useRecoveryProbe } from '@/components/templates/AppErrorBoundary';
+import { router } from 'expo-router';
+export { AppScreenErrorBoundary as ErrorBoundary } from '@/components/templates/AppErrorBoundary';
 
 const GALLERY_GRANTS: Grant[] = [
   {
@@ -67,6 +70,7 @@ const GALLERY_FUNNEL = [
 const REGION_OPTIONS = ['Global', 'East Europe', 'CIS'];
 
 export default function DevGalleryScreen() {
+  useRecoveryProbe('screen');
   const theme = useTheme();
   const breakpoint = useBreakpoint();
   const reduceMotion = useReduceMotion();
@@ -103,6 +107,20 @@ export default function DevGalleryScreen() {
   return (
     <ScreenContainer>
       <AppText variant="display">Dev Gallery</AppText>
+      {__DEV__ && (
+        <View style={styles.row}>
+          <AppButton label="Test root recovery" onPress={() => armRecoveryFault('root')} />
+          <AppButton
+            label="Test tab recovery"
+            onPress={() => {
+              armRecoveryFault('tab');
+              router.push('/(tabs)');
+            }}
+          />
+          <AppButton label="Test screen recovery" onPress={() => armRecoveryFault('screen')} />
+          <AppButton label="Test repeated failure" onPress={() => armRecoveryFault('screen', 2)} />
+        </View>
+      )}
       <AppText variant="caption" color="muted" style={styles.meta}>
         {`breakpoint ${breakpoint} · reduceMotion ${String(reduceMotion)} · dev-only route`}
       </AppText>

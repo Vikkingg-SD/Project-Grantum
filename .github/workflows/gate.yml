@@ -24,5 +24,9 @@ jobs:
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Install recovery browser
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Verify recovery harness
+        run: pnpm verify:recovery:harness
       - name: Run strict gate
         run: pnpm gate
