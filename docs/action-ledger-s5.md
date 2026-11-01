@@ -385,3 +385,77 @@ is preserved; stable theme selection predicts WARN 63 -> 62, one STORE-WHOLE fin
 The completed app verifier is appended to the existing gate; the preliminary harness
 remains separately runnable. No native result or stage closure is inferred from that gate.
 Local main `25293bd` remains preserved; rollback is a corrective feature PR from the anchor.
+
+## PR #37 merge verification and remaining chrome/modal work — 2026-11-01 [A/E]
+
+Owner: "PR merged", continuing "finish S5 and close remaining debt".
+PR #37 is verified merged as `926b2a32fcba76cb261cd530fb012c9e9c602d38`.
+Merged tree equals tested `0a6f605` exactly: `257975425b7f33f5834ac6686677a140a1feb454`.
+Independent run 41336263279 passed Chromium provisioning, both preliminary harness
+cases and the full 128-case gate including 20 real-app recovery cases.
+Measured preflight is FAIL 0 / WARN 62 / INFO 3 locally (2 in CI) / SKIPPED 0.
+The warning delta is exactly ScreenContainer STORE-WHOLE; the ceiling remains 63.
+F1-C's source inventory and gate/hook byte comparison passed. The designated S4
+comparison passed at 0/62/2/0 without export loss/regression.
+
+WP-F.1's implementation delivery is complete and owner-merged; named native acceptance
+remains S5 exit debt rather than a fabricated device PASS. The owner supplied Android
+bundle completion logs and two web touch-end warnings, not individual native checklist
+outcomes or device/version identity. Those details are still owed. Four recovery scenarios
+were reproduced with actual browser touch events at 390px: all recovered and exactly five
+known fault diagnostics occurred, with no touch-history warning. The owner's exact warning
+trigger is still requested; no console suppression or dependency change was introduced.
+
+Prepared remaining-work branch: codex/s5-chrome-modal-20261101 from fetched `926b2a3`.
+F2-A keeps the five-file allocation: AppHeader, TopTabNavigation, copy.ts, tab layout and
+gallery. One typed descriptor source serves both native bottom tabs and wide top tabs;
+Router owns selected/back state. Reference labels are copied verbatim; forward remains
+disposed by the adopted platform ruling. Modal copy keys preserve existing content for
+F2-B, adding the reference Close accessibility label. Prediction: WARN 62 -> 60 by filling
+AppHeader and TopTabNavigation only. Rollback is a corrective feature PR from the anchor.
+S5 and AD-61 remain OPEN; only the owner merges; local main `25293bd` stays preserved.
+
+## F2 implementation candidate and revised closure allocation — 2026-11-02 [A/E]
+
+Owner decisions: "Approve revised F2 allocation" and "Approve revised F2-C and lower ceiling".
+The first substitutes verify-recovery.ts for A's gallery slot; Gallery moves to B's existing
+slot. The wide keyboard navigation comes before the fallback, so the fixture now walks actual
+Tab order within a control-derived bound, still requiring Try again focus and Enter recovery.
+No recovery case, privacy assertion or exact diagnostic check was removed. The diagnosed
+old-order failure and focused Dashboard tab were captured before the approved consumer edit.
+
+A committed/pushed e10fc4f touches exactly AppHeader.tsx, TopTabNavigation.tsx, copy.ts,
+tab layout and verify-recovery.ts. Full gate passed 128 cases at 0/60/3/0; only the two
+predicted PLAN-MISSING warnings disappeared. Six both-theme 320/768/1280 rendered profiles
+proved all six routes, real Back, selected state, target sizes and no horizontal root overflow.
+An actual DOM check caught absent custom aria-selected despite accessibilityState; explicit
+supported ARIA props fixed it before the final green gate. Existing mobile labels wrap at 320px
+instead of clipping vertically. The source inventory and hook/gate byte comparison passed.
+
+B committed/pushed 4d4010389403b334401ecb75e05b9dccfda3e3a5 touches exactly ModalSheetLayout.tsx,
+GrantDetailModalSheet.tsx, dashboard, gallery and templates/index.ts. Header export is included
+in that existing barrel slot under the second owner decision. Full final gate passed all 128
+cases at 0/58/3/0. Delta: shell PLAN-MISSING and organism STORE-WHOLE only; unchanged warning
+line offsets were normalized in the external scope proof, not the checker. No unexpected file
+or formatter/hook byte changes occurred. No lockfile/dependency/hook/CI edit was made in F2.
+
+Sixteen production profiles (320/375/390/640/767/768/1024/1280, both themes) proved modal
+geometry, Escape/Close/backdrop, focus trap/return and real Start Draft navigation. Six gallery
+profiles proved wrapped long titles, reachable long-content actions, disabled preview semantics
+and first touch action. Recorded Event Timing entries stayed below 100 ms. Dev cold-start probes
+diagnosed pointerEvents prop deprecation; its supported style form removed the warning without
+suppression. Fresh probes had no unrelated console/page errors or touch-history warning.
+
+Designated S4 pack hash was reverified; strict previous-pack comparison at B passed 0/58/2/0
+without export loss/regression. F2-C now has organisms/index.ts, parity-register.md,
+s5-closure.md, this ledger and gate-baseline.json. It adds no product behavior, predicts zero
+finding delta and ratchets the approved ceiling 63 -> 58. Final C gate, previous-pack proof,
+independent PR CI and candidate pack are recorded in final review evidence; no future PASS is
+inferred by this entry. There have been no red full F2 gates.
+
+Owner clarified startup warnings occurred before any app click and identified "SDK 57,
+Samsung A55". Exact OS/app version and native checklist outcomes are still owed. Four earlier
+390px touch recovery controls passed without reproducing the warning; F2 probes likewise did
+not reproduce it. Cause remains unestablished, not fixed by assertion. The final product tree
+is ready for the numbered native checklist; all unobserved items remain NOT RUN. S5 remains
+OPEN pending real acceptance and owner-only merge; no S6/S7/S8 implementation begins here.

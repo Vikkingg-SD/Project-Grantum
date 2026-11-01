@@ -2,6 +2,30 @@
 
 ## S5 recovery/container integration (stage still OPEN)
 
+### F2 candidate evidence — 2026-11-02
+
+The S4 table below remains a dated baseline. Current S5 dispositions are:
+
+| Row  | Current S5 disposition                    | Evidence / retained boundary                                                                                                                                                                                                                                                                                                                                  |
+| ---- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P-03 | IMPLEMENTED, native acceptance pending    | Shared AppHeader on tab routes, real Router back/canGoBack; forward disposed by adopted platform ruling. No parallel history or fabricated grant context.                                                                                                                                                                                                     |
+| P-05 | IMPLEMENTED platform translation          | One six-item descriptor source drives native bottom tabs and wide top navigation at md. All six routes, selected state and locked-but-navigable Post-award exercised; disabled preview tested separately. S7 screen content remains later.                                                                                                                    |
+| P-08 | IMPLEMENTED, native acceptance pending    | Root/tab/gallery/inherited-screen failures and retry are rendered in both themes; the mandatory gate includes 20 real-app cases. Release privacy and reload also exercised.                                                                                                                                                                                   |
+| P-16 | REMODELED shell; copy DRIFT remains S7-H1 | ModalSheetLayout owns visibility, reduced motion, safe areas, keyboard and dismissal. GrantDetailModalSheet owns typed content/actions only. Both Dashboard and Gallery compose them; title wraps, long content scrolls, actual grant reaches Start Draft. Existing Funding Amount/Deadline/Match Score/Start Draft copy preserved, Close reference-verbatim. |
+| P-36 | PARTIAL system coverage                   | Web modal focus containment, focus return and Escape exercised using RN Web's installed Modal mechanism; custom selected/disabled ARIA states measured. Native accessibility and the global S9 audit remain owed.                                                                                                                                             |
+
+F2-A full gate measured 0/60/3/0; F2-B measured 0/58/3/0, each with 128 cases.
+Production chrome review covered 320/768/1280 in both themes and actual route/back actions.
+Modal review covered 320/375/390/640/767/768/1024/1280 in both themes; six additional
+dev-gallery cases covered long titles/content, disabled navigation and first-tap actions.
+Cold-start and action probes recorded no touch-history warning. The owner's earlier warning
+occurred before any app click; its cause is not established and no suppression was added.
+
+The designated S4 pack comparison at F2-B passed 0/58/2/0 without export loss/regression.
+See [the S5 evidence card](s5-closure.md) for exact anchors, pending native checks and closure
+conditions. This supplements the dated integration note below; it does not certify all S4
+components' viewport/prop branches or complete spacing, shadow, contrast or screen-copy parity.
+
 Root/tab/gallery recovery and inherited screen isolation are implemented using Router 57
 ErrorBoundary exports and screenErrorBoundary, with verbatim reference copy. Manual F1-B
 rendered proof covered both themes and 320/768/1280; PR #36's browser provisioning and

@@ -3,6 +3,9 @@ import { View, StyleSheet } from 'react-native';
 import { Star } from 'lucide-react-native';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
+import { ModalSheetLayout } from '@/components/templates/ModalSheetLayout';
+import { AppHeader } from '@/components/templates/AppHeader';
+import { TopTabNavigation, NAVIGATION_ITEMS } from '@/components/organisms/TopTabNavigation';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppInput } from '@/components/atoms/AppInput';
@@ -225,7 +228,14 @@ export default function DevGalleryScreen() {
             'Gallery stress fixture: a long application title that must wrap without hiding either action',
           region: 'Gallery stress fixture: a long region and category description that must wrap',
         }}
-        onSelect={() => setLastAction('stress-select')}
+        onSelect={() =>
+          setSelectedGrant({
+            ...GALLERY_GRANTS[1],
+            title:
+              'Gallery stress fixture: a long application title that must wrap without hiding either action',
+            summary: `${GALLERY_GRANTS[1].summary} `.repeat(40),
+          })
+        }
         onApply={() => setLastAction('stress-apply')}
       />
       <FilterFieldGroup
@@ -257,6 +267,13 @@ export default function DevGalleryScreen() {
         Organisms
       </AppText>
       <PipelineFunnelBar stages={GALLERY_FUNNEL} />
+      <TopTabNavigation
+        items={NAVIGATION_ITEMS.map((item) =>
+          item.name === 'export' ? { ...item, disabled: true } : item
+        )}
+        selectedName="index"
+        onSelect={(item) => router.navigate(item.href)}
+      />
       <GrantDiscoveryGrid
         grants={GALLERY_GRANTS}
         onSelect={setSelectedGrant}
@@ -271,18 +288,23 @@ export default function DevGalleryScreen() {
         ctaLabel="Acknowledge"
         onCtaPress={() => setLastAction('empty-cta')}
       />
+      <AppHeader canGoBack={router.canGoBack()} onBack={() => router.back()} />
       <AppText variant="caption" color="muted" style={styles.meta}>
         {`last action: ${lastAction}`}
       </AppText>
-      <GrantDetailModalSheet
-        grant={selectedGrant}
+      <ModalSheetLayout
         visible={Boolean(selectedGrant)}
         onClose={() => setSelectedGrant(null)}
-        onApply={(g) => {
-          setLastAction(`sheet-apply-${g.id}`);
-          setSelectedGrant(null);
-        }}
-      />
+        accessibilityLabel={selectedGrant?.title ?? ''}
+      >
+        <GrantDetailModalSheet
+          grant={selectedGrant}
+          onApply={(g) => {
+            setLastAction(`sheet-apply-${g.id}`);
+            setSelectedGrant(null);
+          }}
+        />
+      </ModalSheetLayout>
     </ScreenContainer>
   );
 }
