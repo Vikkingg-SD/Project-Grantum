@@ -321,3 +321,25 @@ the separate harness invocation to the feature branch workflow through the Web U
 agent will supply the exact steps with the reviewable PR. Harness CI is NOT RUN until then.
 F1-A is APPLIED pending independent checks/owner review; WP-F.1 and S5 remain OPEN.
 This is not a claim of root/tab/screen recovery, native physics or product acceptance.
+
+## PR #34 merge verification and CI evidence gap — 2026-11-01 [A/E]
+
+Owner supplied local terminal logs: Chromium installation returned successfully and
+verify:recovery:harness passed both tests with one worker (867ms), then "PR merged".
+PR #34 is verified merged as `cba7fb348c819db38dcc20c2cfb44c1c40786d95`.
+Merged tree equals tested head `48ff349` exactly:
+`2ef040667010353dfb2f302623c37a08e8e96724`.
+Independent PR Strict Gate run 41306868200 succeeded at that head.
+
+The supplied commands are local evidence. Fetched merged-main gate.yml still contains
+neither Chromium installation nor verify:recovery:harness execution. PR #34's file list
+also contains no workflow change. Browser harness CI therefore remains NOT RUN; the
+local logs and owner merge do not discharge this separate evidence requirement.
+The standing owner-only Web UI restriction on .github remains in force. The required
+two workflow steps were supplied concretely in PR #34; their application is still owed.
+No exception, silent skip or CI execution is inferred from the merge.
+
+Next prepared feature branch: codex/s5-recovery-boundary-20261101 from fetched `cba7fb3`.
+This merge-evidence prelude may travel with the subsequent recovery work; it does not
+require a separate documentation merge before that work. Local main `25293bd` remains
+preserved. WP-F.1 and S5 remain OPEN; actual app recovery/native acceptance is still owed.
