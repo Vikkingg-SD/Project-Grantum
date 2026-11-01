@@ -158,3 +158,40 @@ It must preserve current severities, baseline 63 and all existing suites, add th
 analysis fixtures and explicit lint coverage, and explain any reachability finding delta.
 The approved Node verifier follows under revised T; token alignment remains its separate K PR.
 No S5 product implementation or stage closure follows from this merge alone.
+
+## Entry control batches C and approved T — 2026-11-01 [A]
+
+Source anchor: merged recovery `7bdfb22`; branch `codex/s5-checker-20261101`.
+The merge/decision append above is a separate documentation batch (`a261dc2`).
+
+Batch C (`0b8e725`) changes exactly its five specified files: module-exports.mjs,
+verify-preflight.mjs, grantum-preflight.mjs, package.json and gate-manifest.json.
+Current and previous-pack analysis now share the installed TypeScript AST/compiler graph.
+Re-export edges affect reachability; named/default/type/namespace exports, identity diamonds,
+cycles and true ambiguity are fixture-covered. MODULE-ANALYSIS fails closed; prior missing-file,
+empty-target, missing-name and missing-default severities remain intact.
+
+All 24 named fixtures passed first behavioral execution. Targeted lint integration then exposed
+the legacy config's mjs parser mismatch, programmatic plugin resolution, and missing explicit
+Node globals. These were diagnosed and corrected within the source batch. No lint rule or warning
+allowance was changed. The verifier applies the existing installed parser/rules and asserts both
+used-value cleanliness and genuine-unused detection. The full C gate passed first full-gate run:
+FAIL 0 / WARN 63 / INFO 3 / SKIPPED 0; 48 existing plus 24 preflight cases = 72.
+Warning findings match the prior baseline by code/path. The designated S4 pack comparison also
+passed: FAIL 0 / WARN 63 / INFO 2 / SKIPPED 0, no EXPORT-REGRESSION or EXPORT-LOST.
+
+The next source batch in this same entry work package is the approved five-file T revision:
+s5-control-spec.md, verify-mcp.mjs, verify-mcp.test.mjs, mcp-verification.md and this ledger.
+The Node script is import-safe, defaults to static validation and exposes explicit live mode.
+Twenty fixture groups passed with zero skips, covering strict config mutations, false-negative
+probe evidence, pagination/annotations, protocol fragmentation/timeouts and normal/forced cleanup.
+The first targeted test's missing Node-global imports were corrected without changing lint rules.
+Static validation and the real one-process smoke passed; all five tools succeeded and all three
+confinement probes produced explicit boundary rejections. The real process shut down gracefully.
+Source/config/script hashes and output ID are retained in the session handoff evidence.
+
+Native in-chat catalog attachment remains NOT ATTACHED. These manual MCP checks are not added
+to the required gate by T and are not claimed as GitHub CI executions. Application dependencies,
+lockfile, hooks, linter config, warning baseline, exemptions and .github remain unchanged.
+Independent CI and owner squash-merge evidence for these batches remain pending until the PR.
+S5 is OPEN; K token alignment is still owed in its own PR, followed by approved product batches.

@@ -22,33 +22,48 @@ After environment restoration, establish the actual baseline before applying che
 For each batch compare findings by code/path, not merely totals. Any unexpected delta requires an
 explanation and corrected specification; do not move the baseline to make the prediction true.
 
-## T: config and MCP verification — five files
+## T: config and MCP verification — revised five-file Node batch
 
-| File                       | Action                                  | Behavior                                                                                             |
-| -------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `.codex/config.toml`       | Preserve/finish earlier authorized edit | Actual root and pnpm path only; required server and exact tool restriction unchanged.                |
-| `scripts/verify-mcp.py`    | Add                                     | Standard-library static config validation, negative self-tests, explicit persistent live-smoke mode. |
-| `docs/mcp-verification.md` | Add                                     | Python requirements, commands, evidence states and quality coverage.                                 |
-| `AGENTS.md`                | Modify                                  | Correct stale root spelling to the authorized checkout; no other boundary changes.                   |
-| `docs/agent-governance.md` | Modify                                  | Same scope correction and manual verification procedure.                                             |
+Owner decision on 2026-11-01: "Approve the Node verifier". This replaces only the earlier
+Python/tomllib implementation because Python is absent. PR #31 already completed the launcher
+and operational-root corrections; those configuration/governance files are not edited again here.
 
-No app dependency is added. Static mode must parse TOML with `tomllib`, derive the root from the
-project, check executable and cwd existence, exact pinned ordered args and sandbox root, enabled/
-required flags, the exact five unique tools, read-only/on-request defaults, timeouts and PATHEXT.
-It must reject copied roots, an absent command, extra tools/servers, a changed version, a broadened
-scope or a weakened default. Do not print environment values or file bodies.
+| File                          | Action  | Behavior                                                                      |
+| ----------------------------- | ------- | ----------------------------------------------------------------------------- |
+| `docs/s5-control-spec.md`     | Amend T | Record this approved substitution; preserve C/K/CI requirements.              |
+| `scripts/verify-mcp.mjs`      | Add     | Import-safe standard-library validator and explicit persistent live smoke.    |
+| `scripts/verify-mcp.test.mjs` | Add     | Twenty named fixture groups, injected protocol/process seams and strict lint. |
+| `docs/mcp-verification.md`    | Add     | Commands, runtime, script hash, exact proof and native-catalog limits.        |
+| `docs/action-ledger-s5.md`    | Append  | Actual approval, source anchor, scope inventory and measured outcomes.        |
 
-Live mode is opt-in and cannot fetch until the owner lifts the no-install restriction. Use one
-persistent process: initialize, initialized notification, paginated tool discovery, exact names and
-read-only annotations, successful relative file/directory calls and a narrowly scoped pack/read/grep,
-then confinement probes and deterministic shutdown. Only a diagnostic-specific sandbox/path rejection
-passes the negative probe; ENOENT, generic isError, timeout or protocol failure is not confinement.
-Positive calls must succeed in that same process. Fixtures must catch this false-positive class.
-No raw pack payloads in stdout. Report output IDs/hashes and bounded redacted diagnostics.
+No app dependency, package script or gate modification is included. The parser accepts only the
+current template's tables, unique keys, quoted scalar strings, booleans, integer timeouts and string
+arrays; unknown, duplicate or unparsed syntax fails. This is not a general TOML implementation.
+Derive the root from the script location. Validate the absolute pnpm executable and cwd existence,
+exact pinned ordered arguments and sandbox root, enabled/required flags, five unique tools,
+read-only/on-request defaults, tool approval mode, 60/120-second timeouts and PATHEXT.
 
-Python syntax/static checks, self-tests and the live test are explicit coverage; ESLint does not
-cover Python. A standalone PASS does not prove native catalog attachment. Record both independently.
-Prediction: no preflight warning change. Activation stays APPLIED-UNVERIFIED until the live proof.
+Default mode is static with no process/network side effects or file writes. Explicit `--live` runs
+the configured launcher/arguments; pnpm dlx may populate its pinned-tool cache. It must not change
+application dependencies or the lockfile. Reject unknown/conflicting flags. Import starts no server.
+
+Live mode uses one process: initialize, initialized notification, paginated discovery with exact
+read-only tool assertions, successful relative file/directory calls, two-file pack/read/grep, then
+traversal/absolute-drive/home confinement probes and confirmed shutdown. Only a specific path-boundary
+diagnostic passes a negative probe; ENOENT, generic failure, timeout, protocol error and broken positive
+calls cannot pass. Shutdown must also occur on failure, with bounded owned-process cleanup if needed.
+Print metadata, output ID, source/config/script hashes and bounded diagnostics; no raw packs or env values.
+
+The shared production/test symbols are parseProjectConfig, validateProjectConfig, runLiveSmoke and
+classifyConfinementResult; the production stdio client is also tested through injected processes.
+Use relative mjs imports. Run `node --test scripts/verify-mcp.test.mjs` (including zero-warning ESLint
+on both new modules), static CLI, one explicit live smoke and the unchanged gate. The fixture groups
+cover configuration mutations, misleading negative results, paginated/invalid discovery, positive
+failure, protocol fragmentation/timeout/malformed output and normal/forced cleanup.
+
+A standalone PASS does not prove native catalog attachment. The live runner inherits its host's
+environment; it validates the config's PATHEXT contract without reading or printing environment values.
+Prediction: no preflight warning change. Record static, unit, protocol and native states separately.
 
 ## C: export analysis and verifier — five files
 
