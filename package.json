@@ -19,7 +19,8 @@
     "prepare": "husky",
     "verify:composer": "tsx scripts/verify-composer.ts",
     "verify:preflight": "node scripts/verify-preflight.mjs",
-    "verify:tokens": "tsx scripts/verify-tokens.ts"
+    "verify:tokens": "tsx scripts/verify-tokens.ts",
+    "verify:recovery:harness": "playwright test --config scripts/recovery.playwright.config.ts"
   },
   "config": {
     "grantum": {
@@ -52,6 +53,7 @@
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
+    "@playwright/test": "1.64.1",
     "@types/react": "~19.2.2",
     "eslint": "8.57.0",
     "eslint-config-expo": "^57.0.2",
