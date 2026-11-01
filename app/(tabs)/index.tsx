@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
+import { ModalSheetLayout } from '@/components/templates/ModalSheetLayout';
 import { AppText } from '@/components/atoms/AppText';
 import { HeroContinueCard } from '@/components/molecules/HeroContinueCard';
 import { PipelineFunnelBar } from '@/components/organisms/PipelineFunnelBar';
@@ -69,12 +70,13 @@ export default function DashboardScreen() {
         />
       </View>
 
-      <GrantDetailModalSheet
-        grant={selectedGrant}
+      <ModalSheetLayout
         visible={Boolean(selectedGrant)}
         onClose={() => setSelectedGrant(null)}
-        onApply={handleApply}
-      />
+        accessibilityLabel={selectedGrant?.title ?? ''}
+      >
+        <GrantDetailModalSheet grant={selectedGrant} onApply={handleApply} />
+      </ModalSheetLayout>
     </ScreenContainer>
   );
 }
