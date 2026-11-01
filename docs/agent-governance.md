@@ -2,7 +2,7 @@
 
 ## Owner decisions for this setup
 
-- Scope: `C:\grantum-rn` and documents the owner explicitly attaches or names.
+- Scope: `C:\grantum-r-n` and documents the owner explicitly attaches or names.
 - The owner supplies the constitution, full workplan, and ruling/decision ledger as attachments.
   Do not discover them by searching other folders or connecting a document account.
 - Git commands and feature-branch work are allowed. Only the owner may squash-merge into GitHub.
@@ -107,6 +107,8 @@ controls remain outside the setup's edit scope.
 6. Run the existing full strict gate before review readiness; inspect its formatting effects.
    Report changes with source references and distinguish PASS, FAILED, BLOCKED and NOT RUN.
    Prepare feature commits/PRs when needed. Only the owner may squash-merge into GitHub.
+   At merge verification, append the actual PR, merged SHA and independent CI evidence to the
+   action ledger immediately (adopted RUL-II-07 / B-7.17); do not wait for stage closure.
 7. At a context handoff, retain the objective, approved file scope, source titles/revisions/clauses,
    touched files, actual check results and pending questions. Revalidate against disk on resume.
    Never promote a summary or an old pack into a governing source.
@@ -132,7 +134,7 @@ gate. The owner selected manual checks only.
 ## MCP connection and access
 
 The project `.codex/config.toml` launches Repomix 1.18.1 through pnpm with
-`--mcp --sandbox C:\grantum-rn`. It pins the root and allows only:
+`--mcp --sandbox C:\grantum-r-n`. It pins the root and allows only:
 
 - `pack_codebase`
 - `read_repomix_output`
@@ -222,3 +224,29 @@ and attachment review remain to be verified. No scheduled automation was created
 
 Documentation and cached Repomix source were reviewed on 2026-10-26. The live manifest,
 owner attachments, and actual tool behavior remain the evidence to use on a later task.
+
+## Relocated-host verification — 2026-11-01
+
+The owner resumed work in `C:\grantum-r-n` and supplied the II constitution/workplan,
+V8 overview, S5 boot transcript and four historical packs, followed by the pinned V7.2
+product reference. These attachments now supply the doctrine missing at the older review
+above. Historical counts and activation states remain dated observations.
+
+The current fresh gate passed: FAIL 0 / WARN 63 / INFO 3 / SKIPPED 0, with 48 behavioral
+cases and three valid exemptions. GitHub main is `74273fc`; its detached-HEAD CI fix has
+successful PR and push runs. The current action ledger records the exact evidence.
+
+The config's old-account executable was replaced with the existing pnpm launcher on this
+host. The isolated launcher is 12.8.1; project scripts resolve the pinned 12.10.1. No app
+dependency or lockfile change was needed. The server remains Repomix 1.18.1 with the same
+root, required flag, five read-only tools, timeouts and permission defaults.
+
+A single live protocol process successfully exercised all five tools, including a two-file
+pack (`db9b88f589ef6e58`), bounded read and search. Parent traversal, absolute-drive and
+home-path requests were rejected with explicit relative-path boundary diagnostics.
+Standalone protocol access is PROVEN for this session; native in-chat catalog attachment
+is NOT ATTACHED. This projectless chat did not load the checkout's project settings.
+
+The proposed checked-in Python verifier remains NOT IMPLEMENTED: Python is absent on this
+host. A Node implementation requires a revised, approved T specification; the temporary
+manual smoke proof is not represented as that durable verifier or its negative self-tests.

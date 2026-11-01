@@ -80,3 +80,55 @@ appended at verification time (B-7.17), never batched to closure.
 
 FINAL STOP for this sitting: PATCH 18 merged and verified, s4-closure minted, gate.yml fix
 merged or explicitly deferred. No product code, no checker code, no post-stop initiative.
+
+## Recovery continuation — 2026-11-01 [A]
+
+The owner resumed in Codex desktop: "First lets boot up the session, configure everything,
+establish premium quality workflow and then finish S5 till closed."
+The attached prior chat is historical evidence; its assistant proposals are not new owner rulings.
+The current request resumes work after the preceding sitting's FINAL STOP.
+
+### Merge verification and superseding state
+
+- PR #29 is merged: `5472fcca04e6f895a1c972a513f4e2f9eda977a3`, verified through the
+  GitHub API in this session. This discharges PATCH 18's pending merge status above.
+- The earlier transcript called that merge PATCH 19. That is a historical label for the same
+  PR, not evidence of a second source delivery or a second merge.
+- GitHub main is `74273fc1e5e30a915c3cfc618dbad727511994af` after the owner's
+  detached-HEAD checkout correction. Push run 40855770380 and PR run 40855845325 succeeded.
+  AD-68's required PR and push evidence is now available; no severity or baseline changed.
+- `s4-closure` exists at `4755d31`; no tag was created or changed in this session.
+- Incoming local main was `25293bd` (one ahead / one behind origin/main) with six modified
+  files. Its commit is preserved on local main; no reset, rewrite or protected push occurred.
+- Work moved to `codex/s5-recovery-20261101` based on the freshly fetched origin/main.
+  The two approved operational root corrections from `25293bd` were carried forward as
+  `21d30c7` after the fresh green baseline, preserving the original local commit.
+
+### Record repair and current environment
+
+The incoming global replacement changed four historical records. Only its exact historical
+substitutions were reversed, restoring prior quotations, evidence paths and the old-junction
+finding. Original incoming bytes and the diff were retained outside the checkout before repair.
+The README and package-name changes are preserved. No product code has changed.
+
+Node reports 24.21.0; pnpm reports the pinned 12.10.1. TypeScript, Expo Router, ESLint and
+Prettier resolve from this checkout. The fresh unchanged baseline gate passed: FAIL 0 /
+WARN 63 / INFO 3 / SKIPPED 0, three valid exemptions, suites 14/8/6/20 (48 cases).
+The baseline gate made no additional source changes. No dependency restore was needed.
+
+The Repomix config names a nonexistent executable under the previous `snees` account.
+Native in-chat tools are absent. The executable path was repaired without changing the
+server pin, root, tool boundary or permission defaults. A current live Repomix 1.18.1
+process exercised all five tools: relative reads, a two-file pack (`db9b88f589ef6e58`),
+bounded output read and search. Traversal, absolute-drive and home paths were rejected
+with specific boundary diagnostics. Standalone protocol smoke: PASS. Native catalog:
+NOT ATTACHED. The checked-in Python verifier is NOT IMPLEMENTED; Python is absent.
+
+The newly supplied V7.2 reference hashes exactly to
+`204132358cc94da9520e9c6a6360743507de29ff4de7b998aa0aee972f33b35c`.
+The supplied S4 pack hashes to `d40f047a...`, differing from the canon's recorded digest
+prefix. Its 114 non-secret file bodies match `4755d31` after line-ending normalization;
+the full provenance result remains distinct from byte-identical pack verification.
+
+S5 remains OPEN. Control, product, native-device and closure evidence must be recorded as
+they occur; this recovery append does not ratify unfinished product specifications or close S5.
