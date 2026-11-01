@@ -15,10 +15,11 @@
     "verify:scoring": "tsx scripts/verify-scoring.ts",
     "verify:drafts": "tsx scripts/verify-drafts.ts",
     "verify:theme": "tsx scripts/verify-theme.ts",
-    "gate": "node scripts/grantum-preflight.mjs --strict && pnpm format && pnpm typecheck && pnpm lint && pnpm format:check && pnpm verify:scoring && pnpm verify:drafts && pnpm verify:theme && pnpm verify:composer && pnpm verify:preflight",
+    "gate": "node scripts/grantum-preflight.mjs --strict && pnpm format && pnpm typecheck && pnpm lint && pnpm format:check && pnpm verify:scoring && pnpm verify:drafts && pnpm verify:theme && pnpm verify:composer && pnpm verify:preflight && pnpm verify:tokens",
     "prepare": "husky",
     "verify:composer": "tsx scripts/verify-composer.ts",
-    "verify:preflight": "node scripts/verify-preflight.mjs"
+    "verify:preflight": "node scripts/verify-preflight.mjs",
+    "verify:tokens": "tsx scripts/verify-tokens.ts"
   },
   "config": {
     "grantum": {
