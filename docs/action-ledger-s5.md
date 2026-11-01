@@ -195,3 +195,26 @@ to the required gate by T and are not claimed as GitHub CI executions. Applicati
 lockfile, hooks, linter config, warning baseline, exemptions and .github remain unchanged.
 Independent CI and owner squash-merge evidence for these batches remain pending until the PR.
 S5 is OPEN; K token alignment is still owed in its own PR, followed by approved product batches.
+
+## PR #32 merge verification and next-task handoff — 2026-11-01 [A]
+
+The owner requested a handoff and boot prompt for the next task; no token/product code is
+implemented in this handoff batch. During the read-only refresh, PR #32 was verified merged
+as `ef26b5b803a8ab26d81ea0adc240027ff9c67e9e`. Its tree equals tested head `0c8089a`
+exactly: `8ab36182eb3b3202237e9f05a730ad301abd58e6`.
+PR Strict Gate run 41301816760 and merged-main run 41302500199 both succeeded.
+This discharges the preceding C/T entry's pending independent-CI/owner-merge status.
+The 20 MCP fixture groups and live smoke remain manual evidence, not CI executions.
+
+Next-task branch: `codex/s5-token-alignment-20261101`, based on fetched `origin/main@ef26b5b`.
+This one-file ledger append is its handoff prelude; the five-file K implementation has not started.
+Local main remains at the preserved `25293bd`; do not reset it or discard its history.
+The next agent should verify live state, prove MCP again for its new session, then execute K
+from the existing specification with an unchanged-warning prediction of 63.
+The earlier dated map's Python/unimplemented and old trunk facts are superseded by the later
+adoption/implementation/merge entries; no second Node migration or repeated approval is owed.
+
+S5 remains OPEN. After K's separate green PR and owner merge, finalize and approve WP-F.1
+just in time, followed by WP-F.2 and the actual browser/native/parity/closure evidence.
+The designated S4 baseline and pinned V7.2 reference remain unchanged. Native catalog attachment
+and native keyboard/IME/paste/safe-area outcomes must not be inferred from the manual protocol proof.
