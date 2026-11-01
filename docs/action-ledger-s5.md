@@ -361,3 +361,27 @@ decision; no .github change is inferred or applied. This prelude travels with th
 product work rather than requiring another documentation-only PR/merge.
 Prepared branch: codex/s5-recovery-implementation-20261101 from fetched `b14c901`.
 Local main `25293bd` and prior feature branches are preserved. No S5 closure is claimed.
+
+## PR #36 merge verification and F1-C continuation — 2026-11-01 [A]
+
+Owner continuation: "finish S5 and close remaining debt".
+PR #36 is verified merged as `145d83500d14dca799749a43e40a4afc57241267`.
+Its tree equals tested `246eb29` exactly: `11c7332a2d5d8fe2953128479dd4af0c8e81ca84`.
+Independent run 41310947582 passed, including Chromium installation, two preliminary
+browser tests and the full 108-case gate. The browser-CI gap is discharged, not waived.
+The preceding owner decision was "Approve F1-B R2 and scoped CI edit"; its narrow
+workflow change is now merged. No broader .github authorization is inferred.
+
+F1-B manual evidence: eight dev root/tab/gallery/repeated-failure scenarios and six
+production inherited-screen retry plus six reload scenarios passed in both themes.
+Release widths were 320/768/1280. Exactly known injected errors were counted; no raw
+sentinel appeared in release DOM. UI captures show the inherited 320px tab-label clipping
+for later chrome work; native physics and AD-61 are still OPEN.
+
+Prepared branch: codex/s5-container-verifier-20261101 from fetched `145d835`.
+F1-C retains its five-file source set: ScreenContainer.tsx, templates/index.ts,
+verify-recovery.ts, package.json and parity-register.md. Existing caller style composition
+is preserved; stable theme selection predicts WARN 63 -> 62, one STORE-WHOLE finding only.
+The completed app verifier is appended to the existing gate; the preliminary harness
+remains separately runnable. No native result or stage closure is inferred from that gate.
+Local main `25293bd` remains preserved; rollback is a corrective feature PR from the anchor.

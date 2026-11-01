@@ -1,5 +1,17 @@
 # PARITY REGISTER: V7.2 (NEXT.JS) ↔ RN (S4 EXIT)
 
+## S5 recovery/container integration (stage still OPEN)
+
+Root/tab/gallery recovery and inherited screen isolation are implemented using Router 57
+ErrorBoundary exports and screenErrorBoundary, with verbatim reference copy. Manual F1-B
+rendered proof covered both themes and 320/768/1280; PR #36's browser provisioning and
+preliminary harness CI passed. F1-C adds the durable real-app recovery verifier to the gate.
+Its browser/DOM tests do not establish native safe-area, keyboard/IME/paste or device light
+theme acceptance. ScreenContainer preserves callers, uses stable theme selection, measured
+insets/keyboard origin and registered responsive padding; native physics remain NOT RUN.
+P-08 and P-36 are partial pending the full stage evidence, not CLOSED by these integrations.
+The existing narrow tab-label clipping belongs to chrome work; AD-61 remains OPEN.
+
 **Authority:** B-2.9, B-4.10, B-7.13. Updated at every stage exit.
 **Reference:** `repomix-output-V7.2-nextjs-final-green.xml` (SHA `20413235…`)
 **Subject:** RN S4 exit at `95ac9b2f956d8486ed52886b4a223cc2f1ea6717` (#27); current evidence in `docs/s4-closure.md`.
