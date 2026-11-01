@@ -459,3 +459,43 @@ Samsung A55". Exact OS/app version and native checklist outcomes are still owed.
 not reproduce it. Cause remains unestablished, not fixed by assertion. The final product tree
 is ready for the numbered native checklist; all unobserved items remain NOT RUN. S5 remains
 OPEN pending real acceptance and owner-only merge; no S6/S7/S8 implementation begins here.
+
+## PR #38 merge and final build-only owner closure — 2026-11-02 [A/E]
+
+PR #38 is owner-merged as 9098f7a260e827f0de44d41885e946e75d3f9a1a. Its tree equals
+feature head 3b06eb2 and the actual CI synthetic merge c2be48d exactly:
+e572170e1737c3f87115112f9901d6da43cb36f4. Independent PR run 41341957547 succeeded,
+with two preliminary harness cases and all 128 mandatory gate cases at 0/58/2/0.
+The final local C gate was 0/58/3/0; the designated S4 comparison was 0/58/2/0.
+All three F2 source batches stayed within their approved five paths; formatter/hook bytes
+matched tested inventories. The warning ceiling is now the owner-approved 58.
+Merged-main run 41342176539 was in progress at the last observation; final outcome is
+UNVERIFIED. The owner then forbade further checks; no later CI result is claimed.
+
+Fresh pre-disposition product pack: 129 text files, SHA-256
+94848eb1f8ec3e7feb3bcf1c6d97d592883c74d5737cf14a43f1139f19752a04.
+The checked-in MCP client performed bounded export reads with pinned Repomix 1.18.1,
+fixed root and exactly five read-only tools. Native in-chat catalog remains NOT ATTACHED.
+Source hashes cover the packer's six binary-image and lockfile omissions; no source changed.
+This pack predates the final documentation exception and is not a post-closure regeneration.
+
+The owner supplied five phone captures and wrote: "outputs of viewport are 1. terrible 2. terrible 3. terrible 4. terrible 5. terrible. Just close S5 green because it builds.
+There is no light/dark switch for modes. I launch on dark for web and on light for mobile.
+Document defects and craft a handoff. No post push checks. No additional gate checks,
+just document, this session is burning through my usage, must switch context."
+
+S5 is therefore CLOSED-FULL BY EXPLICIT OWNER EXCEPTION (BUILD-ONLY ACCEPTANCE).
+This supersedes the preceding OPEN closure condition without manufacturing product/native
+PASS results. Failed visual acceptance is retained: all five bottom bars have broken/faded
+multiline labels; Drafting/Audit headers overflow; Export Bundle clips off the right edge;
+Post-award audit messages are squeezed into word fragments. Dashboard composition is also
+owner-rejected. An exposed product theme switch is absent; web/phone startup modes differ.
+Exact native causes, OS/app version, screenshot SHA and outstanding physical interaction
+outcomes remain unverified. AD-61 and S6/S7/S8/S9 debt are not discharged by this exception.
+
+Only this ledger, the S5 card and parity register are updated on the closure-handoff feature
+branch from fetched 9098f7a. External outputs retain the original phone evidence, concrete
+defect register, exact last-known state and next-task handoff. No new app/config/dependency
+change, gate, post-push check, new PR/CI trigger or next WP is performed after this direction.
+Existing commit hooks remain active. The documentation delta is explicitly NOT GATE-TESTED;
+only the already verified product state is called green. Local main 25293bd is preserved.

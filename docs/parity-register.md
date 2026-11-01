@@ -1,6 +1,17 @@
 # PARITY REGISTER: V7.2 (NEXT.JS) ↔ RN (S4 EXIT)
 
-## S5 recovery/container integration (stage still OPEN)
+## S5 closure by owner exception; native visual acceptance failed
+
+Final disposition, 2026-11-02: the owner requested build-only S5 closure after rejecting all
+five supplied Samsung A55 viewport captures. S5 is CLOSED-FULL BY EXPLICIT OWNER EXCEPTION,
+not visually/native accepted. [The closure card](s5-closure.md) records the exact instruction.
+P-03/P-05/P-36 retain native bottom-tab label clipping/fading; Drafting/Audit/Export right-edge
+overflow and severely squeezed Post-award audit messages remain defects. Product light/dark
+selection is missing; owner observes dark web and light phone. Screenshots establish actual
+light rendering and failed viewport quality, not completed keyboard/IME/recovery/back acceptance.
+AD-61 and all later-stage copy/backend/global accessibility debt remain open. Earlier browser
+measurements below do not override the owner-supplied native evidence. No further gate or
+post-push verification was performed for this documentation-only disposition, as instructed.
 
 ### F2 candidate evidence — 2026-11-02
 

@@ -1,8 +1,58 @@
 # S5 implementation and acceptance card
 
 Date: 2026-11-02, Asia/Qyzylorda.
-Status: **OPEN — implementation candidate; native acceptance and owner merge owed.**
-This is an evidence record, not CLOSED-FULL or a native-test waiver.
+Status: **CLOSED-FULL BY EXPLICIT OWNER EXCEPTION — BUILD-ONLY ACCEPTANCE.**
+This administrative closure does not certify viewport quality or completed native acceptance.
+
+## Final owner disposition and known defects
+
+After owner merge of PR #38, the owner supplied five Samsung A55 light-theme screen captures
+and rejected every viewport result as "terrible". The owner then instructed: "Just close S5
+green because it builds. There is no light/dark switch for modes. I launch on dark for web and
+on light for mobile. Document defects and craft a handoff. No post push checks. No additional
+gate checks, just document" and required a context switch to limit usage.
+
+That current instruction explicitly supersedes this card's earlier OPEN/native-acceptance
+closure condition. Closure rests on the last verified product gate/build and owner acceptance
+exception, not on a successful visual/native review. No unperformed check becomes PASS.
+Only documentation is changed after this disposition; no additional gate, post-push check,
+viewport fix, theme implementation, pack regeneration or next-stage work is performed.
+
+PR #38 merged as 9098f7a260e827f0de44d41885e946e75d3f9a1a. Its tree exactly matches
+tested feature head 3b06eb25032a0516275e23a2d1e92960b6cd4cd6 and CI merge c2be48d:
+e572170e1737c3f87115112f9901d6da43cb36f4. Independent PR run 41341957547 succeeded,
+including both preliminary tests and the full 128-case gate at 0/58/2/0. Local final gate was
+0/58/3/0; explicit S4 pack comparison was 0/58/2/0. Merged-main run 41342176539 was still
+in progress at the last observation, before the stop instruction; its final result is UNVERIFIED.
+These earlier checks are not repeated for this documentation-only owner disposition.
+
+| Debt                      | Owner evidence and concrete defect                                                                                                                                                                    | Acceptance status / next work                                                                                                                                                                      |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Native bottom tabs        | All five images: labels split mid-word, with lower lines faded/clipped near the system navigation area. Dashboard, Discovery, Drafting and Post-award are affected.                                   | FAILED visual acceptance. Diagnose actual native tab height, font scaling, layout and insets; browser target/bounds checks did not catch it.                                                       |
+| Drafting and Audit width  | Images 2–3: heading/status rows extend beyond the right edge; Drafting suggestion text also extends beyond the visible width.                                                                         | FAILED visual acceptance. Measure wrapping, shrinking and intended horizontal scrolling on the phone.                                                                                              |
+| Export action row         | Image 4: confidence badge consumes the row and Export Bundle is clipped at the right edge.                                                                                                            | FAILED visual acceptance; a primary action is not fully visible. Recompose at narrow widths.                                                                                                       |
+| Post-award audit rows     | Image 5: timestamp columns squeeze messages into fragments such as reconci/liation and re/ferences.                                                                                                   | FAILED visual acceptance. Restore readable message/time layout; inspect the broader metric grid too.                                                                                               |
+| Dashboard composition     | Image 1: wrapped pipeline has uneven grouping and the owner rejects the viewport.                                                                                                                     | Owner-rejected visual quality; do not call the responsive layout accepted because it builds.                                                                                                       |
+| Product theme control     | Owner reports no light/dark switch; web launches dark, phone light.                                                                                                                                   | Missing product control. A dev-gallery toggle is not an exposed product setting; explicit selection/persistence/system behavior needs a bounded spec. No cause is inferred from screenshots alone. |
+| Native interaction checks | Screenshots show light rendering, not keyboard/IME/paste/cap, first tap, actual recovery, modal/system Back or screen-reader behavior. Exact OS/Expo Go version and screenshot SHA were not provided. | NOT RUN / UNVERIFIED, explicitly carried by this closure exception. The screenshots are failure evidence, not a completed checklist.                                                               |
+
+Screenshot order: Dashboard, Drafting, Audit, Export, Post-award. Originals are the five owner-named
+WhatsApp Image 2026-11-02 at 00.28.27 JPEGs in Downloads; verbatim evidence copies, a defect register
+and NEXT_TASK_HANDOFF.md are in the current chat's outputs directory. Image pixel sizes are not
+assumed to be logical viewport dimensions. The floating gear/Tools overlay's origin is unestablished.
+The previous browser passes remain narrow browser evidence and do not override these native failures.
+
+The fresh pre-closure product pack contains 129 text files, SHA-256
+94848eb1f8ec3e7feb3bcf1c6d97d592883c74d5737cf14a43f1139f19752a04.
+It was exported by bounded reads through the checked-in MCP stdio client, Repomix 1.18.1,
+fixed sandbox and five read-only tools. It excludes secrets/project agent configuration and
+the packer's default six binary images/lockfile omissions; companion source hashes retain
+those seven files. It predates this documentation disposition and is not regenerated after stop.
+
+The sections below retain the implementation evidence and earlier acceptance requirements as
+history. This final owner disposition governs S5's administrative status; every named defect and
+unverified result survives it. Plan the next correction scope from the phone evidence before
+claiming product readiness; no S6/S7/S8 implementation approval is implied by closure.
 
 ## Authority and delivery
 
