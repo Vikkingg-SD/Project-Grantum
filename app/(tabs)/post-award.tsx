@@ -80,7 +80,14 @@ export default function PostAwardScreen() {
           </AppText>
           <View style={[styles.metrics, width / fontScale < 600 && styles.stacked]}>
             {metrics.map((metric) => (
-              <View key={metric.label} style={[styles.metric, { backgroundColor: theme.subtle }]}>
+              <View
+                key={metric.label}
+                style={[
+                  styles.metric,
+                  width / fontScale < 600 && { flexBasis: 'auto' },
+                  { backgroundColor: theme.subtle },
+                ]}
+              >
                 <AppText variant="caption" color="muted">
                   {metric.label}
                 </AppText>

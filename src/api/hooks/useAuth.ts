@@ -15,7 +15,7 @@ export function useAuth() {
     useDraftStore.setState({ drafts: {} });
   };
   const me = useQuery({
-    queryKey: queryKeys.me,
+    queryKey: [...queryKeys.me, status],
     queryFn: async () => {
       if (!(await getSessionToken())) return null;
       return getDataSource().getMe();
@@ -32,8 +32,11 @@ export function useAuth() {
   });
   const logout = useMutation({
     mutationFn: async () => {
-      await useAuthStore.getState().logout();
-      await clearUserState();
+      try {
+        await useAuthStore.getState().logout();
+      } finally {
+        await clearUserState();
+      }
     },
   });
   const magicLink = useMutation({
