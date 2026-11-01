@@ -11,8 +11,13 @@ import {
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, SPACING } from '@/config/theme';
 import { FONT } from '@/config/fonts';
+import { AppScreenErrorBoundary, useRecoveryProbe } from '@/components/templates/AppErrorBoundary';
+export { AppErrorBoundary as ErrorBoundary } from '@/components/templates/AppErrorBoundary';
+
+export const unstable_settings = { screenErrorBoundary: AppScreenErrorBoundary };
 
 export default function TabsLayout() {
+  useRecoveryProbe('tab');
   const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
 
