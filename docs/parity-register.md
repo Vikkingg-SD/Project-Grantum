@@ -1,7 +1,5 @@
 # PARITY REGISTER: V7.2 (NEXT.JS) ↔ RN (S4 EXIT)
 
-## S6 implementation candidate — 2026-11-02
-
 The dated tables below remain historical. The owner's current direction makes
 V7.2 the conceptual product reference and approved merged PR #38 / 9098f7a the
 implementation comparison point, with closure records carried from 8382abd. S4 is
