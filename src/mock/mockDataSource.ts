@@ -1,10 +1,4 @@
-import type {
-  DataSource,
-  GrantSearchParams,
-  SectionMutation,
-  ExportRequest,
-  BountyInput,
-} from '@/types/api';
+import type { DataSource, GrantSearchParams, SectionMutation, BountyInput } from '@/types/api';
 import { mockGrants } from './grants';
 import { mockDashboardSummary } from './dashboard';
 import {
@@ -13,6 +7,7 @@ import {
   updateMockDraft,
   createMockScan,
   getMockScan,
+  getLatestMockScan,
   getMockAward,
 } from './db';
 import { applySectionMutation } from '@/utils/scoring';
@@ -55,24 +50,19 @@ export const mockDataSource: DataSource = {
     await sleep(ENV.MOCK_LATENCY_MS);
     return createMockScan(grantId);
   },
-  async getAuditScan(_grantId: string, scanId: string) {
+  async getAuditScan(grantId: string, scanId: string) {
     await sleep(ENV.MOCK_LATENCY_MS);
-    const scan = getMockScan(scanId);
+    const scan = getMockScan(scanId, grantId);
     if (!scan) throw new Error('Scan not found');
     return scan;
   },
-  async getLatestAuditScan(_grantId: string) {
+  async getLatestAuditScan(grantId: string) {
     await sleep(ENV.MOCK_LATENCY_MS);
-    return null; // WP-G will wire real polling; mock relies on local store for now.
+    return getLatestMockScan(grantId);
   },
-  async exportBundle(grantId: string, input: ExportRequest) {
+  async exportBundle() {
     await sleep(ENV.MOCK_LATENCY_MS);
-    updateMockDraft(grantId, { body: input.documentBody });
-    return {
-      success: true,
-      checksum: 'sha256-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-      downloadUrl: `https://api.grantum.io/downloads/bundle-${grantId}.${input.format}`,
-    };
+    throw new Error('Connect the document service to create a downloadable export.');
   },
   async getAward(grantId: string) {
     await sleep(ENV.MOCK_LATENCY_MS);

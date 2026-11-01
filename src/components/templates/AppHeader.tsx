@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Sun, Moon } from 'lucide-react-native';
 import { AppText } from '@/components/atoms/AppText';
 import { IconButton } from '@/components/atoms/IconButton';
 import { useTheme } from '@/hooks/useTheme';
 import { HEADER_COPY } from '@/config/copy';
 import { SPACING } from '@/config/theme';
+import { useThemeStore } from '@/store/useThemeStore';
 
 export interface AppHeaderProps {
   title?: string;
@@ -15,6 +16,8 @@ export interface AppHeaderProps {
 
 export function AppHeader({ title, canGoBack, onBack }: AppHeaderProps) {
   const theme = useTheme();
+  const mode = useThemeStore((state) => state.mode);
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
   return (
     <View
       style={[
@@ -36,6 +39,17 @@ export function AppHeader({ title, canGoBack, onBack }: AppHeaderProps) {
           </AppText>
         ) : null}
       </View>
+      <IconButton
+        label={mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+        icon={
+          mode === 'dark' ? (
+            <Sun size={SPACING.lg} color={theme.textMain} />
+          ) : (
+            <Moon size={SPACING.lg} color={theme.textMain} />
+          )
+        }
+        onPress={toggleTheme}
+      />
     </View>
   );
 }

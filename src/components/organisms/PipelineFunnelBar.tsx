@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { AppText } from '../atoms/AppText';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE, RADIUS } from '@/config/theme';
+import { PALETTE, RADIUS, SPACING } from '@/config/theme';
 
 export interface FunnelStage {
   label: string;
@@ -14,7 +14,9 @@ export interface PipelineFunnelBarProps {
 }
 
 export function PipelineFunnelBar({ stages }: PipelineFunnelBarProps) {
-  const { mode } = useThemeStore();
+  const mode = useThemeStore((state) => state.mode);
+  const { width, fontScale } = useWindowDimensions();
+  const columns = width / fontScale >= 900 ? 6 : width / fontScale >= 320 ? 3 : 2;
   const theme = PALETTE[mode];
 
   return (
@@ -25,19 +27,14 @@ export function PipelineFunnelBar({ stages }: PipelineFunnelBarProps) {
         const labelColor = terminal ? theme.gold : theme.textMuted;
 
         return (
-          <React.Fragment key={stage.label}>
-            <View style={styles.stage}>
-              <AppText variant="caption" style={[styles.label, { color: labelColor }]}>
-                {stage.label}
-              </AppText>
-              <AppText variant="metric-lg" style={{ color: valueColor }}>
-                {stage.count}
-              </AppText>
-            </View>
-            {index < stages.length - 1 && (
-              <View style={[styles.separator, { backgroundColor: theme.border }]} />
-            )}
-          </React.Fragment>
+          <View key={stage.label} style={[styles.stage, { width: `${100 / columns}%` }]}>
+            <AppText variant="caption" style={[styles.label, { color: labelColor }]}>
+              {stage.label}
+            </AppText>
+            <AppText variant="metric-lg" style={{ color: valueColor }}>
+              {stage.count}
+            </AppText>
+          </View>
         );
       })}
     </View>
@@ -52,21 +49,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    marginVertical: 8,
-    gap: 8,
+    padding: SPACING.md,
+    marginVertical: SPACING.sm,
   },
   stage: {
     alignItems: 'center',
-    gap: 4,
+    gap: SPACING.xs,
+    padding: SPACING.sm,
   },
   label: {
     textTransform: 'uppercase',
-    letterSpacing: 1.4,
-  },
-  separator: {
-    height: 1,
-    width: 24,
+    textAlign: 'center',
   },
 });

@@ -1,13 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { getDataSource } from '../dataSource';
-import { Grant } from '@/types/grant';
+import type { Grant } from '@/types/grant';
+import type { GrantSearchParams } from '@/types/api';
+import { queryKeys } from '../queryKeys';
 
-export function useGrants(query?: string) {
+export function useGrants(query?: string | GrantSearchParams) {
+  const params = typeof query === 'string' ? { q: query } : query;
   return useQuery<Grant[]>({
-    queryKey: ['grants', query],
+    queryKey: queryKeys.grants(params),
     queryFn: async () => {
       const ds = getDataSource();
-      return ds.getGrants({ q: query });
+      return ds.getGrants(params);
     },
     staleTime: 1000 * 60 * 5,
   });

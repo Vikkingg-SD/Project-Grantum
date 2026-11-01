@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { MetricGauge } from '../atoms/MetricGauge';
 import { StatusBadge } from '../atoms/StatusBadge';
 import { AppText } from '../atoms/AppText';
@@ -13,13 +13,17 @@ export interface ConfidenceGaugeReadoutProps {
 }
 
 export function ConfidenceGaugeReadout({ score }: ConfidenceGaugeReadoutProps) {
+  const { width, fontScale } = useWindowDimensions();
+  const narrow = width / fontScale < 480;
   const status = scoreTier(score, TIERS.confidence);
   const unlocked = isExportUnlocked(score);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, narrow && { flexDirection: 'column' }]}>
       <MetricGauge value={score} tier={status} label={CONFIDENCE_COPY.label} />
-      <View style={styles.readout}>
+      <View
+        style={[styles.readout, narrow && { flex: 0, alignSelf: 'stretch', alignItems: 'center' }]}
+      >
         <StatusBadge
           label={unlocked ? CONFIDENCE_COPY.unlocked : CONFIDENCE_COPY.locked}
           variant={status}

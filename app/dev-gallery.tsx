@@ -5,7 +5,11 @@ import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { ModalSheetLayout } from '@/components/templates/ModalSheetLayout';
 import { AppHeader } from '@/components/templates/AppHeader';
-import { TopTabNavigation, NAVIGATION_ITEMS } from '@/components/organisms/TopTabNavigation';
+import {
+  TopTabNavigation,
+  MobileTabNavigation,
+  NAVIGATION_ITEMS,
+} from '@/components/organisms/TopTabNavigation';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppInput } from '@/components/atoms/AppInput';
@@ -250,9 +254,9 @@ export default function DevGalleryScreen() {
       />
       <AuditLogLine
         agent="agent-2-deterministic"
-        message="Gallery pass armed"
+        message="Final budget reconciliation passed with all supporting evidence references retained"
         status="passed"
-        timestamp="now"
+        timestamp="18 May · 14:32"
       />
       {messages.map((m) => (
         <ChatMessageBubble key={m.id} {...m} />
@@ -267,6 +271,18 @@ export default function DevGalleryScreen() {
         Organisms
       </AppText>
       <PipelineFunnelBar stages={GALLERY_FUNNEL} />
+      <AppButton
+        label="Notebook (.ipynb) — long scaled text remains readable"
+        onPress={() => setLastAction('long-button')}
+      />
+      <StatusBadge
+        label="A long verification status remains inside the available width"
+        variant="pending"
+      />
+      <MobileTabNavigation
+        selectedName="index"
+        onSelect={(item) => setLastAction(`mobile-tab-${item.name}`)}
+      />
       <TopTabNavigation
         items={NAVIGATION_ITEMS.map((item) =>
           item.name === 'export' ? { ...item, disabled: true } : item

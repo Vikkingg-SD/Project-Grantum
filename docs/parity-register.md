@@ -1,5 +1,30 @@
 # PARITY REGISTER: V7.2 (NEXT.JS) ↔ RN (S4 EXIT)
 
+The dated tables below remain historical. The owner's current direction makes
+V7.2 the conceptual product reference and approved merged PR #38 / 9098f7a the
+implementation comparison point, with closure records carried from 8382abd. S4 is
+not the implementation baseline for this work. S5's build-only exception remains
+intact and is not silently extended to S6.
+
+| Area                         | S6 disposition               | Evidence / retained boundary                                                                                                                                                                                                                                                   |
+| ---------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| P-03 / P-05 / P-36           | REMODELED native navigation  | Six shared route descriptors now render a font-scale-aware grid with complete labels and safe-area edges; real tabPress/navigation preserved. Existing recovery cases pass; actual A55 rendering remains unverified.                                                           |
+| P-14                         | REMODELED funnel             | Coherent equal-column responsive grid; terminal gold and server-provided stage values retained. Native screenshot acceptance pending.                                                                                                                                          |
+| P-18 / P-19                  | REMODELED data ownership     | Required/completed sections and score come from Query; mutations cancel, optimistically update, roll back and settle per grant. Notes are local; delayed synthetic revision replies removed as a necessary truth correction. Full S7 seed/copy parity remains.                 |
+| P-20 / P-21                  | REMODELED audit seam         | Actual scan creation/latest read and running-only polling; no canned compliance result. Server events shown distinctly from local notes. Contract cases cover terminal/error stop conditions.                                                                                  |
+| P-22 / P-23 / P-24           | REMODELED export             | Complete reachable action, authoritative draft confidence, real mutation response/download, server-supplied checksum wording. Mock export rejects instead of manufacturing success. S7 full format-card/humanizer/copy work remains.                                           |
+| P-25 / P-26                  | REMODELED post-award seam    | Queried grant/award/events, stacked narrow metrics and timestamps below full-width messages. Physical acceptance remains pending.                                                                                                                                              |
+| Theme control                | NEW product control          | Header exposes the existing persisted light/dark actions; system following remains until explicit choice. Palette/AD-61 unchanged. Device persistence interaction remains unverified.                                                                                          |
+| WP-G / AD-10 / AD-13 / AD-30 | IMPLEMENTED client candidate | Fetch/ApiError/timeout, HTTP selector, typed endpoint/key registries, 14 documented endpoint contracts, secure native token storage, Query hooks, client-only draft state, env readers/removal. All 15 DataSource methods exercised against the fixture; import graph acyclic. |
+
+Final product gate before documentation: FAIL 0 / WARN 25 / INFO 4 / SKIPPED 0;
+181 cases including 52 contract cases. Android production Hermes export passed.
+The fixture proves the HTTP client and production mutation options; a real backend,
+API-mode Dashboard UI render, native secure-store persistence, IME, system Back and
+native visual/accessibility outcomes are not established by these results.
+S7 extraction/copy/seed work, S8 route changes, S9 global accessibility/visual review
+and AD-61 remain retained. See action-ledger-s6.md and s6-closure.md.
+
 ## S5 closure by owner exception; native visual acceptance failed
 
 Final disposition, 2026-11-02: the owner requested build-only S5 closure after rejecting all

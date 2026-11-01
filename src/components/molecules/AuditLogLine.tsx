@@ -35,14 +35,16 @@ export const AuditLogLine = memo(function AuditLogLine({
       <View style={styles.iconWrap}>
         <Icon size={SPACING.lg} color={color} />
       </View>
-      <AppText variant="metric-sm" color="muted" style={styles.message}>
-        {message}
-      </AppText>
-      {timestamp && (
-        <AppText variant="metric-sm" color="muted" style={styles.timestamp}>
-          {timestamp}
+      <View style={styles.message}>
+        <AppText variant="metric-sm" color="muted">
+          {message}
         </AppText>
-      )}
+        {timestamp && (
+          <AppText variant="metric-sm" color="muted" style={styles.timestamp}>
+            {timestamp}
+          </AppText>
+        )}
+      </View>
     </View>
   );
 });
@@ -59,5 +61,5 @@ const styles = StyleSheet.create({
   },
   iconWrap: { flexShrink: 0, paddingTop: SPACING.xs },
   message: { flex: 1, minWidth: 0 },
-  timestamp: { opacity: 0.7, flexShrink: 1 },
+  timestamp: { opacity: 0.7, marginTop: SPACING.xs },
 });

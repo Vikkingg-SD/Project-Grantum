@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, ActivityIndicator, ViewStyle, StyleProp } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE, RADIUS } from '@/config/theme';
+import { PALETTE, RADIUS, SPACING } from '@/config/theme';
 
 export interface AppButtonProps {
   label: string;
@@ -97,7 +97,10 @@ export function AppButton({
           {icon && iconPosition === 'left' && icon}
           <AppText
             variant={size === 'sm' ? 'caption' : 'label'}
-            style={[icon ? (iconPosition === 'left' ? styles.iconRight : styles.iconLeft) : null]}
+            style={[
+              styles.label,
+              icon ? (iconPosition === 'left' ? styles.iconRight : styles.iconLeft) : null,
+            ]}
             color={getTextColor()}
           >
             {label}
@@ -110,6 +113,7 @@ export function AppButton({
 }
 
 const styles = StyleSheet.create({
+  label: { flexShrink: 1, minWidth: 0, textAlign: 'center' },
   base: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -117,15 +121,18 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm,
   },
   sm: {
-    height: 44,
+    minHeight: 44,
+    paddingVertical: SPACING.sm,
     paddingHorizontal: 12,
   },
   md: {
-    height: 48,
+    minHeight: 48,
+    paddingVertical: SPACING.sm,
     paddingHorizontal: 16,
   },
   lg: {
-    height: 56,
+    minHeight: 56,
+    paddingVertical: SPACING.md,
     paddingHorizontal: 20,
   },
   iconRight: {

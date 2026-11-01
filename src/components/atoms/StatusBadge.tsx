@@ -64,6 +64,7 @@ export function StatusBadge({ label, variant = 'neutral' }: StatusBadgeProps) {
 
 const styles = StyleSheet.create({
   badge: {
+    maxWidth: '100%',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: RADIUS.sm,

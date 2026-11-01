@@ -1,50 +1,37 @@
-import { useDraftStore } from '../src/store/useDraftStore';
-
+import { useDraftStore, EMPTY_DRAFT } from '../src/store/useDraftStore';
 const getState = () => useDraftStore.getState();
 let failed = 0;
 const assert = (name: string, condition: boolean) => {
-  if (condition) {
-    console.log(`PASS ${name}`);
-  } else {
-    console.log(`FAIL ${name}`);
-    failed += 1;
-  }
+  console.log((condition ? 'PASS ' : 'FAIL ') + name);
+  if (!condition) failed += 1;
 };
-
-// 1. Unseeded grant returns stable EMPTY_DRAFT reference
 const d2a = getState().getDraft('2');
-const d2b = getState().getDraft('2');
-assert('unseeded getDraft stable reference', d2a === d2b);
-assert(
-  'unseeded getDraft is EMPTY_DRAFT',
-  d2a.completedSections.length === 0 && d2a.draftingMessages.length === 0
-);
-
-// 2. ensureDraft is idempotent and creates the draft
+assert('unseeded getDraft stable reference', d2a === getState().getDraft('2'));
+assert('unseeded getDraft is EMPTY_DRAFT', d2a === EMPTY_DRAFT);
 getState().ensureDraft('3', 'Test Grant', 'Test Funder');
 const d3a = getState().getDraft('3');
 getState().ensureDraft('3', 'Test Grant', 'Test Funder');
-const d3b = getState().getDraft('3');
-assert('ensureDraft creates draft', d3a.requiredSections.length > 0);
-assert('ensureDraft is idempotent', d3a === d3b);
-
-// 3. Mutations are keyed by grant (no cross-grant leakage)
-getState().ensureDraft('4');
-getState().addRequiredSection('4', 'Test Section');
-const d4 = getState().getDraft('4');
-const d1 = getState().getDraft('1');
-assert('mutation applies to target grant', d4.requiredSections.includes('Test Section'));
-assert('mutation does not leak to other grants', !d1.requiredSections.includes('Test Section'));
-
-// 4. Empty grant id is inert on the write path (AD-36 / RUL-A1-10)
-getState().addRequiredSection('', 'Ghost Section');
+assert('ensureDraft creates client draft', Boolean(getState().drafts['3']));
+assert('ensureDraft is idempotent', d3a === getState().getDraft('3'));
+getState().setExportDocument('4', 'Unsent document');
+getState().addDraftingMessage('4', 'Local note', 'user');
+assert(
+  'mutation applies to target grant',
+  getState().getDraft('4').exportDocument === 'Unsent document'
+);
+assert(
+  'mutation does not leak to other grants',
+  getState().getDraft('3') === d3a && getState().getDraft('1') === EMPTY_DRAFT
+);
 getState().addDraftingMessage('', 'ghost', 'user');
 getState().setExportDocument('', 'ghost doc');
 assert('empty-id mutation creates no draft', getState().drafts[''] === undefined);
-assert('empty-id getDraft is EMPTY_DRAFT', getState().getDraft('') === getState().getDraft(''));
-
-if (failed > 0) {
-  console.log(`\n${failed} DRAFT CASES FAILED`);
-  process.exit(1);
-}
-console.log('\nALL DRAFT CASES PASS');
+assert('empty-id getDraft is EMPTY_DRAFT', getState().getDraft('') === EMPTY_DRAFT);
+assert(
+  'server sections and scans are not in client drafts',
+  !('requiredSections' in getState().getDraft('4')) &&
+    !('completedSections' in getState().getDraft('4')) &&
+    !('isScanning' in getState().getDraft('4'))
+);
+if (failed) process.exit(1);
+console.log('ALL 9 DRAFT CASES PASS');

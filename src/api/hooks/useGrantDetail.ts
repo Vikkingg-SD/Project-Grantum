@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { getDataSource } from '../dataSource';
-import { Grant } from '@/types/grant';
+import type { GrantDetail } from '@/types/grant';
+import { queryKeys } from '../queryKeys';
 
 export function useGrantDetail(grantId: string) {
-  return useQuery<Grant>({
-    queryKey: ['grant', grantId],
+  return useQuery<GrantDetail>({
+    queryKey: queryKeys.grant(grantId),
     queryFn: async () => {
       const ds = getDataSource();
       return ds.getGrant(grantId);
