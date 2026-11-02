@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
@@ -12,6 +13,10 @@ import { FilterFieldGroup } from '@/components/molecules/FilterFieldGroup';
 import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
 import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSheet';
 import { useGrants } from '@/api/hooks/useGrants';
+import { getDataSource } from '@/api/dataSource';
+import { ENV } from '@/config/env';
+import { MAX_INPUT_CHARS } from '@/config/constants';
+import type { BountyInput } from '@/types/api';
 import { useDashboardSummary } from '@/api/hooks/useDashboardSummary';
 import { useUIStore } from '@/store/useUIStore';
 import { useDraftStore } from '@/store/useDraftStore';
@@ -26,6 +31,13 @@ export default function DiscoveryScreen() {
   const [regions, setRegions] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
+  const [bountyTitle, setBountyTitle] = useState('');
+  const bounty = useMutation({
+    mutationFn: (input: BountyInput) => getDataSource().submitBounty(input),
+  });
+  const bountyNote = `Search: ${query}; Regions: ${regions.join(', ')}; Types: ${categories.join(', ')}`;
+  const currentBounty =
+    bounty.variables?.title === bountyTitle.trim() && bounty.variables.note === bountyNote;
   const grants = useGrants({ q: query, region: regions, category: categories });
   const summary = useDashboardSummary();
   const setActiveGrantId = useUIStore((state) => state.setActiveGrantId);
@@ -96,6 +108,42 @@ export default function DiscoveryScreen() {
                   void grants.refetch();
                 }}
               />
+            ) : grants.data.length === 0 ? (
+              <View style={styles.content}>
+                <EmptyStateLayout
+                  title="No grants match your exact criteria"
+                  description="Try broadening your parameters or submit a Grant Bounty to index a new opportunity."
+                />
+                <AppInput
+                  accessibilityLabel="Bounty title"
+                  label="Bounty title"
+                  value={bountyTitle}
+                  onChangeText={setBountyTitle}
+                  maxLength={MAX_INPUT_CHARS}
+                />
+                <AppButton
+                  label="Submit a bounty"
+                  variant="outline"
+                  isLoading={bounty.isPending}
+                  disabled={!bountyTitle.trim()}
+                  onPress={() => bounty.mutate({ title: bountyTitle.trim(), note: bountyNote })}
+                />
+                {currentBounty && bounty.isSuccess && (
+                  <StatusBadge
+                    label={
+                      ENV.DATA_SOURCE === 'mock'
+                        ? 'Preview bounty queued'
+                        : 'Bounty queued — we will index it'
+                    }
+                    variant="verified"
+                  />
+                )}
+                {currentBounty && bounty.isError && (
+                  <AppText color="failure" accessibilityRole="alert">
+                    {bounty.error.message}
+                  </AppText>
+                )}
+              </View>
             ) : (
               <GrantDiscoveryGrid
                 grants={grants.data}
