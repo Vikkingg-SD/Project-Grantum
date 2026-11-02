@@ -1,0 +1,125 @@
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import { ScreenContainer } from '@/components/templates/ScreenContainer';
+import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
+import { ModalSheetLayout } from '@/components/templates/ModalSheetLayout';
+import { AppText } from '@/components/atoms/AppText';
+import { AppButton } from '@/components/atoms/AppButton';
+import { AppInput } from '@/components/atoms/AppInput';
+import { StatusBadge } from '@/components/atoms/StatusBadge';
+import { FilterFieldGroup } from '@/components/molecules/FilterFieldGroup';
+import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
+import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSheet';
+import { useGrants } from '@/api/hooks/useGrants';
+import { useDashboardSummary } from '@/api/hooks/useDashboardSummary';
+import { useUIStore } from '@/store/useUIStore';
+import { useDraftStore } from '@/store/useDraftStore';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { SPACING } from '@/config/theme';
+import type { Grant } from '@/types/grant';
+
+export default function DiscoveryScreen() {
+  const router = useRouter();
+  const wide = useBreakpoint() !== 'mobile';
+  const [query, setQuery] = useState('');
+  const [regions, setRegions] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
+  const grants = useGrants({ q: query, region: regions, category: categories });
+  const summary = useDashboardSummary();
+  const setActiveGrantId = useUIStore((state) => state.setActiveGrantId);
+  const ensureDraft = useDraftStore((state) => state.ensureDraft);
+  const toggle = (items: string[], value: string) =>
+    items.includes(value) ? items.filter((item) => item !== value) : [...items, value];
+  const openDraft = (grant: Grant) => {
+    setActiveGrantId(grant.id);
+    ensureDraft(grant.id);
+    setSelectedGrant(null);
+    router.push('/(tabs)/drafting');
+  };
+  return (
+    <ScreenContainer>
+      <View style={styles.content}>
+        <AppText variant="h1">Grant Match-Making</AppText>
+        {summary.data && (
+          <StatusBadge
+            label={'Project profile ' + summary.data.profileCompletionPct + '% Done'}
+            variant={summary.data.profileCompletionPct < 70 ? 'pending' : 'verified'}
+          />
+        )}
+        <View style={[styles.content, wide && styles.columns]}>
+          <View style={[styles.content, wide && styles.filters]}>
+            <View style={styles.heading}>
+              <AppText variant="h3">Filters</AppText>
+              <AppButton
+                label="Reset"
+                size="sm"
+                variant="ghost"
+                onPress={() => {
+                  setQuery('');
+                  setRegions([]);
+                  setCategories([]);
+                }}
+              />
+            </View>
+            <FilterFieldGroup
+              label="Region"
+              options={['Global', 'East Europe', 'CIS']}
+              selected={regions}
+              onToggle={(value) => setRegions((items) => toggle(items, value))}
+            />
+            <FilterFieldGroup
+              label="Opportunity type"
+              options={['Infrastructure', 'Health', 'Technology', 'Workforce']}
+              selected={categories}
+              onToggle={(value) => setCategories((items) => toggle(items, value))}
+            />
+            {grants.data && (
+              <StatusBadge label={grants.data.length + ' indexed matches'} variant="verified" />
+            )}
+          </View>
+          <View style={[styles.content, styles.results]}>
+            <AppInput
+              accessibilityLabel="Search the grant index"
+              placeholder="Search grants"
+              value={query}
+              onChangeText={setQuery}
+              returnKeyType="search"
+            />
+            {grants.isPending || grants.isError ? (
+              <EmptyStateLayout
+                title={grants.isError ? 'Instrument fault' : 'Calibrating instrument…'}
+                description={grants.error?.message ?? 'Loading your opportunities.'}
+                ctaLabel={grants.isError ? 'Try again' : undefined}
+                onCtaPress={() => {
+                  void grants.refetch();
+                }}
+              />
+            ) : (
+              <GrantDiscoveryGrid
+                grants={grants.data}
+                onSelect={setSelectedGrant}
+                onApply={openDraft}
+              />
+            )}
+          </View>
+        </View>
+      </View>
+      <ModalSheetLayout
+        visible={Boolean(selectedGrant)}
+        onClose={() => setSelectedGrant(null)}
+        accessibilityLabel={selectedGrant?.title ?? ''}
+      >
+        <GrantDetailModalSheet grant={selectedGrant} onApply={openDraft} />
+      </ModalSheetLayout>
+    </ScreenContainer>
+  );
+}
+const styles = StyleSheet.create({
+  content: { gap: SPACING.lg },
+  columns: { flexDirection: 'row', alignItems: 'flex-start' },
+  heading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.sm },
+  filters: { width: '30%' },
+  results: { flex: 1, minWidth: 0 },
+});
