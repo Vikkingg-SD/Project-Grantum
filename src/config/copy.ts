@@ -53,11 +53,38 @@ export const NAV_COPY = {
   postAward: 'Post-award',
   lockedPreview: 'tier-locked preview, still navigable',
 } as const;
-// Preserve existing sheet copy until its S7 copy disposition; Close is reference-verbatim.
+// V7.2 GrantDetailModalTemplate labels; API mode must not claim a mock record.
 export const MODAL_COPY = {
   close: 'Close',
-  funding: 'Funding Amount',
+  funding: 'Funding',
   deadline: 'Deadline',
-  match: 'Match Score',
-  apply: 'Start Draft',
+  region: 'Region',
+  record: 'Record',
+  mockRecord: 'Indexed · mock',
+  apiRecord: 'API response',
+  apply: 'Help me apply',
+} as const;
+
+// Verbatim V7.2 DashboardContainer labels. Bell/filter remain declared inert.
+export const DASHBOARD_COPY = {
+  notifications: 'Notifications',
+  filter: 'Filter grants',
+  newApplication: 'New application',
+  recommended: 'Recommended opportunities',
+  search: 'Search grants',
+  liveMatching: 'Live matching',
+  showAll: 'Show all',
+} as const;
+
+export const DRAFTING_COPY = {
+  title: 'Drafting assistant',
+  chips: ['Tighten the mission statement', 'Align budget to funder cap', 'Add evidence references'],
+  welcome: (title: string, funder: string): string =>
+    `Welcome to the drafting assistant. Current file: ${title} (${funder}). Tell me what your project needs to change, and I will keep the narrative aligned to the funder requirements.`,
+} as const;
+export const AUDIT_COPY = {
+  title: 'Audit agent',
+  chips: ['Verify budget math', 'Check eligibility window', 'Confirm evidence references'],
+  welcome:
+    'AUDIT AGENT ONLINE · deterministic pass armed. Ask me to verify budget math, eligibility windows, or evidence references.',
 } as const;

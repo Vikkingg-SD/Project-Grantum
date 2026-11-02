@@ -1,5 +1,22 @@
 # PARITY REGISTER: V7.2 (NEXT.JS) ↔ RN (S4 EXIT)
 
+## S7 implementation — H1
+
+Owner approved S7 and deferred expensive verification after the S6 wait.
+H1-A / 1cf6ba2 passed its staged ESLint/Prettier hooks: Dashboard/Discovery now
+live under src/screens and their routes are pure re-exports. Discovery supports
+server-owned search, region/category filters, reset, details and apply; its old
+placeholder exemption is removed. Opportunity-type filtering is NEW functional
+behavior under the approved S7 specification rather than a false inert control.
+
+H1-B restores P-11/12/16 copy: Dashboard New application, search, Live matching,
+actual queried profile completion and Show all; disabled Notifications/Filter grants
+remain explicit RUL-SSU-05 inert previews. Modal labels match V7.2; API response
+records are identified honestly rather than claiming Indexed · mock in API mode.
+Full viewport/native/copy acceptance and bounty empty-state UI remain pending.
+Shared preview welcome text lives in config/copy.ts to preserve the S6 zero-mock
+import boundary; an unused mock/copy.ts is not created simply to fill a plan row.
+
 ## S6 partial stage exit — 2026-11-02
 
 S6 implementation is LANDED through owner-merged PR #40 / 796e3c1; independent

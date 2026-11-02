@@ -7,6 +7,8 @@ import { StatusBadge } from '../atoms/StatusBadge';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, SPACING } from '@/config/theme';
 import { MODAL_COPY } from '@/config/copy';
+import { ENV } from '@/config/env';
+import { matchTier } from '@/utils/scoring';
 
 export interface GrantDetailModalSheetProps {
   grant: Grant | null;
@@ -29,6 +31,7 @@ export function GrantDetailModalSheet({ grant, onApply }: GrantDetailModalSheetP
         <View style={styles.titleArea}>
           <AppText variant="h2">{grant.title}</AppText>
           <StatusBadge label={grant.funder} variant="neutral" />
+          <StatusBadge label={`${grant.matchPct}% match`} variant={matchTier(grant.matchPct)} />
         </View>
       </View>
 
@@ -52,10 +55,18 @@ export function GrantDetailModalSheet({ grant, onApply }: GrantDetailModalSheetP
           </View>
           <View>
             <AppText variant="caption" color="muted">
-              {MODAL_COPY.match}
+              {MODAL_COPY.region}
             </AppText>
-            <AppText variant="metric-sm" color="verified">
-              {grant.matchPct}%
+            <AppText variant="body" color="main">
+              {grant.region}
+            </AppText>
+          </View>
+          <View>
+            <AppText variant="caption" color="muted">
+              {MODAL_COPY.record}
+            </AppText>
+            <AppText variant="body">
+              {ENV.DATA_SOURCE === 'mock' ? MODAL_COPY.mockRecord : MODAL_COPY.apiRecord}
             </AppText>
           </View>
         </View>

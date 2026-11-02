@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { Bell, Filter } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { ModalSheetLayout } from '@/components/templates/ModalSheetLayout';
 import { AppText } from '@/components/atoms/AppText';
+import { AppButton } from '@/components/atoms/AppButton';
+import { AppInput } from '@/components/atoms/AppInput';
+import { IconButton } from '@/components/atoms/IconButton';
+import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { HeroContinueCard } from '@/components/molecules/HeroContinueCard';
 import { PipelineFunnelBar } from '@/components/organisms/PipelineFunnelBar';
 import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
@@ -13,12 +18,16 @@ import { useGrants } from '@/api/hooks/useGrants';
 import { useDashboardSummary } from '@/api/hooks/useDashboardSummary';
 import { useUIStore } from '@/store/useUIStore';
 import { useDraftStore } from '@/store/useDraftStore';
+import { useTheme } from '@/hooks/useTheme';
 import { SPACING } from '@/config/theme';
+import { DASHBOARD_COPY } from '@/config/copy';
 import type { Grant } from '@/types/grant';
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const grants = useGrants();
+  const theme = useTheme();
+  const [query, setQuery] = useState('');
+  const grants = useGrants(query);
   const summary = useDashboardSummary();
   const setActiveGrantId = useUIStore((state) => state.setActiveGrantId);
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
@@ -49,11 +58,25 @@ export default function DashboardScreen() {
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <View>
-          <AppText variant="display">{'Good morning, ' + summary.data.greetingName + '.'}</AppText>
-          <AppText variant="caption" color="muted">
-            Grantum Autonomous Capital Allocation Terminal
+        <View style={styles.row}>
+          <IconButton
+            label={DASHBOARD_COPY.notifications}
+            disabled
+            onPress={() => undefined}
+            icon={<Bell size={SPACING.lg} color={theme.textMuted} />}
+          />
+          <AppText variant="display" style={styles.flexible}>
+            {'Good morning, ' + summary.data.greetingName + '.'}
           </AppText>
+          <AppButton
+            label={DASHBOARD_COPY.newApplication}
+            variant="primary"
+            onPress={() => {
+              const grantId = active?.grantId ?? grants.data?.[0]?.id;
+              if (grantId) openDraft(grantId);
+              else router.push('/(tabs)/discovery');
+            }}
+          />
         </View>
         {active ? (
           <HeroContinueCard
@@ -68,19 +91,41 @@ export default function DashboardScreen() {
           />
         )}
         <PipelineFunnelBar stages={summary.data.pipeline} />
-        <AppText variant="h2">Recommended Opportunities</AppText>
-        {grants.data?.length ? (
-          <GrantDiscoveryGrid
-            grants={grants.data}
-            onSelect={setSelectedGrant}
-            onApply={(grant) => openDraft(grant.id)}
+        <View style={styles.row}>
+          <IconButton
+            label={DASHBOARD_COPY.filter}
+            disabled
+            onPress={() => undefined}
+            icon={<Filter size={SPACING.lg} color={theme.textMuted} />}
           />
-        ) : (
-          <EmptyStateLayout
-            title="No opportunities found"
-            description="There are no matching opportunities available."
+          <AppText variant="h2" style={styles.flexible}>
+            {DASHBOARD_COPY.recommended}
+          </AppText>
+        </View>
+        <AppInput
+          accessibilityLabel={DASHBOARD_COPY.search}
+          placeholder={DASHBOARD_COPY.search}
+          value={query}
+          onChangeText={setQuery}
+          returnKeyType="search"
+        />
+        <View style={styles.row}>
+          <StatusBadge label={DASHBOARD_COPY.liveMatching} variant="brand" />
+          <StatusBadge
+            label={'Project profile ' + summary.data.profileCompletionPct + '% done'}
+            variant="pending"
           />
-        )}
+          <AppButton
+            label={DASHBOARD_COPY.showAll}
+            variant="ghost"
+            onPress={() => router.push('/(tabs)/discovery')}
+          />
+        </View>
+        <GrantDiscoveryGrid
+          grants={grants.data ?? []}
+          onSelect={setSelectedGrant}
+          onApply={(grant) => openDraft(grant.id)}
+        />
       </View>
       <ModalSheetLayout
         visible={Boolean(selectedGrant)}
@@ -92,4 +137,8 @@ export default function DashboardScreen() {
     </ScreenContainer>
   );
 }
-const styles = StyleSheet.create({ content: { gap: SPACING.lg } });
+const styles = StyleSheet.create({
+  content: { gap: SPACING.lg },
+  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.sm },
+  flexible: { flexShrink: 1, minWidth: 0 },
+});
