@@ -1,5 +1,48 @@
 # S6 action ledger — 2026-11-02
 
+## Closure sitting — verified merge and owner disposition
+
+Final superseding instruction: "no, the wait is too long and expensive. if pnpm
+gate and linter passed then the build is fine. mark S6 closed, excessive tests
+later. start S7, I approve of all changes, lets go." S6 is CLOSED BY EXPLICIT OWNER
+EXCEPTION. A fresh log read shows typecheck and ESLint completed and the gate
+advanced to prettier --check; no full-gate PASS is claimed. The strict comparison
+passed 0/25/3/0. The long wait and remaining API/device checks are deferred by the
+owner; existing gate code and checks remain unchanged. The concrete S7 spec is
+approved, including its listed files and completed-exemption removals. Its start
+supersedes the earlier S6-first pause. No S7 implementation result is asserted here.
+
+Boot anchor: clean feature checkout f15b19f; fetch established origin/main at
+796e3c14a1cf9d045bb12cc5d6ee97e0183b37e9. GitHub API confirms PR #40 was
+owner-squash-merged at 2026-11-01T21:06:57Z (2026-11-02 02:06:57 Asia/Qyzylorda).
+The final PR head was 4650aa31db1ed6cd0d802e87fc443475efd7055e. Its Strict Gate
+run 41347627949 succeeded; merged-main push run 41350310427 also succeeded.
+The merged source and verifier trees match f15b19f; only two blank parity-register
+lines differ. Closure work uses codex/s6-closure-20261102 from verified merged main.
+No merge was performed by the agent.
+
+Owner observation this sitting: "SDK 57, it builds but with a lot of UI bugs.
+UI polishing later. must close S6-10 for now." Clarification: "Implement the
+remaining S6–S10 work; defer UI polishing." Subsequent sitting decision:
+"Keep the ordinary sitting cap; complete S6 first." S7's concrete specification
+is prepared for review, not approved or implemented in this sitting. Native release
+identity/publication is deferred; local S10 release checks remain future work.
+
+This accepts a build observation and defers UI polish. It does not supply Android
+OS/Expo Go app versions, per-item phone interaction results, native secure-storage
+proof or permission to mark unperformed checks PASS. S6 partial closure retains
+those named acceptance items. The earlier S5 build-only exception is not reused.
+
+Previous-pack provenance was checked against the designated approved implementation
+anchor 9098f7a260e827f0de44d41885e946e75d3f9a1a: all 92 app/src/scripts source files
+match repomix-output-S5-candidate.xml after CRLF/final-newline normalization only.
+Pack SHA256: 94848eb1f8ec3e7feb3bcf1c6d97d592883c74d5737cf14a43f1139f19752a04.
+This establishes source equivalence rather than substituting S4 or relying on a
+candidate filename. V7.2 conceptual reference SHA256 was independently rechecked:
+204132358cc94da9520e9c6a6360743507de29ff4de7b998aa0aee972f33b35c.
+
+Closure verification and resulting disposition are recorded in s6-closure.md.
+
 Owner scope: complete S6/WP-G and fix the five supplied native screenshots in
 C:/grantum-r-n. V7.2 is the conceptual product reference. The approved merged build
 at PR #38 / 9098f7a is the implementation baseline; carried closure documentation is
