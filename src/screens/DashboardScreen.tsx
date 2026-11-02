@@ -27,7 +27,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const theme = useTheme();
   const [query, setQuery] = useState('');
-  const grants = useGrants(query);
+  const grants = useGrants();
   const summary = useDashboardSummary();
   const setActiveGrantId = useUIStore((state) => state.setActiveGrantId);
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
@@ -55,6 +55,9 @@ export default function DashboardScreen() {
     );
   }
   const active = summary.data.activeDraft;
+  const filtered = (grants.data ?? []).filter((grant) =>
+    `${grant.title} ${grant.funder}`.toLowerCase().includes(query.toLowerCase())
+  );
   return (
     <ScreenContainer>
       <View style={styles.content}>
@@ -122,7 +125,7 @@ export default function DashboardScreen() {
           />
         </View>
         <GrantDiscoveryGrid
-          grants={grants.data ?? []}
+          grants={filtered}
           onSelect={setSelectedGrant}
           onApply={(grant) => openDraft(grant.id)}
         />
