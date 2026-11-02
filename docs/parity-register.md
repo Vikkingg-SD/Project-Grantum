@@ -1,5 +1,31 @@
 # PARITY REGISTER: V7.2 (NEXT.JS) ↔ RN (S4 EXIT)
 
+## S7 current candidate — 2026-11-02
+
+S7 is implemented on the feature branch; acceptance remains OPEN. The owner
+approved S7 after explicitly closing S6 and deferred excessive testing/UI polish.
+Eight routes now re-export screens; the ninth planned AuthGateScreen remains
+unregistered under its standing deferral. Existing API contracts and state ownership
+remain intact. The rows below supersede H1's intermediate pending descriptions.
+
+| Rows                      | Current disposition        | Boundary                                                                                                                                |
+| ------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| P-09 / P-17               | IMPLEMENTED                | Themed 404 recovery, real discovery search/filters/reset/details/apply; native acceptance deferred                                      |
+| P-11 / P-12 / P-16        | KEPT / REMODELED           | Reference Dashboard/modal labels, real queried data; bell/filter explicitly disabled; API records labelled honestly                     |
+| P-15                      | REMODELED                  | Reference bounty empty-state copy with actual DataSource submission; mock queue acknowledgements labelled preview                       |
+| P-18 / P-19 / P-20 / P-21 | REMODELED                  | Shared welcome copy is a labelled local preview; actual Query mutations/scans remain authoritative; no reply theater                    |
+| P-22 / P-23 / P-24 / P-25 | REMODELED                  | Four blurbs, selected-format/editor/threshold states, actual export response/download; humanizer disabled and fake verification removed |
+| P-26                      | REMODELED                  | Authoritative award/events and actual counts; no invented award, immutable trail or audit export                                        |
+| P-39                      | DISPOSED IN IMPLEMENTATION | RUL-SSU-05 bell/filter/humanizer are visibly disabled; no fake social/auth flow exposed                                                 |
+| Onboarding                | KEPT / REMODELED           | Three reference slides, direct Router handoff using actual queried grant; no mock import into screen                                    |
+
+Full copy/seed acceptance, independent CI, API render and native/visual validation
+remain pending. Auth gating, route flip, global polish and release work are not
+closed by this implementation card. See s7-closure.md and action-ledger-s7.md.
+Final typecheck passed; strict preflight is 0 FAIL / 17 WARN / 4 INFO / 0 SKIPPED,
+zero active exemptions. Warning ceiling is tightened 25 to 17. No full S7 gate or
+native/API render PASS is inferred from those checks.
+
 ## S7 implementation — H1
 
 Owner approved S7 and deferred expensive verification after the S6 wait.

@@ -1,5 +1,5 @@
 {
-  "warnBaseline": 25,
-  "setAtStage": "S6-partial-closure",
-  "note": "B-6.6 downward closure ratchet, 2026-11-02: 58 to measured 25. Merged S6 source passed PR and main CI; this sitting's strict preflight measured 0 FAIL / 25 WARN / 0 SKIPPED, and the approved PR #38 source-equivalent S5 pack comparison measured the same with no export loss/regression. Final full-gate outcome is reported separately. This ceiling does not certify UI, physical-device interactions, native token storage or API Dashboard rendering. Raise only by owner ruling."
+  "warnBaseline": 17,
+  "setAtStage": "S7-candidate",
+  "note": "Owner-approved downward ratchet, 2026-11-02: S6 25 to S7 measured 17. Strict preflight passed FAIL 0 / WARN 17 / INFO 4 / SKIPPED 0 with zero active exemptions; all nine planned screen modules exist. Typecheck passed. Staged lint/format hooks remain active. Full behavioral, browser/device and API-render acceptance is deferred by owner instruction, not certified by this ceiling. Raise only by owner ruling."
 }
