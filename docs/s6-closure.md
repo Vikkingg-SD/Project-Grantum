@@ -1,8 +1,54 @@
 # S6 implementation and acceptance card — 2026-11-02
 
-Status: implementation complete; acceptance OPEN. This is not a CLOSED-FULL or
-native visual PASS declaration. S5 remains CLOSED-FULL by the owner's earlier
-build-only exception; no new S6 exception has been assumed.
+Status: CLOSED BY EXPLICIT OWNER EXCEPTION; implementation LANDED. Unfinished
+local checks and native/API-render acceptance are deferred, not marked PASS.
+This is not a native visual PASS or release-readiness declaration.
+The owner confirmed SDK 57 builds with many UI bugs and deferred UI polishing.
+S5's earlier build-only exception has not been reused to assert S6 acceptance.
+
+## Closure sitting disposition
+
+Final owner instruction: "no, the wait is too long and expensive. if pnpm gate
+and linter passed then the build is fine. mark S6 closed, excessive tests later.
+start S7, I approve of all changes, lets go."
+
+This explicitly closes S6 and authorizes the concrete S7 specification. At the
+fresh observed local state, typecheck, ESLint and strict export comparison had
+passed; the gate had advanced to prettier --check but had not returned success.
+The owner stopped that wait. No full-gate PASS is inferred from the conditional
+phrase above. This exception defers the unfinished checks and permits S7 to start;
+it does not weaken any checked-in gate, exemption or verifier. UI polish remains
+deferred and native release identity/publication remains deferred.
+
+The owner clarified the wider S6–S10 request as implementation with UI polishing
+deferred, then selected: "Keep the ordinary sitting cap; complete S6 first."
+That earlier cap decision was superseded by the final explicit S7 start/approval
+above. Native release identity/publication is deferred; local S10 release checks
+remain future work.
+
+PR #40 is owner-merged at 796e3c14a1cf9d045bb12cc5d6ee97e0183b37e9.
+Independent Strict Gate run 41347627949 and merged-main push run 41350310427
+both succeeded. The final PR head was 4650aa31db1ed6cd0d802e87fc443475efd7055e.
+The merged application/verifier source matches the previously handed-off source;
+the only whole-tree difference from f15b19f is two blank parity-register lines.
+The agent did not merge. Closure documentation uses codex/s6-closure-20261102.
+
+This sitting's strict preflight measured FAIL 0 / WARN 25 / INFO 4 / SKIPPED 0.
+The closure comparison measured FAIL 0 / WARN 25 / INFO 3 / SKIPPED 0, with no
+EXPORT-LOST or EXPORT-REGRESSION. Its input is the S5 candidate pack whose 92
+app/src/scripts source files were instrument-compared to approved PR #38's
+9098f7a build: all match after CRLF/final-newline normalization only. SHA256:
+94848eb1f8ec3e7feb3bcf1c6d97d592883c74d5737cf14a43f1139f19752a04.
+S4 was not substituted. The downward warning ratchet is 58 to 25 (B-6.6).
+
+The full local gate and API-mode render probe have separate evidence artifacts
+in this sitting's handoff. A running or failed check is never inferred PASS from
+the older 181-case result below. The API probe uses a real ephemeral loopback
+HTTP fixture with in-memory state, reset on process restart and finally cleanup
+of its browser, Metro and server. Two startup attempts timed out before Metro
+readiness; no successful Dashboard UI render is claimed from those attempts.
+
+## Previously delivered implementation and evidence
 
 Owner authority: complete planned S6, fix the supplied screen bugs, five files per
 batch, pnpm gate after each, at most three PRs, native app focus and no excessive
@@ -40,7 +86,7 @@ Evidence before the documentation batch:
 - Five-file source/commit boundaries restored before publishing after a local
   hook-sequencing error; full details in action-ledger-s6.md. Hooks remained active.
 
-Outstanding acceptance:
+Named pending acceptance and follow-up ownership:
 
 1. Physical Samsung A55: all six native tab labels and five supplied views, both
    themes, larger text, scrolling and primary actions.
@@ -49,16 +95,29 @@ Outstanding acceptance:
 3. Actual API-mode Dashboard UI rendering against a fixture/deployed backend. The
    current fixture verifies the adapter and Query mutation options, not this UI
    criterion. No production backend address or credentials were invented.
-4. Owner PR review/merge and independent CI. No merge or CI outcome is fabricated;
-   old merged-main CI remains unverified under the owner's instruction.
-5. Closure pack/export coverage against the owner-designated approved build when
-   final acceptance is closed. No S4 pack or pre-closure candidate was substituted.
+4. Product PR review/merge and independent CI: discharged by the same-session
+   GitHub API evidence above. The closure documentation PR still requires owner
+   review/merge; no agent merge or automatic merge is authorized.
+5. Export coverage against the approved PR #38 build: discharged by the verified
+   source-equivalent S5 pack and strict comparison above. The final closure source
+   inventory/pack and full local gate outcome travel in the sitting's handoff.
+
+Items 1–2 (UI/device behavior, native token storage, IME/Back/recovery/accessibility)
+are deferred to the next device-validation/visual sitting before S9 acceptance or
+S10 release. Item 3 (API-mode Dashboard UI render) remains an S6 acceptance debt
+until actual render evidence exists; client/contract tests do not discharge it.
+No production deployment, APK installation or release readiness is asserted.
 
 Retained later work: S7 extraction and full seed/copy parity, S8 routing, S9 global
 visual/accessibility review, AD-61 and other documented earlier-stage debt. The
-warning ceiling remains 58; measured warnings are 25. No exemptions, baselines,
+warning ceiling is tightened from 58 to 25; measured warnings are 25. No exemptions,
 preflight rules, CI, hooks, theme values or existing verifier cases were weakened.
 
 Rollback: preserve the feature branch and use a corrective feature PR from the
 approved anchor; never reset main, force push or merge automatically. Final stop
-after the required documentation gate and review handoff; no post-push checks.
+after the required documentation gate and review handoff. Rollback of this closure
+record is a corrective feature PR; no reset, force push or branch deletion.
+
+Retrospective: a build and a service-contract fixture prove different boundaries;
+recording those boundaries explicitly prevents later stages inheriting a false
+device, API-render or visual acceptance claim.

@@ -1,5 +1,31 @@
 # PARITY REGISTER: V7.2 (NEXT.JS) ↔ RN (S4 EXIT)
 
+## S6 partial stage exit — 2026-11-02
+
+S6 implementation is LANDED through owner-merged PR #40 / 796e3c1; independent
+PR Strict Gate 41347627949 and main push gate 41350310427 both succeeded. The
+owner confirms SDK 57 builds but reports many UI bugs and defers polishing.
+Final disposition: S6 CLOSED BY EXPLICIT OWNER EXCEPTION after the owner stopped
+the prolonged local gate and approved S7. Typecheck, lint and export comparison
+passed; the full local gate did not return PASS. Remaining checks,
+API Dashboard rendering and native acceptance remain deferred, not certified.
+
+The implementation dispositions in the next table now describe merged source.
+WP-G/AD-10/AD-13/AD-30 client work is implemented: Query ownership, HTTP/API mode,
+14 endpoint contracts, secure-storage integration and reader/removal env cleanup.
+Runtime native secure-storage behavior is still unverified. P-03/05/14/18–26/36
+and the new theme-control implementation retain physical acceptance and full S7
+copy/seed or S9 visual/accessibility obligations as appropriate. UI debt is deferred
+by the current owner instruction, not converted to KEPT/PASS.
+
+The verified approved-PR-#38 source-equivalent S5 pack comparison passed
+0 FAIL / 25 WARN / 3 INFO / 0 SKIPPED without export loss/regression. The closure
+warning ceiling is tightened 58 to 25. Actual API Dashboard rendering remains an
+S6 acceptance debt until observed; timed-out Metro startup is not render proof.
+S7–S10 implementation is not closed by this row. The final owner instruction
+superseded the earlier S6-first pause and explicitly approved starting S7.
+See s6-closure.md and action-ledger-s6.md.
+
 The dated tables below remain historical. The owner's current direction makes
 V7.2 the conceptual product reference and approved merged PR #38 / 9098f7a the
 implementation comparison point, with closure records carried from 8382abd. S4 is

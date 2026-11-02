@@ -1,5 +1,5 @@
 {
-  "warnBaseline": 58,
-  "setAtStage": "S5-F2-candidate",
-  "note": "Owner approved revised F2-C and lower ceiling on 2026-11-02. Measured 58 after F2-B (previous ceiling 63): ScreenContainer and grant modal STORE-WHOLE removed, plus three S5 planned files supplied. Full gate and designated S4 previous-pack comparison passed. This ratchet does not declare S5 closed; native acceptance and owner merge remain required. Raise only by ruling."
+  "warnBaseline": 25,
+  "setAtStage": "S6-partial-closure",
+  "note": "B-6.6 downward closure ratchet, 2026-11-02: 58 to measured 25. Merged S6 source passed PR and main CI; this sitting's strict preflight measured 0 FAIL / 25 WARN / 0 SKIPPED, and the approved PR #38 source-equivalent S5 pack comparison measured the same with no export loss/regression. Final full-gate outcome is reported separately. This ceiling does not certify UI, physical-device interactions, native token storage or API Dashboard rendering. Raise only by owner ruling."
 }
