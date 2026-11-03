@@ -6,7 +6,6 @@ import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
 import { useGrants } from '@/api/hooks/useGrants';
-import { useUIStore } from '@/store/useUIStore';
 import { useDraftStore } from '@/store/useDraftStore';
 import { SPACING } from '@/config/theme';
 
@@ -36,7 +35,6 @@ export default function OnboardingScreen() {
   const [index, setIndex] = useState(0);
   const router = useRouter();
   const grants = useGrants();
-  const setActiveGrantId = useUIStore((state) => state.setActiveGrantId);
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
   const slide = slides[index];
   const final = index === slides.length - 1;
@@ -68,10 +66,12 @@ export default function OnboardingScreen() {
               }
               const grant = grants.data?.[0];
               if (!grant) return;
-              setActiveGrantId(grant.id);
               ensureDraft(grant.id);
               // Onboarding navigates directly, outside instrument history/context.
-              router.push('/(tabs)');
+              router.push({
+                pathname: '/grants/[grantID]/dashboard',
+                params: { grantID: grant.id },
+              });
             }}
           />
         </View>

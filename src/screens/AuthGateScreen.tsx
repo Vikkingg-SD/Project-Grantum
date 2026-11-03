@@ -13,7 +13,7 @@ export default function AuthGateScreen() {
         title="Authentication deferred"
         description="Authentication is not available in this preview."
         ctaLabel="Back to dashboard"
-        onCtaPress={() => router.replace('/(tabs)')}
+        onCtaPress={() => router.replace('/dashboard')}
       />
     </ScreenContainer>
   );

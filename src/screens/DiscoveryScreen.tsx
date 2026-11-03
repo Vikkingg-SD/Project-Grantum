@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { View, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { ModalSheetLayout } from '@/components/templates/ModalSheetLayout';
@@ -18,14 +18,13 @@ import { ENV } from '@/config/env';
 import { MAX_INPUT_CHARS } from '@/config/constants';
 import type { BountyInput } from '@/types/api';
 import { useDashboardSummary } from '@/api/hooks/useDashboardSummary';
-import { useUIStore } from '@/store/useUIStore';
 import { useDraftStore } from '@/store/useDraftStore';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { SPACING } from '@/config/theme';
 import type { Grant } from '@/types/grant';
 
 export default function DiscoveryScreen() {
-  const router = useRouter();
+  const navigation = useAppNavigation();
   const wide = useBreakpoint() !== 'mobile';
   const [query, setQuery] = useState('');
   const [regions, setRegions] = useState<string[]>([]);
@@ -40,15 +39,13 @@ export default function DiscoveryScreen() {
     bounty.variables?.title === bountyTitle.trim() && bounty.variables.note === bountyNote;
   const grants = useGrants({ q: query, region: regions, category: categories });
   const summary = useDashboardSummary();
-  const setActiveGrantId = useUIStore((state) => state.setActiveGrantId);
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
   const toggle = (items: string[], value: string) =>
     items.includes(value) ? items.filter((item) => item !== value) : [...items, value];
   const openDraft = (grant: Grant) => {
-    setActiveGrantId(grant.id);
     ensureDraft(grant.id);
     setSelectedGrant(null);
-    router.push('/(tabs)/drafting');
+    navigation.navigateTo('drafting', grant.id);
   };
   return (
     <ScreenContainer>
