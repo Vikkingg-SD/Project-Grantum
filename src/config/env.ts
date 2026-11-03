@@ -18,3 +18,8 @@ export const ENV = {
   DATA_SOURCE: dataMode,
   MOCK_LATENCY_MS: positiveNumber(process.env.EXPO_PUBLIC_MOCK_LATENCY_MS, 350, true),
 } as const;
+
+// Infrastructure gate selection shares the single environment-read boundary.
+export const IS_CI = Boolean(
+  process.env.CI && !['false', '0'].includes(process.env.CI.toLowerCase())
+);
