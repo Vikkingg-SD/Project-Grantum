@@ -204,3 +204,27 @@ The worktree reused the installed dependencies through a junction. pnpm's
 automatic pre-script install warned that the hoist directory was not a real
 directory, then continued with the complete gate against the existing unchanged
 package/lockfile installation. No install success is inferred from this receipt.
+
+### Visible route-text lookup — 2026-11-03
+
+Independent CI run 41676339489 at 003442c confirms the host/offline launch
+repair: Metro starts; cold grant-2 drafting, reload and Dashboard/Discovery
+navigation pass. All 52 contracts and 20 recovery cases pass again. The route
+suite then times out because the text helper selects the first matching node
+before waiting for visibility; the log repeatedly identifies a hidden retained
+Drafting message. That run remains FAILED, not a full route PASS.
+
+The bounded follow-up filters matching text by visibility before selecting the
+first node. The same required text, 20s deadline, URL/selected-tab checks and all
+route cases remain. An absent active matching text still fails. This corrects
+target selection rather than hiding a missing-content result. Installed
+Playwright 1.64 supports the visibility filter. Predicted local WARN remains 14;
+only `pnpm gate` validates locally, while unchanged CI exercises the browser path.
+
+The follow-up local gate exited 0: preflight 0/14/2/0, zero exemptions,
+118 zero-warning lint files and all existing scoring/drafts/theme/composer/
+preflight/token/contract/static-route cases passed. The dependency-junction
+pre-script warning described above recurred; the full gate itself completed.
+Independent source review confirms retained inactive Expo Router web screens
+use display:none and aria-hidden. The filter addresses that expected retention,
+not an application workaround; CI remains the independent behavioral check.

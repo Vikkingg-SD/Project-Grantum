@@ -143,7 +143,11 @@ try {
     if (message.type() === 'error') diagnostics.push(message.text());
   });
   const visible = (text) =>
-    page.getByText(text, { exact: false }).first().waitFor({ state: 'visible', timeout: 20000 });
+    page
+      .getByText(text, { exact: false })
+      .filter({ visible: true })
+      .first()
+      .waitFor({ state: 'visible', timeout: 20000 });
   const url = (grant, leaf) => `${origin}/grants/${encodeURIComponent(grant)}/${leaf}`;
 
   await check('cold grant-2 drafting resolves without a prior selection', async () => {
