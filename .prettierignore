@@ -5,3 +5,4 @@ web-build/
 assets/
 pnpm-lock.yaml
 expo-env.d.ts
+.agents/
