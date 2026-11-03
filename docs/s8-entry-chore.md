@@ -41,8 +41,9 @@ References: https://metrobundler.dev/docs/configuration/#maxworkers and
 https://docs.expo.dev/guides/customizing-metro/ . Measure before claiming improvement.
 
 Constitution B-5.13 keeps this configuration prerequisite in a separate chore
-commit, counted within the owner's ten-commit ceiling, before the WP-I rollback
-tag and product commits. Full entry evidence must identify the corrected config;
+commit, counted within the owner's ten-commit ceiling, before the product commits.
+The immutable rollback tag records the original S7 tree before the route flip.
+Full entry evidence must identify the corrected config;
 the original 187a308 repository tree is not retrospectively labelled green.
 The owner-designated S7 app/src export snapshot remains derived from its original
 Git blobs, with the prerequisite config change and actual gate result recorded
