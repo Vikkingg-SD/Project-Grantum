@@ -9,7 +9,7 @@ import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { useProposalDraft } from '@/api/hooks/useProposalDraft';
 import { useExportBundle } from '@/api/hooks/useExportBundle';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
-import { useUIStore } from '@/store/useUIStore';
+import { useActiveGrantId } from '@/hooks/useActiveGrantId';
 import { MAX_INPUT_CHARS, TIERS } from '@/config/constants';
 import { EXPORT_FORMATS } from '@/config/exportFormats';
 import { SPACING } from '@/config/theme';
@@ -17,7 +17,7 @@ import { isExportUnlocked } from '@/utils/scoring';
 import type { ExportFormat } from '@/types/api';
 
 export default function ExportScreen() {
-  const grantId = useUIStore((state) => state.activeGrantId);
+  const grantId = useActiveGrantId();
   return <ExportSession key={grantId} grantId={grantId} />;
 }
 
