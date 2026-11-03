@@ -229,3 +229,26 @@ S4 component copy and platform translations (Enter/IME, checkable filters, wrapp
 chat geometry) are recorded in the closure card. All seven molecules are refreshed; screen-owned
 copy, glow, remaining accessibility and global visual work retain their stage ownership.
 There is no new product-level exemption, backend feature or silent parity drop.
+
+## S9 source disposition — 2026-11-03
+
+WP-J closes the source gaps in P-03 (interactive dashboard wordmark, immediate
+top navigation; Forward already disposed), P-13/P-34 (static token-based badge,
+primary/selected export action and hero glow), P-30/36 (semantic foregrounds,
+input strokes, text scaling, named busy controls and IME-aware Escape). Native
+boxShadow/text shadow and native-driver progress replace browser CSS mechanisms;
+no web-only behavior is silently dropped. See s9-platform-audit.md's B-10.21
+table and source findings. Earlier MISSING/partial inventory cells are historical,
+superseded for these source implementations by this dated disposition.
+
+SiteFooter copy is integrated on onboarding and the explicitly deferred auth
+shell; its mock-only claim is conditional on data-source mode. Modal focus and
+close-first behavior use the existing native/RN Web mechanism. Authentication,
+draft persistence and P-37 production metadata/security retain their named
+S10/ruling deferrals. Continuation corrections also cover P-30 gauge foreground,
+P-33 portable Animated.Value progress/wrapping labels, P-35 named 44pt switch, and P-36
+format-selection state, composer border, input names and readable timestamps.
+Code batches passed the local gate at WARN 11 then WARN 10, zero failures/skipped
+checks/exemptions, unchanged ceiling 17. Source completion never promotes
+visual/device or live-backend acceptance to PASS. The final gate/publication
+receipt follows in the S9 ledger; full acceptance is OPEN in s9-closure.md.

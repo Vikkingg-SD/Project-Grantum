@@ -27,11 +27,13 @@ export function AppTextArea({ label, charLimit, value, style, ...props }: AppTex
           styles.textWrapper,
           {
             backgroundColor: theme.surface,
-            borderColor: isOver ? theme.failure : theme.border,
+            borderColor: isOver ? theme.failureText : theme.inputBorder,
           },
         ]}
       >
         <TextInput
+          accessibilityLabel={label}
+          aria-invalid={isOver}
           multiline
           textAlignVertical="top"
           placeholderTextColor={theme.textMuted}
@@ -45,7 +47,7 @@ export function AppTextArea({ label, charLimit, value, style, ...props }: AppTex
         <AppText
           variant="caption"
           align="right"
-          color={isOver ? 'failure' : 'muted'}
+          color={isOver ? 'failureText' : 'muted'}
           style={styles.counter}
         >
           {count}/{charLimit}

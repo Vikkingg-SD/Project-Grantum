@@ -17,7 +17,7 @@ const GAUGE_RADIUS = 50;
 const GAUGE_CIRCUMFERENCE = 2 * Math.PI * GAUGE_RADIUS;
 
 export function MetricGauge({ value, tier, label = 'confidence', size = 128 }: MetricGaugeProps) {
-  const { mode } = useThemeStore();
+  const mode = useThemeStore((state) => state.mode);
   const theme = PALETTE[mode];
   const clamped = Math.max(0, Math.min(100, value));
   const strokeDashoffset = GAUGE_CIRCUMFERENCE * (1 - clamped / 100);
@@ -53,7 +53,7 @@ export function MetricGauge({ value, tier, label = 'confidence', size = 128 }: M
         />
       </Svg>
       <View style={styles.textContainer}>
-        <AppText variant="metric-lg" style={{ color: getTierColor() }}>
+        <AppText variant="metric-lg" color={tier}>
           {clamped}
         </AppText>
         {label && (

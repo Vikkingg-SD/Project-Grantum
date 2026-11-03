@@ -1,8 +1,16 @@
 import React from 'react';
-import { Pressable, StyleSheet, ActivityIndicator, ViewStyle, StyleProp } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  ActivityIndicator,
+  Platform,
+  ViewStyle,
+  StyleProp,
+} from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
+import { platformShadow } from '@/utils/platformShadow';
 
 export interface AppButtonProps {
   label: string;
@@ -11,6 +19,7 @@ export interface AppButtonProps {
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   disabled?: boolean;
+  selected?: boolean;
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   style?: StyleProp<ViewStyle>;
@@ -23,6 +32,7 @@ export function AppButton({
   size = 'md',
   isLoading = false,
   disabled = false,
+  selected,
   icon,
   iconPosition = 'left',
   style,
@@ -68,7 +78,6 @@ export function AppButton({
 
   const getTextColor = (): 'main' | 'muted' | 'primary' | 'primaryForeground' | 'failureText' => {
     if (variant === 'primary') return 'primaryForeground';
-    if (variant === 'danger') return 'failureText';
     if (variant === 'ghost') return 'muted';
     return 'main';
   };
@@ -76,13 +85,17 @@ export function AppButton({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: disabled || isLoading, busy: isLoading }}
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: disabled || isLoading, busy: isLoading, selected }}
+      aria-busy={isLoading}
+      aria-pressed={Platform.OS === 'web' ? selected : undefined}
       onPress={onPress}
       disabled={disabled || isLoading}
       style={({ pressed }) => [
         styles.base,
         styles[size],
         getVariantStyle(pressed),
+        !disabled && !isLoading && variant === 'primary' && platformShadow(mode, 'primary'),
         (disabled || isLoading) && styles.disabled,
         style,
       ]}
@@ -90,7 +103,13 @@ export function AppButton({
       {isLoading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'primary' ? theme.primaryForeground : theme.textMain}
+          color={
+            variant === 'primary'
+              ? theme.primaryForeground
+              : variant === 'danger'
+                ? theme.failureForeground
+                : theme.textMain
+          }
         />
       ) : (
         <>
@@ -99,6 +118,7 @@ export function AppButton({
             variant={size === 'sm' ? 'caption' : 'label'}
             style={[
               styles.label,
+              variant === 'danger' && { color: theme.failureForeground },
               icon ? (iconPosition === 'left' ? styles.iconRight : styles.iconLeft) : null,
             ]}
             color={getTextColor()}

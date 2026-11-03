@@ -33,14 +33,14 @@ export function AppText({
   const colorStyles = {
     main: theme.textMain,
     muted: theme.textMuted,
-    primary: theme.primary,
+    primary: theme.primaryText,
     primaryForeground: theme.primaryForeground,
-    verified: theme.verified,
-    pending: theme.pending,
-    failure: theme.failure,
+    verified: theme.verifiedText,
+    pending: theme.pendingText,
+    failure: theme.failureText,
     failureText: theme.failureText,
-    gold: theme.gold,
-    mint: theme.mint,
+    gold: theme.goldText,
+    mint: theme.verifiedText,
   };
 
   const isHeader =
@@ -49,7 +49,6 @@ export function AppText({
   return (
     <Text
       accessibilityRole={isHeader ? 'header' : undefined}
-      maxFontSizeMultiplier={1.4}
       style={[TYPOGRAPHY[variant], { color: colorStyles[color], textAlign: align }, style]}
       {...props}
     >

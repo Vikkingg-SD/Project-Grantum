@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
+import { SiteFooter } from '@/components/templates/SiteFooter';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
@@ -86,6 +87,7 @@ export default function OnboardingScreen() {
           />
         )}
       </View>
+      <SiteFooter />
     </ScreenContainer>
   );
 }

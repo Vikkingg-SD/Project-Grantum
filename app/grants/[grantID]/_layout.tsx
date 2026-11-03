@@ -9,6 +9,7 @@ import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { AppHeader } from '@/components/templates/AppHeader';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
+import { ROUTE_COPY } from '@/config/copy';
 import {
   TopTabNavigation,
   navigationItemsForGrant,
@@ -41,6 +42,10 @@ export default function GrantLayout() {
         title={items.find((item) => item.name === selectedName)?.label}
         canGoBack={navigation.canGoBack}
         onBack={navigation.goBack}
+        onHome={() => {
+          if (grant.data && !grant.isError) navigation.navigateTo('index');
+          else router.replace('/dashboard');
+        }}
       />
       <TopTabNavigation items={items} selectedName={selectedName} onSelect={onSelect} />
       <View style={{ flex: 1 }}>
@@ -50,9 +55,9 @@ export default function GrantLayout() {
           screenLayout={({ children }) =>
             grant.isPending || grant.isError || !grant.data ? (
               <EmptyStateLayout
-                title={grant.isPending ? 'Calibrating instrument…' : 'Opportunity unavailable'}
-                description={grant.error?.message ?? 'Loading the selected opportunity.'}
-                ctaLabel={grant.isPending ? undefined : 'Back to dashboard'}
+                title={grant.isPending ? ROUTE_COPY.loadingTitle : ROUTE_COPY.unavailableTitle}
+                description={grant.error?.message ?? ROUTE_COPY.loadingGrant}
+                ctaLabel={grant.isPending ? undefined : ROUTE_COPY.backDashboard}
                 onCtaPress={() => router.replace('/dashboard')}
               />
             ) : (
