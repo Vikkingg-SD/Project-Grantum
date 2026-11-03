@@ -1,5 +1,28 @@
 # PARITY REGISTER: V7.2 (NEXT.JS) ↔ RN (S4 EXIT)
 
+## S8 implementation closure — 2026-11-03
+
+The owner instructed: "finish S8, no production build yet, push all changes,
+I approve of changes". WP-I is implemented; production acceptance is explicitly
+deferred. The current evidence and remaining checks are in s8-closure.md and
+action-ledger-s8.md. Historical status tables below retain their original dates.
+
+| Rows / contract             | Disposition                   | S8 behavior and boundary                                                                                                                |
+| --------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| P-01                        | KEPT / REMODELED              | Root opens the existing onboarding slides; completion routes an actual queried grant to its canonical dashboard URL                     |
+| Grant URL contract          | REMODELED                     | Six reference view leaves under /grants/[grantID]; local URL parameter is the only grant identity; seven old tab files retired          |
+| P-04                        | DROPPED-BY-RULING / REMODELED | Custom HISTORY_CAP ring is removed under RUL-SSU-08; Expo Router owns Back and browser Forward                                          |
+| P-05                        | REMODELED                     | Six shared adaptive navigation items preserve the current URL grant, selected state and navigable post-award preview                    |
+| P-03                        | PARTIAL                       | Existing header Back uses Router; global chrome/web accessibility completeness remains with S9                                          |
+| P-08                        | KEPT / REMODELED              | Root/layout/screen boundary interfaces and probes retained; recovery test URLs follow the new contract; production recovery is deferred |
+| P-09 / deferred auth return | REMODELED                     | Back to dashboard uses a queried /dashboard entry, not a fixture ID or the root onboarding redirect; auth remains unregistered/deferred |
+
+No fake default ID, duplicate history store, new dependency, production build or
+native acceptance is introduced by this disposition. The original source-export
+comparison's intentional retirements remain visible; no comparison checker or
+warning ceiling is weakened. Current non-production results are recorded before
+publication; this section does not inherit earlier green results as S8 evidence.
+
 ## S7 current candidate — 2026-11-02
 
 S7 is implemented on the feature branch; acceptance remains OPEN. The owner
