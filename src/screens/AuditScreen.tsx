@@ -12,14 +12,14 @@ import { ChatInputRow } from '@/components/molecules/ChatInputRow';
 import { useProposalDraft } from '@/api/hooks/useProposalDraft';
 import { useAuditStatus, useTriggerAuditScan } from '@/api/hooks/useAuditScan';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
-import { useUIStore } from '@/store/useUIStore';
+import { useActiveGrantId } from '@/hooks/useActiveGrantId';
 import { useTheme } from '@/hooks/useTheme';
 import { RADIUS, SPACING } from '@/config/theme';
 import { AUDIT_COPY } from '@/config/copy';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 
 export default function AuditScreen() {
-  const grantId = useUIStore((state) => state.activeGrantId);
+  const grantId = useActiveGrantId();
   return <AuditSession key={grantId} grantId={grantId} />;
 }
 

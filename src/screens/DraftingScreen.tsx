@@ -10,14 +10,14 @@ import { ChatMessageBubble } from '@/components/molecules/ChatMessageBubble';
 import { ChatInputRow } from '@/components/molecules/ChatInputRow';
 import { useProposalDraft, useMutateProposalSections } from '@/api/hooks/useProposalDraft';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
-import { useUIStore } from '@/store/useUIStore';
+import { useActiveGrantId } from '@/hooks/useActiveGrantId';
 import { useTheme } from '@/hooks/useTheme';
 import { RADIUS, SPACING } from '@/config/theme';
 import { DRAFTING_COPY } from '@/config/copy';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 
 export default function DraftingScreen() {
-  const grantId = useUIStore((state) => state.activeGrantId);
+  const grantId = useActiveGrantId();
   return <DraftingSession key={grantId} grantId={grantId} />;
 }
 
