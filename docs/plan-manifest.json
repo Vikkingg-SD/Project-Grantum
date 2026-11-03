@@ -96,5 +96,6 @@
   "app/grants/[grantID]/export-humanizer.tsx",
   "app/grants/[grantID]/post-award-tracker.tsx",
   "app/grants/[grantID]/_layout.tsx",
-  "app/dashboard.tsx"
+  "app/dashboard.tsx",
+  "src/components/templates/SiteFooter.tsx"
 ]
