@@ -220,7 +220,10 @@ try {
   });
   await check('unknown grant never falls back to another grant', async () => {
     await page.goto(url('missing-grant', 'drafting'));
-    await visible('Instrument fault');
+    await visible('Opportunity unavailable');
+    await expect(
+      page.getByRole('button', { name: 'Back to dashboard', exact: true })
+    ).toBeVisible();
     assert.equal(new URL(page.url()).pathname, '/grants/missing-grant/drafting');
     assert.equal(
       (await page.locator('body').innerText()).includes('Community Health Access'),

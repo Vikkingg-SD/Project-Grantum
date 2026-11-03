@@ -228,3 +228,29 @@ pre-script warning described above recurred; the full gate itself completed.
 Independent source review confirms retained inactive Expo Router web screens
 use display:none and aria-hidden. The filter addresses that expected retention,
 not an application workaround; CI remains the independent behavioral check.
+
+### Adopted unknown-grant guard contract — 2026-11-03
+
+CI 41677543486 at 3427ed7 passes all six tabs, browser history, grant switching,
+index redirect, onboarding, recovery entry and mobile grant identity after the
+visibility repair. Its final unknown-grant case still expects the pre-guard
+screen's generic Instrument fault title, while the adopted shared guard renders
+Opportunity unavailable. S8's specification requires that an unknown URL must
+not show another grant; the guard owns this state before screen mounting.
+
+The owner explicitly instructs updating the S8 branch and reopening PR #42.
+This narrow oracle correction checks the actual adopted unavailable title and
+additionally requires the named Back to dashboard recovery action. The missing
+grant URL, both no-borrowed-grant assertions and final runtime-error assertion
+remain unchanged. This changes no application copy, negative expectation,
+timeout, suite coverage, warning ceiling or exemption. The failed CI remains
+failed in history; no result is relabelled. Predicted local WARN remains 14;
+only pnpm gate is run locally before pushing/reopening the existing PR.
+
+The final guard-contract local gate exited 0: FAIL 0 / WARN 14 / INFO 2 /
+SKIPPED 0, zero exemptions. All 118 zero-warning lint files, formatting/typecheck
+and existing scoring/drafts/theme/composer/preflight/token/contract/static-route
+cases passed. The known worktree-junction pre-script install warning recurred;
+the complete gate itself ran successfully against unchanged installed versions.
+Independent source review confirms this preserves the specified unknown-grant
+contract and adds recovery-action visibility coverage. Normal hooks remain active.
