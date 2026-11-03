@@ -21,6 +21,14 @@ only pnpm gate before publishing the new S9 feature branch/PR. Main push CI is
 not inferred from PR CI. Older pending/reopen/hold statements below are historical.
 S9 rendered/native/live-API acceptance remains unclaimed.
 
+Publication receipt: the independent S8 main-push gate 41683545930 also succeeded
+at c08e7ba. After source-preserving reconciliation, the final S9 pnpm gate exited
+0: FAIL 0 / WARN 10 / INFO 4 / SKIPPED 0, zero exemptions, all 119 lint files
+clean, and the unchanged formatting/typecheck/scoring/drafts/theme/composer/
+preflight/token/contract/static-route chain passed. Only this documentation
+receipt is appended afterward, with normal formatting hooks. The application
+source tree is unchanged. The new S9 PR's independent full gate remains required.
+
 ## Current replacement-branch direction — 2026-11-03
 
 The owner's latest instruction supersedes same-PR publication instructions below:
