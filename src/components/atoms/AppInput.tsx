@@ -26,12 +26,14 @@ export function AppInput({ label, error, icon, style, ...props }: AppInputProps)
           styles.inputWrapper,
           {
             backgroundColor: theme.surface,
-            borderColor: error ? theme.failure : theme.border,
+            borderColor: error ? theme.failureText : theme.inputBorder,
           },
         ]}
       >
         {icon && <View style={styles.iconContainer}>{icon}</View>}
         <TextInput
+          accessibilityLabel={label ?? props.placeholder}
+          aria-invalid={Boolean(error)}
           placeholderTextColor={theme.textMuted}
           style={[
             styles.input,
@@ -43,7 +45,7 @@ export function AppInput({ label, error, icon, style, ...props }: AppInputProps)
         />
       </View>
       {error && (
-        <AppText variant="caption" color="failure" style={styles.error}>
+        <AppText variant="caption" color="failureText" style={styles.error}>
           {error}
         </AppText>
       )}

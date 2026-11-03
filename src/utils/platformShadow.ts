@@ -1,12 +1,27 @@
-import { Platform, ViewStyle } from 'react-native';
+import { Platform, type TextStyle, type ViewStyle } from 'react-native';
 import type { ThemeMode } from '@/types/theme';
-import { SHADOWS } from '@/config/theme';
+import { PALETTE, SHADOWS, withAlpha } from '@/config/theme';
 
-export function platformShadow(mode: ThemeMode): ViewStyle {
+type StatusTone = 'primary' | 'verified' | 'pending' | 'failure' | 'gold';
+
+// SDK 57 / RN 0.86 boxShadow translates the reference's static glow to native
+// and web without a renderer, animation loop, or a second history/state system.
+export function platformShadow(mode: ThemeMode, tone?: StatusTone): ViewStyle {
+  return {
+    boxShadow: tone
+      ? `0 0 ${SHADOWS.status.radius}px ${withAlpha(PALETTE[mode][tone], SHADOWS.status.opacity)}`
+      : SHADOWS[mode],
+  };
+}
+
+export function platformTextGlow(mode: ThemeMode): TextStyle & { textShadow?: string } {
+  const color = withAlpha(PALETTE[mode].primary, SHADOWS.text.opacity);
   if (Platform.OS === 'web') {
-    return { boxShadow: SHADOWS[mode] };
+    return { textShadow: `0 0 ${SHADOWS.text.radius}px ${color}` };
   }
-  // Native shadows require shadowColor/Offset/Opacity/RADIUS.
-  // Web-first parity returns empty for native until a specific native elevation is ruled.
-  return {};
+  return {
+    textShadowColor: color,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: SHADOWS.text.radius,
+  };
 }
