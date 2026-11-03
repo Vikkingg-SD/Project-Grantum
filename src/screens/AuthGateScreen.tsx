@@ -1,6 +1,7 @@
 import React from 'react';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
+import { SiteFooter } from '@/components/templates/SiteFooter';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 
 // RUL-SSU-06: auth gating is deferred. No fake login or session is exposed.
@@ -15,6 +16,7 @@ export default function AuthGateScreen() {
         ctaLabel="Back to dashboard"
         onCtaPress={() => router.replace('/dashboard')}
       />
+      <SiteFooter />
     </ScreenContainer>
   );
 }

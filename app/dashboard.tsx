@@ -3,6 +3,7 @@ import { Redirect } from 'expo-router';
 import { useGrants } from '@/api/hooks/useGrants';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
+import { ROUTE_COPY } from '@/config/copy';
 
 // Recovery links have no grant context; choose only from the queried catalog.
 export default function DashboardEntryRoute() {
@@ -18,18 +19,16 @@ export default function DashboardEntryRoute() {
       <EmptyStateLayout
         title={
           grants.isError
-            ? 'Instrument fault'
+            ? ROUTE_COPY.faultTitle
             : grants.isPending
-              ? 'Calibrating instrument…'
-              : 'No opportunities found'
+              ? ROUTE_COPY.loadingTitle
+              : ROUTE_COPY.emptyTitle
         }
         description={
           grants.error?.message ??
-          (grants.isPending
-            ? 'Loading your opportunities.'
-            : 'There are no matching opportunities available.')
+          (grants.isPending ? ROUTE_COPY.loadingCatalog : ROUTE_COPY.emptyCatalog)
         }
-        ctaLabel={!grants.isPending ? 'Try again' : undefined}
+        ctaLabel={!grants.isPending ? ROUTE_COPY.retry : undefined}
         onCtaPress={() => {
           void grants.refetch();
         }}

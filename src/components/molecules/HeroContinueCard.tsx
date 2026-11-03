@@ -8,6 +8,7 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
 import { HERO_CONTINUE_COPY } from '@/config/copy';
+import { platformShadow, platformTextGlow } from '@/utils/platformShadow';
 
 export type HeroContinueCardProps =
   | {
@@ -37,11 +38,16 @@ export function HeroContinueCard(props: HeroContinueCardProps) {
       style={[
         styles.card,
         wide && styles.cardWide,
+        platformShadow(mode),
         { backgroundColor: theme.surface, borderColor: theme.border },
       ]}
     >
       <View style={[styles.content, wide && styles.contentWide]}>
-        <AppText variant="eyebrow" color={inactive ? 'muted' : 'primary'}>
+        <AppText
+          variant="eyebrow"
+          color={inactive ? 'muted' : 'primary'}
+          style={inactive ? undefined : platformTextGlow(mode)}
+        >
           {inactive ? HERO_CONTINUE_COPY.inactiveEyebrow : HERO_CONTINUE_COPY.activeEyebrow}
         </AppText>
         <AppText variant="h2" color="main" style={styles.title}>
