@@ -10,7 +10,7 @@ import {
   type StyleProp,
   type KeyboardAvoidingViewProps,
 } from 'react-native';
-import { useNavigation } from 'expo-router';
+import { useSegments } from 'expo-router';
 import { useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, SPACING } from '@/config/theme';
@@ -38,17 +38,13 @@ export function ScreenContainer({
   const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const segments = useSegments();
   const { width } = useWindowDimensions();
   const measureRef = useRef<View>(null);
   const [windowY, setWindowY] = useState(0);
-  // Current tab callers already sit between a header and bottom tab bar. Root/gallery
-  // callers own both vertical edges. Explicit edges support other composed containers.
-  const edges =
-    insetEdges ??
-    (navigation.getState()?.type === 'tab'
-      ? ['left', 'right']
-      : ['top', 'right', 'bottom', 'left']);
+  // The grant layout owns safe-area edges around its header and navigation.
+  // Root/gallery callers own their edges; explicit edges support other containers.
+  const edges = insetEdges ?? (segments[0] === 'grants' ? [] : ['top', 'right', 'bottom', 'left']);
   const safeStyle = {
     paddingTop: edges.includes('top') ? insets.top : 0,
     paddingBottom: edges.includes('bottom') ? insets.bottom : 0,
