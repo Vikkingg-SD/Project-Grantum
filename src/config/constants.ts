@@ -14,4 +14,3 @@ export const TIERS = {
 
 export const MAX_INPUT_CHARS = 10_000;
 export const SCAN_SETTLE_MS = 3_000;
-export const HISTORY_CAP = 19;

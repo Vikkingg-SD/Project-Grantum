@@ -277,7 +277,7 @@ test.describe('app recovery:', () => {
     for (const [label, target, repeats, restored] of [
       ['Test screen recovery', 'SCREEN', 1, 'Dev Gallery'],
       ['Test repeated failure', 'SCREEN', 2, 'Dev Gallery'],
-      ['Test root recovery', 'ROOT', 1, 'Good morning, Alex.'],
+      ['Test root recovery', 'ROOT', 1, 'Discover funders that match your project.'],
       ['Test tab recovery', 'TAB', 1, 'Good morning, Alex.'],
     ] as const) {
       test(`${mode} ${target} ${repeats} real throw and retry`, async ({ page }) => {
@@ -323,7 +323,7 @@ test.describe('app recovery:', () => {
               armed = false;
             });
           });
-          await page.goto(releaseOrigin);
+          await page.goto(`${releaseOrigin}/grants/1/dashboard`);
           await expect(
             page.getByText(
               'A rendering error occurred in this view. Reload to restore the instrument.',
@@ -368,7 +368,7 @@ test.describe('app recovery:', () => {
             await page.evaluate(() => document.documentElement.scrollWidth)
           ).toBeLessThanOrEqual(width);
           await page.getByRole('tab', { name: 'Discovery' }).click();
-          await expect(page).toHaveURL(/discovery$/);
+          await expect(page).toHaveURL(/discovery-studio$/);
           expect(diagnostics).toHaveLength(1);
           expect(diagnostics[0].type).toBe('error');
           expect(diagnostics[0].text).toContain('Error: GRANTUM_DOM_SCREEN_FAULT\n');
