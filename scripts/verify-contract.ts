@@ -241,7 +241,9 @@ async function main() {
     const address = server.address();
     if (!address || typeof address === 'string') throw new Error('Fixture failed to bind.');
     origin = 'http://127.0.0.1:' + address.port;
-    const client = createApiClient({ baseUrl: origin, timeoutMs: 2000, getToken: () => token });
+    // Success-path fixtures use the application's default request budget.
+    // The dedicated 20ms timeout/fault assertion below stays unchanged.
+    const client = createApiClient({ baseUrl: origin, timeoutMs: 15000, getToken: () => token });
     const source = createHttpDataSource(client);
     const endpoints: [string, string, string, () => Promise<unknown>][] = [
       ['grants', 'GET', '/api/v1/grants', () => source.getGrants()],
@@ -291,6 +293,7 @@ async function main() {
       ],
     ];
     for (const [name, method, route, run] of endpoints) {
+      console.log('CHECK contract ' + name);
       await run();
       const last = requests[requests.length - 1];
       check('contract ' + name, last.method === method && last.path === route);
