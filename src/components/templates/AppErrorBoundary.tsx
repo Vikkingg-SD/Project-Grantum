@@ -67,19 +67,7 @@ export function AppErrorBoundary({
           <AppText color="muted" accessibilityRole={actionFailed ? 'alert' : undefined}>
             {screen ? ERROR_COPY.screenMessage : ERROR_COPY.routeMessage}
           </AppText>
-          <View
-            accessible={pending !== null}
-            accessibilityRole={pending ? 'button' : undefined}
-            accessibilityLabel={
-              pending === 'retry'
-                ? ERROR_COPY.retry
-                : screen
-                  ? ERROR_COPY.screenReload
-                  : ERROR_COPY.reload
-            }
-            accessibilityState={{ busy: pending !== null, disabled: pending !== null }}
-            style={styles.actions}
-          >
+          <View style={styles.actions}>
             <AppButton
               label={ERROR_COPY.retry}
               variant="outline"

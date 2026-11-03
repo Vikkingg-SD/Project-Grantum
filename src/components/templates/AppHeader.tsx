@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Pressable, StyleSheet, Platform } from 'react-native';
 import { ArrowLeft, Sun, Moon } from 'lucide-react-native';
 import { AppText } from '@/components/atoms/AppText';
 import { IconButton } from '@/components/atoms/IconButton';
 import { useTheme } from '@/hooks/useTheme';
 import { HEADER_COPY } from '@/config/copy';
+import { LAYOUT } from '@/config/layout';
 import { SPACING } from '@/config/theme';
 import { useThemeStore } from '@/store/useThemeStore';
 
@@ -12,12 +13,41 @@ export interface AppHeaderProps {
   title?: string;
   canGoBack: boolean;
   onBack: () => void;
+  onHome: () => void;
 }
 
-export function AppHeader({ title, canGoBack, onBack }: AppHeaderProps) {
+export function AppHeader({ title, canGoBack, onBack, onHome }: AppHeaderProps) {
   const theme = useTheme();
   const mode = useThemeStore((state) => state.mode);
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key !== 'Escape' ||
+        event.defaultPrevented ||
+        event.repeat ||
+        event.isComposing ||
+        event.keyCode === 229
+      )
+        return;
+      // RN Web's Modal owns Escape on keyup and traps/restores focus itself.
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      const focused = document.activeElement;
+      if (
+        focused instanceof HTMLInputElement ||
+        focused instanceof HTMLTextAreaElement ||
+        (focused instanceof HTMLElement && focused.isContentEditable)
+      ) {
+        focused.blur();
+      } else if (canGoBack) {
+        onBack();
+      }
+      event.preventDefault();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [canGoBack, onBack]);
   return (
     <View
       style={[
@@ -31,14 +61,19 @@ export function AppHeader({ title, canGoBack, onBack }: AppHeaderProps) {
         disabled={!canGoBack}
         onPress={onBack}
       />
-      <View style={styles.titles}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={HEADER_COPY.home}
+        onPress={onHome}
+        style={({ pressed }) => [styles.titles, { opacity: pressed ? 0.7 : 1 }]}
+      >
         <AppText variant="h3">{HEADER_COPY.brand}</AppText>
         {title ? (
           <AppText variant="caption" color="muted">
             {title}
           </AppText>
         ) : null}
-      </View>
+      </Pressable>
       <IconButton
         label={mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
         icon={
@@ -63,5 +98,10 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     borderBottomWidth: 1,
   },
-  titles: { flex: 1, minWidth: 0 },
+  titles: {
+    flex: 1,
+    minWidth: LAYOUT.minTouchTarget,
+    minHeight: LAYOUT.minTouchTarget,
+    justifyContent: 'center',
+  },
 });

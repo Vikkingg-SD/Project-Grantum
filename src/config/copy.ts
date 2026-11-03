@@ -42,7 +42,19 @@ export const ERROR_COPY = {
 } as const;
 
 // Header/navigation labels from the pinned V7.2 header and TopTabNavigation.
-export const HEADER_COPY = { brand: 'Grantum', back: 'Go back' } as const;
+export const HEADER_COPY = { brand: 'Grantum', back: 'Go back', home: 'Go to dashboard' } as const;
+
+export const ROUTE_COPY = {
+  loadingTitle: 'Calibrating instrument…',
+  unavailableTitle: 'Opportunity unavailable',
+  loadingGrant: 'Loading the selected opportunity.',
+  backDashboard: 'Back to dashboard',
+  faultTitle: 'Instrument fault',
+  emptyTitle: 'No opportunities found',
+  loadingCatalog: 'Loading your opportunities.',
+  emptyCatalog: 'There are no matching opportunities available.',
+  retry: 'Try again',
+} as const;
 export const NAV_COPY = {
   primary: 'Primary',
   dashboard: 'Dashboard',

@@ -205,7 +205,7 @@ function DevGalleryContent() {
         <ProgressBar percent={42} label="Drafting progress" />
       </View>
       <View style={styles.row}>
-        <ToggleSwitch checked={toggled} onChange={setToggled} />
+        <ToggleSwitch label="Example switch" checked={toggled} onChange={setToggled} />
         <Chip label="Moat" selected={chipSelected} onToggle={() => setChipSelected((v) => !v)} />
         <IconButton
           icon={<Star size={18} color={theme.primary} />}
@@ -312,7 +312,11 @@ function DevGalleryContent() {
         ctaLabel="Acknowledge"
         onCtaPress={() => setLastAction('empty-cta')}
       />
-      <AppHeader canGoBack={router.canGoBack()} onBack={() => router.back()} />
+      <AppHeader
+        canGoBack={router.canGoBack()}
+        onBack={() => router.back()}
+        onHome={() => router.replace('/dashboard')}
+      />
       <AppText variant="caption" color="muted" style={styles.meta}>
         {`last action: ${lastAction}`}
       </AppText>
