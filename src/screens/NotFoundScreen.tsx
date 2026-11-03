@@ -22,7 +22,7 @@ export default function NotFoundScreen() {
         <AppButton
           label="Back to dashboard"
           variant="primary"
-          onPress={() => router.replace('/(tabs)')}
+          onPress={() => router.replace('/dashboard')}
         />
       </View>
     </ScreenContainer>
