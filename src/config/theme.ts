@@ -10,17 +10,22 @@ export const PALETTE: Record<ThemeMode, ThemeColors> = {
     surfaceMuted: '#161A1E',
     border: '#394047',
     borderStrong: '#4B5563',
-    inputBorder: '#30373E',
+    inputBorder: '#737D88',
     textMain: '#EDEFF2',
     textMuted: '#8A929C',
     primary: '#FF8A00',
+    primaryText: '#FF8A00',
     primaryForeground: '#140B00',
     verified: '#00B35D',
+    verifiedText: '#00B35D',
     mint: '#00FF87',
     pending: '#00E5FF',
+    pendingText: '#00E5FF',
     failure: '#A4161A',
     failureText: '#FF5A5F',
+    failureForeground: '#FFFFFF',
     gold: '#FFD700',
+    goldText: '#FFD700',
     overlay: 'rgba(0,0,0,0.6)',
     tint: '#FF8A00',
   },
@@ -33,17 +38,22 @@ export const PALETTE: Record<ThemeMode, ThemeColors> = {
     borderStrong: '#9CA3AF',
     inputBorder: '#7B8490',
     textMain: '#111827',
-    textMuted: '#6B7280',
-    primary: '#D97000',
+    textMuted: '#626975',
+    primary: '#B45309',
+    primaryText: '#92400E',
     primaryForeground: '#FFFFFF',
     verified: '#008744',
+    verifiedText: '#006B36',
     mint: '#008744',
     pending: '#0094A8',
+    pendingText: '#006575',
     failure: '#DC2626',
-    failureText: '#DC2626',
+    failureText: '#B91C1C',
+    failureForeground: '#FFFFFF',
     gold: '#D97706',
+    goldText: '#8A4B00',
     overlay: 'rgba(0,0,0,0.6)',
-    tint: '#D97000',
+    tint: '#B45309',
   },
 };
 
@@ -83,9 +93,11 @@ export const TYPOGRAPHY = {
 
 export type TypographyVariant = keyof typeof TYPOGRAPHY;
 
-export const SHADOWS: Record<ThemeMode, string> = {
+export const SHADOWS = {
   dark: '0 8px 32px rgba(0,0,0,0.6)',
   light: '0 4px 16px rgba(17,24,39,0.08)',
+  status: { radius: 12, opacity: 0.24 },
+  text: { radius: 8, opacity: 0.45 },
 };
 
 export function withAlpha(hex: string, alpha: number): string {

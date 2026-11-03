@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, withAlpha } from '@/config/theme';
+import { platformShadow } from '@/utils/platformShadow';
 
 export interface StatusBadgeProps {
   label: string;
@@ -19,31 +20,31 @@ export function StatusBadge({ label, variant = 'neutral' }: StatusBadgeProps) {
         return {
           bg: withAlpha(theme.verified, 0.1),
           border: withAlpha(theme.verified, 0.4),
-          text: theme.verified,
+          text: theme.verifiedText,
         };
       case 'pending':
         return {
           bg: withAlpha(theme.pending, 0.1),
           border: withAlpha(theme.pending, 0.4),
-          text: theme.pending,
+          text: theme.pendingText,
         };
       case 'failure':
         return {
           bg: withAlpha(theme.failure, 0.1),
           border: withAlpha(theme.failure, 0.4),
-          text: theme.failure,
+          text: theme.failureText,
         };
       case 'brand':
         return {
           bg: withAlpha(theme.primary, 0.1),
           border: withAlpha(theme.primary, 0.4),
-          text: theme.primary,
+          text: theme.primaryText,
         };
       case 'gold':
         return {
           bg: withAlpha(theme.gold, 0.1),
           border: withAlpha(theme.gold, 0.4),
-          text: theme.gold,
+          text: theme.goldText,
         };
       case 'neutral':
       default:
@@ -54,7 +55,13 @@ export function StatusBadge({ label, variant = 'neutral' }: StatusBadgeProps) {
   const colors = getColors();
 
   return (
-    <View style={[styles.badge, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+    <View
+      style={[
+        styles.badge,
+        { backgroundColor: colors.bg, borderColor: colors.border },
+        variant !== 'neutral' && platformShadow(mode, variant === 'brand' ? 'primary' : variant),
+      ]}
+    >
       <AppText variant="caption" style={{ color: colors.text }}>
         {label}
       </AppText>
