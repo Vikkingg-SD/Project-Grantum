@@ -175,3 +175,32 @@ The full recovery/browser chain remains in CI. The undeclared previous-green
 export baseline is reported by preflight; closure export acceptance remains
 deferred under the owner's gate-only review instruction. S9 source is preserved
 separately; its PR must follow the owner's merge of S8. No agent merge is allowed.
+
+## Strict Gate launch repair — 2026-11-03
+
+The current owner request explicitly authorizes fixing the failed strict gate.
+PR #42 at c6a563f failed in run 41643626956, job 125965457903, after the complete
+non-builder chain and all 20 application recovery cases passed. The final route
+suite never reached its browser assertions: Expo rejected simultaneous
+`--localhost` and `--offline` host-selector arguments.
+
+The bounded repair retains `--localhost`, removes the conflicting CLI flag and
+sets `EXPO_OFFLINE=1` in the owned child's environment. Installed Expo CLI 57
+resolveOptions source and the official Expo CLI environment documentation confirm
+these separate controls. All route assertions, readiness deadlines, recovery
+coverage, hooks, warning ceiling 17 and zero exemptions are unchanged. Predicted
+local preflight remains WARN 14. Verification is only `pnpm gate`; its local
+static route mode cannot establish the CI development-server startup result.
+The next independent Strict Gate run is the required browser evidence. The
+existing PR remains open for an owner-only merge; cancellation is unnecessary.
+
+Repair validation: `pnpm gate` exited 0 in the isolated S8 worktree. Strict
+preflight was FAIL 0 / WARN 14 / INFO 2 / SKIPPED 0; all 118 zero-warning lint
+files, formatting/typecheck, scoring 14, drafts 9, theme 6, composer 20,
+preflight 24, tokens 36, contracts 52 and static routes 2 passed. The full
+browser chain is deliberately left to the existing CI. No local Metro,
+production build or standalone test was run. The S9 working tree was preserved.
+The worktree reused the installed dependencies through a junction. pnpm's
+automatic pre-script install warned that the hoist directory was not a real
+directory, then continued with the complete gate against the existing unchanged
+package/lockfile installation. No install success is inferred from this receipt.

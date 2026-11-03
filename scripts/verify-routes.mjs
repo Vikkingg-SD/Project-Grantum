@@ -81,19 +81,12 @@ await new Promise((resolve) => reservation.close(resolve));
 const origin = `http://localhost:${port}`;
 const child = spawn(
   process.execPath,
-  [
-    require.resolve('expo/bin/cli'),
-    'start',
-    '--web',
-    '--localhost',
-    '--offline',
-    '--port',
-    String(port),
-  ],
+  [require.resolve('expo/bin/cli'), 'start', '--web', '--localhost', '--port', String(port)],
   {
     cwd: root,
-    // Fixture mode is scoped to this child; the app reads it through config/env.ts.
-    env: { ...process.env, EXPO_PUBLIC_DATA_SOURCE: 'mock' },
+    // Keep localhost binding separate from offline networking: Expo treats the
+    // --offline and --localhost CLI flags as mutually exclusive host selectors.
+    env: { ...process.env, EXPO_OFFLINE: '1', EXPO_PUBLIC_DATA_SOURCE: 'mock' },
     windowsHide: true,
     detached: process.platform !== 'win32',
     stdio: ['ignore', 'pipe', 'pipe'],
