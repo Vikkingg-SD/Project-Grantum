@@ -46,16 +46,16 @@ and WCAG 1.4.3/1.4.11/4.1.2; rendered criteria remain unmeasured.
 
 ## Continuation findings and dispositions
 
-| Before                                                          | After                                                      | Why / evidence                                                              |
-| --------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Progress reads an animation ref during render                   | Installed RN useAnimatedValue hook                         | First current gate failed four hooks/refs diagnostics; corrected gates pass |
-| Gauge number uses dark failure fill at 2.36:1 on surface        | Semantic AppText foreground; stroke retained               | Large text requires 3:1; computed source correction                         |
-| Composer outline is 1.59:1 dark / 1.24:1 light on input         | Existing inputBorder token                                 | WCAG 1.4.11; consistent shared controls                                     |
-| Timestamp opacity lowers contrast to 3.48:1 dark / 2.97:1 light | Full muted foreground at 5.82:1 / 5.53:1 on surface        | WCAG 1.4.3; readable audit evidence                                         |
-| Unlabelled input callers rely on placeholder inference          | Explicit accessible-name fallback to unchanged placeholder | Native name survives editing                                                |
-| Unnamed 48x28 switch lacks checked semantics                    | Named switch/checked alias with 44pt interaction area      | WP-J target and WCAG 4.1.2; original visual track retained                  |
-| Format selection uses color alone                               | Native selected state and web aria-pressed                 | All four Export controls expose state                                       |
-| Progress labels use a non-wrapping row                          | Token-gap wrapping                                         | Narrow/large-text source protection; matrix still unmeasured                |
+| Before                                                                                   | After                                                      | Why / evidence                                                               |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Progress reads an animation ref during render; first hook correction is absent in RN Web | Stable Animated.Value from a lazy useState initializer     | No render-time ref read or unavailable web hook; effects own updates/cleanup |
+| Gauge number uses dark failure fill at 2.36:1 on surface                                 | Semantic AppText foreground; stroke retained               | Large text requires 3:1; computed source correction                          |
+| Composer outline is 1.59:1 dark / 1.24:1 light on input                                  | Existing inputBorder token                                 | WCAG 1.4.11; consistent shared controls                                      |
+| Timestamp opacity lowers contrast to 3.48:1 dark / 2.97:1 light                          | Full muted foreground at 5.82:1 / 5.53:1 on surface        | WCAG 1.4.3; readable audit evidence                                          |
+| Unlabelled input callers rely on placeholder inference                                   | Explicit accessible-name fallback to unchanged placeholder | Native name survives editing                                                 |
+| Unnamed 48x28 switch lacks checked semantics                                             | Named switch/checked alias with 44pt interaction area      | WP-J target and WCAG 4.1.2; original visual track retained                   |
+| Format selection uses color alone                                                        | Native selected state and web aria-pressed                 | All four Export controls expose state                                        |
+| Progress labels use a non-wrapping row                                                   | Token-gap wrapping                                         | Narrow/large-text source protection; matrix still unmeasured                 |
 
 Independent source rereviews found no remaining concrete P1 blocker in the final
 controls, Hero, GrantCard, ConfidenceGaugeReadout, Dashboard, Export and Post-award.

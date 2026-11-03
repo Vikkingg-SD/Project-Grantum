@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Animated, Easing, Platform, View, StyleSheet, useAnimatedValue } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Animated, Easing, Platform, View, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
@@ -15,7 +15,8 @@ export function ProgressBar({ percent, label }: ProgressBarProps) {
   const theme = PALETTE[mode];
   const clamped = Math.max(0, Math.min(100, percent));
   const reduceMotion = useReduceMotion();
-  const progress = useAnimatedValue(clamped);
+  // RN Web 0.21 lacks useAnimatedValue; both targets support this stable handle.
+  const [progress] = useState(() => new Animated.Value(clamped));
   useEffect(() => {
     if (reduceMotion) {
       progress.setValue(clamped);

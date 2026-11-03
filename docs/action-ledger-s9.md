@@ -1,5 +1,26 @@
 # S9 continuation action ledger — 2026-11-03
 
+## Current web animation compatibility correction — 2026-11-03
+
+S9 PR #44 at 2186045 passed the local gate but its independent run 41684368951
+failed recovery because Dashboard and Dev Gallery did not render. Eleven cases
+failed and nine were not run before the existing deadline. Route-browser cases
+did not run. No expectation, coverage or timeout is changed to hide that failure.
+
+Installed RN 0.86 exports useAnimatedValue, but pinned RN Web 0.21.3 entrypoints
+do not. ProgressBar introduced that unavailable import into both affected views.
+It now initializes a stable Animated.Value through a lazy useState initializer,
+supported by both targets. Effects own updates/cleanup, rendering reads no ref,
+the native driver stays native-only and reduced motion remains immediate.
+This is an application correction. Predicted WARN remains 10; only pnpm gate
+validates locally before updating PR #44. Earlier hook-correction receipts
+below are historical and superseded by this portable implementation.
+
+The correction's pnpm gate exited 0: FAIL 0 / WARN 10 / INFO 4 / SKIPPED 0,
+zero exemptions, all 119 lint files clean, and every existing local verifier
+passed. No standalone check or local builder ran. Required documentation hooks
+format this receipt; the PR's next exact-head full CI verifies rendering/recovery.
+
 ## Current S8 merge receipt and S9 publication — 2026-11-03
 
 The owner instructs proceeding after the green gate and merge. GitHub verifies

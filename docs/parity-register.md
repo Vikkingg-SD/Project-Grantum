@@ -246,7 +246,7 @@ shell; its mock-only claim is conditional on data-source mode. Modal focus and
 close-first behavior use the existing native/RN Web mechanism. Authentication,
 draft persistence and P-37 production metadata/security retain their named
 S10/ruling deferrals. Continuation corrections also cover P-30 gauge foreground,
-P-33 useAnimatedValue progress/wrapping labels, P-35 named 44pt switch, and P-36
+P-33 portable Animated.Value progress/wrapping labels, P-35 named 44pt switch, and P-36
 format-selection state, composer border, input names and readable timestamps.
 Code batches passed the local gate at WARN 11 then WARN 10, zero failures/skipped
 checks/exemptions, unchanged ceiling 17. Source completion never promotes
