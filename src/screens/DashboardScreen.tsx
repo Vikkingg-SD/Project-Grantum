@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Bell, Filter } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { ModalSheetLayout } from '@/components/templates/ModalSheetLayout';
@@ -16,7 +16,6 @@ import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
 import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSheet';
 import { useGrants } from '@/api/hooks/useGrants';
 import { useDashboardSummary } from '@/api/hooks/useDashboardSummary';
-import { useUIStore } from '@/store/useUIStore';
 import { useDraftStore } from '@/store/useDraftStore';
 import { useTheme } from '@/hooks/useTheme';
 import { SPACING } from '@/config/theme';
@@ -24,19 +23,17 @@ import { DASHBOARD_COPY } from '@/config/copy';
 import type { Grant } from '@/types/grant';
 
 export default function DashboardScreen() {
-  const router = useRouter();
+  const navigation = useAppNavigation();
   const theme = useTheme();
   const [query, setQuery] = useState('');
   const grants = useGrants();
   const summary = useDashboardSummary();
-  const setActiveGrantId = useUIStore((state) => state.setActiveGrantId);
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
   const openDraft = (grantId: string) => {
-    setActiveGrantId(grantId);
     ensureDraft(grantId);
     setSelectedGrant(null);
-    router.push('/(tabs)/drafting');
+    navigation.navigateTo('drafting', grantId);
   };
   if (summary.isPending || grants.isPending || summary.isError || grants.isError || !summary.data) {
     const error = summary.error ?? grants.error;
@@ -77,7 +74,7 @@ export default function DashboardScreen() {
             onPress={() => {
               const grantId = active?.grantId ?? grants.data?.[0]?.id;
               if (grantId) openDraft(grantId);
-              else router.push('/(tabs)/discovery');
+              else navigation.navigateTo('discovery');
             }}
           />
         </View>
@@ -90,7 +87,7 @@ export default function DashboardScreen() {
         ) : (
           <HeroContinueCard
             variant="no-session"
-            onStartNew={() => router.push('/(tabs)/discovery')}
+            onStartNew={() => navigation.navigateTo('discovery')}
           />
         )}
         <PipelineFunnelBar stages={summary.data.pipeline} />
@@ -121,7 +118,7 @@ export default function DashboardScreen() {
           <AppButton
             label={DASHBOARD_COPY.showAll}
             variant="ghost"
-            onPress={() => router.push('/(tabs)/discovery')}
+            onPress={() => navigation.navigateTo('discovery')}
           />
         </View>
         <GrantDiscoveryGrid

@@ -8,14 +8,14 @@ import { AuditLogLine } from '@/components/molecules/AuditLogLine';
 import { useAward } from '@/api/hooks/useAward';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 import { ApiError } from '@/api/client';
-import { useUIStore } from '@/store/useUIStore';
+import { useActiveGrantId } from '@/hooks/useActiveGrantId';
 import { useTheme } from '@/hooks/useTheme';
 import { RADIUS, SPACING } from '@/config/theme';
 
 export default function PostAwardScreen() {
   const theme = useTheme();
   const { width, fontScale } = useWindowDimensions();
-  const grantId = useUIStore((state) => state.activeGrantId);
+  const grantId = useActiveGrantId();
   const query = useAward(grantId);
   const detail = useGrantDetail(grantId);
   const error = query.error ?? detail.error;

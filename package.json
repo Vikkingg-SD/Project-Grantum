@@ -8,21 +8,24 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0",
+    "lint": "node scripts/lint-project.js --max-warnings=0",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "verify:scoring": "tsx scripts/verify-scoring.ts",
     "verify:drafts": "tsx scripts/verify-drafts.ts",
     "verify:theme": "tsx scripts/verify-theme.ts",
-    "gate": "node scripts/grantum-preflight.mjs --strict && pnpm format && pnpm typecheck && pnpm lint && pnpm format:check && pnpm verify:scoring && pnpm verify:drafts && pnpm verify:theme && pnpm verify:composer && pnpm verify:preflight && pnpm verify:tokens && pnpm verify:recovery && pnpm verify:contract",
+    "gate": "node scripts/run-gate.js",
+    "gate:local": "node scripts/grantum-preflight.mjs --strict && pnpm format && pnpm typecheck && pnpm lint && pnpm format:check && pnpm verify:scoring && pnpm verify:drafts && pnpm verify:theme && pnpm verify:composer && pnpm verify:preflight && pnpm verify:tokens && pnpm verify:contract && pnpm verify:routes --static",
+    "gate:full": "pnpm gate:local && pnpm verify:recovery && pnpm verify:routes",
     "verify:contract": "tsx scripts/verify-contract.ts",
     "prepare": "husky",
     "verify:composer": "tsx scripts/verify-composer.ts",
     "verify:preflight": "node scripts/verify-preflight.mjs",
     "verify:tokens": "tsx scripts/verify-tokens.ts",
     "verify:recovery:harness": "playwright test --config scripts/recovery.playwright.config.ts --grep \"preliminary harness:\"",
-    "verify:recovery": "playwright test --config scripts/recovery.playwright.config.ts --global-timeout 180000 --grep \"app recovery:\""
+    "verify:recovery": "playwright test --config scripts/recovery.playwright.config.ts --global-timeout 180000 --grep \"app recovery:\"",
+    "verify:routes": "node scripts/verify-routes.mjs"
   },
   "config": {
     "grantum": {

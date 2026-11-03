@@ -11,7 +11,7 @@ export function useAuth() {
   const clearUserState = async () => {
     await client.cancelQueries();
     client.clear();
-    useUIStore.getState().setActiveGrantId('');
+    useUIStore.setState({ isFilterSheetOpen: false, selectedFormat: 'word' });
     useDraftStore.setState({ drafts: {} });
   };
   const me = useQuery({

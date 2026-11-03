@@ -8,7 +8,7 @@ import { AppHeader } from '@/components/templates/AppHeader';
 import {
   TopTabNavigation,
   MobileTabNavigation,
-  NAVIGATION_ITEMS,
+  navigationItemsForGrant,
 } from '@/components/organisms/TopTabNavigation';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
@@ -32,6 +32,7 @@ import { PipelineFunnelBar } from '@/components/organisms/PipelineFunnelBar';
 import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
 import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSheet';
 import { useTheme } from '@/hooks/useTheme';
+import { useGrants } from '@/api/hooks/useGrants';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useThemeStore } from '@/store/useThemeStore';
@@ -77,8 +78,14 @@ const GALLERY_FUNNEL = [
 const REGION_OPTIONS = ['Global', 'East Europe', 'CIS'];
 
 export default function DevGalleryScreen() {
+  return __DEV__ ? <DevGalleryContent /> : null;
+}
+
+function DevGalleryContent() {
   useRecoveryProbe('screen');
   const theme = useTheme();
+  const grants = useGrants();
+  const grantID = grants.data?.[0]?.id;
   const breakpoint = useBreakpoint();
   const reduceMotion = useReduceMotion();
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
@@ -99,8 +106,6 @@ export default function DevGalleryScreen() {
   const [lastAction, setLastAction] = useState('none');
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
 
-  if (!__DEV__) return null;
-
   const sendChat = () => {
     const text = chatValue.trim();
     if (!text) return;
@@ -119,9 +124,11 @@ export default function DevGalleryScreen() {
           <AppButton label="Test root recovery" onPress={() => armRecoveryFault('root')} />
           <AppButton
             label="Test tab recovery"
+            disabled={!grantID}
             onPress={() => {
+              if (!grantID) return;
               armRecoveryFault('tab');
-              router.push('/(tabs)');
+              router.push({ pathname: '/grants/[grantID]/dashboard', params: { grantID } });
             }}
           />
           <AppButton label="Test screen recovery" onPress={() => armRecoveryFault('screen')} />
@@ -280,11 +287,12 @@ export default function DevGalleryScreen() {
         variant="pending"
       />
       <MobileTabNavigation
+        items={navigationItemsForGrant(grantID ?? '')}
         selectedName="index"
         onSelect={(item) => setLastAction(`mobile-tab-${item.name}`)}
       />
       <TopTabNavigation
-        items={NAVIGATION_ITEMS.map((item) =>
+        items={navigationItemsForGrant(grantID ?? '').map((item) =>
           item.name === 'export' ? { ...item, disabled: true } : item
         )}
         selectedName="index"
