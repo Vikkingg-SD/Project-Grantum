@@ -19,6 +19,10 @@ only at the end. Complete source rereview found the combined S9 onHome/copy and
 always-mounted Stack/screenLayout guard coherent. The navigator stays registered
 while its unavailable/loading child content is gated, preserving deep-link
 identity. Old same-PR repair/reopen receipts are historical.
+The owner has now merged replacement S8 PR #43 at c08e7ba after green exact-head
+CI 41682843776: all 20 recovery and 18 route cases passed. S9 publication can
+proceed after reconciliation and its final local gate; this S8 evidence is not
+a rendered S9 viewport/native acceptance claim.
 
 V7.2 SHA256 is
 204132358cc94da9520e9c6a6360743507de29ff4de7b998aa0aee972f33b35c.

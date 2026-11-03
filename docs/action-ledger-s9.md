@@ -1,5 +1,26 @@
 # S9 continuation action ledger — 2026-11-03
 
+## Current S8 merge receipt and S9 publication — 2026-11-03
+
+The owner instructs proceeding after the green gate and merge. GitHub verifies
+the merged replacement is PR #43 (the original #42 remains closed/unmerged):
+head bcc0162dc3d8686b0101190458a1d2c76ea5bdde, owner-merged at
+2026-11-03T17:21:58Z to c08e7ba1c9756b8509ae0ec1a50e07c893feec23.
+Verified origin/main is that actual squash commit. Its Git tree exactly matches
+the independently tested S8 tree 1cc0be9fdc290dab07422f072079183f97d1e881.
+
+Independent PR Strict Gate 41682843776 / job 126080726989 succeeded at the exact
+bcc0162 head: both harness cases, all 20 recovery cases and all 18 route cases
+passed, including unavailable deep-link preservation, no borrowed grant and
+zero unexpected runtime errors. This is the merge-time ledger promotion required
+by B-7.17 / the adopted ledger cadence. No agent merge was performed.
+
+The old S8-first publication hold is now satisfied. Rebase only the unpublished
+S9 commits onto this actual main; preserve the complete source tree and run
+only pnpm gate before publishing the new S9 feature branch/PR. Main push CI is
+not inferred from PR CI. Older pending/reopen/hold statements below are historical.
+S9 rendered/native/live-API acceptance remains unclaimed.
+
 ## Current replacement-branch direction — 2026-11-03
 
 The owner's latest instruction supersedes same-PR publication instructions below:

@@ -38,8 +38,11 @@ The old S8 PR #42 is closed/unmerged and its remote branch was deleted. Under
 the owner's latest direction, complete code inspection precedes sequential S8
 and S9 local branch recreation; a new S8 GitHub branch/PR follows only at the
 end. The recreated local S9 source retains home/copy changes together with the
-always-mounted navigator guard. The replacement S8 PR must be owner-merged
-before the S9 PR. No agent merge is allowed. Local static-route success cannot
+always-mounted navigator guard. Replacement S8 PR #43 is now owner-merged at
+c08e7ba after successful exact-head Strict Gate 41682843776 (20 recovery and
+18 route cases). Its tree matches the tested source exactly. The S9 publication
+hold is satisfied; its unpublished commits are reconciled onto that main before
+the final local gate and new PR. No agent merge is allowed. Local static-route success cannot
 certify the CI browser path. The previous-green closure comparator is undeclared;
 export regression is not a passed check. The canon's planned verify:a11y script
 is absent; semantic/source review is not a scanner or screen-reader result.
