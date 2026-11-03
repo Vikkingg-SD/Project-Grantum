@@ -74,6 +74,7 @@ function ExportSession({ grantId }: { grantId: string }) {
               <AppButton
                 label={item.label}
                 variant={format === item.id ? 'primary' : 'outline'}
+                selected={format === item.id}
                 disabled={mutation.isPending}
                 onPress={() => {
                   setFormat(item.id);

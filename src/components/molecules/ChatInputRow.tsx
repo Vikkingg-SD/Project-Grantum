@@ -61,7 +61,7 @@ export function ChatInputRow({
           {
             color: theme.textMain,
             backgroundColor: theme.subtle,
-            borderColor: theme.border,
+            borderColor: theme.inputBorder,
           },
         ]}
       />

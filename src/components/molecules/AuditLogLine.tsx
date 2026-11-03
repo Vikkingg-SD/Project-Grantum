@@ -61,5 +61,5 @@ const styles = StyleSheet.create({
   },
   iconWrap: { flexShrink: 0, paddingTop: SPACING.xs },
   message: { flex: 1, minWidth: 0 },
-  timestamp: { opacity: 0.7, marginTop: SPACING.xs },
+  timestamp: { marginTop: SPACING.xs },
 });
