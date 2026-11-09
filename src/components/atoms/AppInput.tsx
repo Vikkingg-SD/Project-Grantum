@@ -2,8 +2,8 @@ import React from 'react';
 import { View, TextInput, TextInputProps, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE, RADIUS } from '@/config/theme';
-import { FONT } from '@/config/fonts';
+import { PALETTE, RADIUS, TYPOGRAPHY, DESKTOP_TYPOGRAPHY } from '@/config/theme';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 
 export interface AppInputProps extends TextInputProps {
   label?: string;
@@ -14,6 +14,7 @@ export interface AppInputProps extends TextInputProps {
 export function AppInput({ label, error, icon, style, ...props }: AppInputProps) {
   const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
+  const { desktop } = useLayoutMetrics();
   return (
     <View style={styles.container}>
       {label && (
@@ -37,7 +38,9 @@ export function AppInput({ label, error, icon, style, ...props }: AppInputProps)
           placeholderTextColor={theme.textMuted}
           style={[
             styles.input,
-            { color: theme.textMain, fontFamily: FONT.sans.regular },
+            TYPOGRAPHY.body,
+            desktop && DESKTOP_TYPOGRAPHY.body,
+            { color: theme.textMain },
             icon ? styles.inputWithIcon : null,
             style,
           ]}
@@ -74,8 +77,9 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 14,
-    height: '100%',
+    minWidth: 0,
+    minHeight: 44,
+    paddingVertical: 8,
   },
   inputWithIcon: {
     paddingLeft: 4,

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
-import { SiteFooter } from '@/components/templates/SiteFooter';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
@@ -11,32 +10,27 @@ import { useDraftStore } from '@/store/useDraftStore';
 import { useTheme } from '@/hooks/useTheme';
 import { LAYOUT } from '@/config/layout';
 import { RADIUS, SPACING } from '@/config/theme';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 
-// Verbatim V7.2 app/onboarding-slides/page.tsx slide copy.
 const slides = [
   {
-    eyebrow: 'DISCOVERY ENGINE',
     title: 'Discover funders that match your project.',
     body: 'Grantum scores opportunities against your mission, geography, budget, and eligibility profile.',
-    metric: '01 / 03',
   },
   {
-    eyebrow: 'DRAFTING SYSTEM',
     title: 'Give every requirement a place in your draft.',
     body: 'Build a proposal in a structured workspace that keeps funder requirements visible while you write.',
-    metric: '02 / 03',
   },
   {
-    eyebrow: 'DETERMINISTIC AUDIT',
     title: 'Check your sections before the final review.',
     body: 'Run a section-completeness check, review your document, and see what remains before export.',
-    metric: '03 / 03',
   },
 ] as const;
 
 export default function OnboardingScreen() {
   const [index, setIndex] = useState(0);
   const theme = useTheme();
+  const { mobile } = useLayoutMetrics();
   const router = useRouter();
   const grants = useGrants();
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
@@ -45,16 +39,32 @@ export default function OnboardingScreen() {
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <AppText variant="display">GRANTUM</AppText>
-          <AppText variant="eyebrow" color="primary">
-            {slide.eyebrow}
-          </AppText>
-          <AppText variant="h1">{slide.title}</AppText>
+        <View
+          style={[
+            styles.card,
+            mobile && styles.mobileCard,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+        >
+          <View style={styles.brandRow}>
+            <AppText variant="h2">Grantum</AppText>
+            <AppText variant="metric-sm" color="primary">
+              {String(index + 1).padStart(2, '0')} / 03
+            </AppText>
+          </View>
+          <AppText variant="display">{slide.title}</AppText>
           <AppText>{slide.body}</AppText>
-          <AppText variant="caption" color="muted">
-            Step {index + 1} of {slides.length}
-          </AppText>
+          <View style={styles.steps} accessibilityLabel={`Step ${index + 1} of ${slides.length}`}>
+            {slides.map((_, step) => (
+              <View
+                key={step}
+                style={[
+                  styles.step,
+                  { backgroundColor: step <= index ? theme.primary : theme.border },
+                ]}
+              />
+            ))}
+          </View>
           <View style={styles.actions}>
             <AppButton
               label="Back"
@@ -96,7 +106,6 @@ export default function OnboardingScreen() {
           )}
         </View>
       </View>
-      <SiteFooter />
     </ScreenContainer>
   );
 }
@@ -109,6 +118,15 @@ const styles = StyleSheet.create({
     maxWidth: LAYOUT.onboardingMaxWidth,
     alignSelf: 'center',
   },
-  card: { padding: SPACING['2xl'], borderWidth: 1, borderRadius: RADIUS.lg, gap: SPACING.xl },
+  card: { padding: SPACING['4xl'], borderWidth: 1, borderRadius: RADIUS.lg, gap: SPACING['2xl'] },
+  mobileCard: { padding: SPACING.xl },
+  brandRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: SPACING.lg,
+  },
+  steps: { flexDirection: 'row', gap: SPACING.sm },
+  step: { height: SPACING.xs, flex: 1, borderRadius: RADIUS.sm },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.md },
 });

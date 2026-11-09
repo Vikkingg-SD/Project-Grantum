@@ -7,8 +7,6 @@ export const GRANT_CARD_COPY = {
 } as const;
 
 export const HERO_CONTINUE_COPY = {
-  activeEyebrow: 'Active session',
-  inactiveEyebrow: 'Next action',
   untitled: 'Untitled application',
   inactiveTitle: 'Start a new grant application',
   resume: 'Continue drafting',

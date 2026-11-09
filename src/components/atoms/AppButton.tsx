@@ -10,7 +10,6 @@ import {
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
-import { platformShadow } from '@/utils/platformShadow';
 
 export interface AppButtonProps {
   label: string;
@@ -97,7 +96,6 @@ export function AppButton({
         styles.base,
         styles[size],
         getVariantStyle(pressed),
-        !disabled && !isLoading && variant === 'primary' && platformShadow(mode, 'primary'),
         (disabled || isLoading) && styles.disabled,
         style,
       ]}

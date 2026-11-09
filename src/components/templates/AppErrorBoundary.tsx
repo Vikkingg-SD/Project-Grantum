@@ -61,7 +61,7 @@ export function AppErrorBoundary({
           testID="recovery-fallback"
           style={[styles.panel, { backgroundColor: theme.surface, borderColor: theme.border }]}
         >
-          <AppText variant="eyebrow" color="failure">
+          <AppText variant="h2" color="failure">
             {ERROR_COPY.title}
           </AppText>
           <AppText color="muted" accessibilityRole={actionFailed ? 'alert' : undefined}>

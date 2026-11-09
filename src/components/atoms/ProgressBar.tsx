@@ -36,10 +36,10 @@ export function ProgressBar({ percent, label }: ProgressBarProps) {
     <View style={styles.container}>
       {label && (
         <View style={styles.labelRow}>
-          <AppText variant="caption" color="muted">
+          <AppText variant="label" style={styles.label}>
             {label}
           </AppText>
-          <AppText variant="metric-sm" color="main">
+          <AppText variant="metric-md" color="main">
             {clamped}%
           </AppText>
         </View>
@@ -77,8 +77,10 @@ const styles = StyleSheet.create({
     columnGap: SPACING.sm,
     rowGap: SPACING.xs,
     justifyContent: 'space-between',
+    alignItems: 'baseline',
     marginBottom: 6,
   },
+  label: { flexShrink: 1, minWidth: 0 },
   track: {
     height: 6,
     borderRadius: RADIUS.full,

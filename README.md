@@ -11,6 +11,8 @@ pnpm web
 
 Use `pnpm start` for Expo Go, `pnpm android` or `pnpm ios` for a native development environment. Copy `.env.example` to `.env` to configure the data source.
 
+Keep `node_modules` and Metro's temporary cache between runs; cache resets are for diagnosed cache corruption. Metro uses one worker on hosts with up to 6 GB RAM. TypeScript retains incremental data in ignored `.expo/cache`. Native file references use the system document chooser; only validated names, types, and sizes are kept for the session.
+
 The default interactive preview uses sample opportunities and award records. Working notes and document edits last for the current session. The preview checks section presence only; it does not verify eligibility, budget math, or evidence. AI narrative generation, uploads, live notifications, and downloadable exports require connected services.
 
 ## Development

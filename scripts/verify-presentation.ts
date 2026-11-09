@@ -1,4 +1,9 @@
-import { progressLabel, reportUrgency, formatEventDate } from '../src/utils/presentation';
+import {
+  progressLabel,
+  reportUrgency,
+  formatEventDate,
+  formatCalendarDate,
+} from '../src/utils/presentation';
 import { getMockDraft } from '../src/mock/db';
 import { applySectionMutation } from '../src/utils/scoring';
 import { attachmentError, ATTACHMENT_LIMIT } from '../src/utils/attachments';
@@ -25,7 +30,15 @@ console.info(
 assert.match(reportUrgency('2026-11-08T12:00:00Z', now).label, /confirm submission/);
 assert.equal(reportUrgency('2026-11-10T12:00:00Z', now).variant, 'failure');
 assert.equal(reportUrgency('2026-11-30T12:00:00Z', now).variant, 'pending');
+assert.match(reportUrgency('2026-11-09', now).label, /today/);
+assert.equal(reportUrgency('2026-12-10', now).variant, 'verified');
+assert.equal(reportUrgency('2026-11-16', now).variant, 'failure');
+assert.equal(reportUrgency('2026-11-17', now).variant, 'pending');
+assert.equal(reportUrgency('2026-12-09', now).variant, 'pending');
 assert.equal(reportUrgency('invalid', now).variant, 'neutral');
+assert.equal(reportUrgency('2026-02-31', now).variant, 'neutral');
+assert.equal(formatCalendarDate('2026-11-09'), '9 Nov 2026');
+assert.equal(formatCalendarDate('2026-02-31'), 'Date unavailable');
 console.info(
   'PASS Given a reporting date When classified against a fixed clock Then urgency never implies unrecorded completion'
 );
@@ -38,9 +51,13 @@ assert.ok(missing.completionPct < initial.completionPct);
 assert.equal(missing.completionPct, missing.confidenceScore);
 assert.equal(applySectionMutation(missing, { action: 'restore' }).completionPct, 100);
 assert.equal(progressLabel(0), 'Ready to begin');
-assert.equal(progressLabel(49), 'Building your application');
-assert.equal(progressLabel(50), 'Making progress');
-assert.equal(progressLabel(75), 'A few sections left');
+assert.equal(progressLabel(30), 'Building your application');
+assert.equal(progressLabel(31), 'Almost there');
+assert.equal(progressLabel(49), 'Almost there');
+assert.equal(progressLabel(50), "You're doing great");
+assert.equal(progressLabel(74), "You're doing great");
+assert.equal(progressLabel(75), 'One step from a complete checklist');
+assert.equal(progressLabel(99), 'One step from a complete checklist');
 assert.equal(progressLabel(100), 'Checklist complete');
 console.info(
   'PASS Given a section mutation When progress changes Then dashboard progress and its label describe the checklist'

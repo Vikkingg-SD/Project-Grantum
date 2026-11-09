@@ -60,7 +60,7 @@ export function TopTabNavigation({
   onSelect,
 }: TopTabNavigationProps) {
   const { mobile, effectiveWidth } = useLayoutMetrics();
-  const pageSize = mobile ? (effectiveWidth < 380 ? 2 : 3) : Math.max(1, items.length);
+  const pageSize = mobile ? (effectiveWidth < 420 ? 2 : 3) : Math.max(1, items.length);
   return (
     <PagedTabs
       key={`${selectedName}:${pageSize}`}

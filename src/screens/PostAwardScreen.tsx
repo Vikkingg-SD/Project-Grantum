@@ -6,7 +6,7 @@ import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
 import { ENV } from '@/config/env';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
-import { reportUrgency } from '@/utils/presentation';
+import { reportUrgency, formatCalendarDate } from '@/utils/presentation';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { AuditLogLine } from '@/components/molecules/AuditLogLine';
 import { useAward } from '@/api/hooks/useAward';
@@ -19,7 +19,7 @@ import { RADIUS, SPACING } from '@/config/theme';
 export default function PostAwardScreen() {
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
-  const [tab, setTab] = useState('Notifications');
+  const [tab, setTab] = useState('Details');
   const grantId = useActiveGrantId();
   const query = useAward(grantId);
   const detail = useGrantDetail(grantId);
@@ -56,7 +56,7 @@ export default function PostAwardScreen() {
   const urgency = reportUrgency(award.nextReportAt);
   const metrics = [
     { label: 'Award status', value: award.contractStatus },
-    { label: 'Next report', value: new Date(award.nextReportAt).toLocaleDateString() },
+    { label: 'Next report', value: formatCalendarDate(award.nextReportAt) },
     { label: 'Audit trail', value: award.events.length + ' EVENTS' },
   ];
   return (
@@ -70,15 +70,7 @@ export default function PostAwardScreen() {
         </AppText>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <AppText variant="h2">Next reporting date</AppText>
-          <AppText variant="h3">
-            {Number.isNaN(Date.parse(award.nextReportAt))
-              ? 'Date unavailable'
-              : new Date(award.nextReportAt).toLocaleDateString('en', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-          </AppText>
+          <AppText variant="h3">{formatCalendarDate(award.nextReportAt, true)}</AppText>
           <StatusBadge label={urgency.label} variant={urgency.variant} />
           <AppText variant="caption" color="muted">
             Report submission status is not available. Check your funder's records before taking
@@ -110,7 +102,7 @@ export default function PostAwardScreen() {
           <AppText variant="caption" color="muted">
             Opportunity funding range
           </AppText>
-          <AppText variant="metric-lg">{award.amount}</AppText>
+          <AppText variant="metric-lg">{detail.data.amount}</AppText>
           <View style={[styles.metrics, mobile && styles.stacked]}>
             {metrics.map((metric) => (
               <View
