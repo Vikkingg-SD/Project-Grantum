@@ -31,7 +31,7 @@ let cases = 0;
 function check(name: string, condition: unknown) {
   if (!condition) throw new Error(name);
   cases += 1;
-  console.log('PASS ' + name);
+  console.info('PASS ' + name);
 }
 async function rejection(
   name: string,
@@ -243,7 +243,7 @@ async function main() {
     origin = 'http://127.0.0.1:' + address.port;
     // Success-path fixtures use the application's default request budget.
     // The dedicated 20ms timeout/fault assertion below stays unchanged.
-    const client = createApiClient({ baseUrl: origin, timeoutMs: 15000, getToken: () => token });
+    const client = createApiClient({ baseUrl: origin, timeoutMs: 30000, getToken: () => token });
     const source = createHttpDataSource(client);
     const endpoints: [string, string, string, () => Promise<unknown>][] = [
       ['grants', 'GET', '/api/v1/grants', () => source.getGrants()],
@@ -293,7 +293,7 @@ async function main() {
       ],
     ];
     for (const [name, method, route, run] of endpoints) {
-      console.log('CHECK contract ' + name);
+      console.info('CHECK contract ' + name);
       await run();
       const last = requests[requests.length - 1];
       check('contract ' + name, last.method === method && last.path === route);
@@ -533,7 +533,7 @@ async function main() {
     };
     for (const file of files) walk(file);
     check('application local import graph is acyclic', visited.size === files.length);
-    console.log('ALL ' + cases + ' CONTRACT CASES PASS');
+    console.info('ALL ' + cases + ' CONTRACT CASES PASS');
   } finally {
     cache.clear();
     server.closeAllConnections();

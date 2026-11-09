@@ -1,10 +1,10 @@
-import { useWindowDimensions } from 'react-native';
+import { useLayoutMetrics } from './useLayoutMetrics';
 
 export type Breakpoint = 'mobile' | 'tablet' | 'desktop';
 
 export function useBreakpoint(): Breakpoint {
-  const { width } = useWindowDimensions();
-  if (width < 768) return 'mobile';
-  if (width < 1024) return 'tablet';
+  const { mobile, desktop } = useLayoutMetrics();
+  if (mobile) return 'mobile';
+  if (!desktop) return 'tablet';
   return 'desktop';
 }

@@ -10,6 +10,8 @@ import { chromium, expect } from '@playwright/test';
 
 const root = process.cwd();
 const require = createRequire(path.join(root, 'package.json'));
+const runtimePolicy = require('./scripts/runtime-policy.cjs');
+const runtime = runtimePolicy.loadPolicy();
 const leaves = [
   'dashboard',
   'discovery-studio',
@@ -81,12 +83,20 @@ await new Promise((resolve) => reservation.close(resolve));
 const origin = `http://localhost:${port}`;
 const child = spawn(
   process.execPath,
-  [require.resolve('expo/bin/cli'), 'start', '--web', '--localhost', '--port', String(port)],
+  [
+    require.resolve('expo/bin/cli'),
+    'start',
+    '--web',
+    '--offline',
+    '--max-workers',
+    String(runtime.workers),
+    '--port',
+    String(port),
+  ],
   {
     cwd: root,
-    // Keep localhost binding separate from offline networking: Expo treats the
-    // --offline and --localhost CLI flags as mutually exclusive host selectors.
-    env: { ...process.env, EXPO_OFFLINE: '1', EXPO_PUBLIC_DATA_SOURCE: 'mock' },
+    // Fixture mode is scoped to this child; the app reads it through config/env.ts.
+    env: { ...runtimePolicy.childEnvironment(runtime), EXPO_PUBLIC_DATA_SOURCE: 'mock' },
     windowsHide: true,
     detached: process.platform !== 'win32',
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -120,24 +130,26 @@ const diagnostics = [];
 try {
   const started = Date.now();
   let ready = false;
-  while (Date.now() - started < 180000) {
+  while (Date.now() - started < runtime.readyMs) {
     if (startupError) throw startupError;
     if (childExited || child.exitCode !== null)
       throw new Error(`Owned Expo exited ${child.exitCode}: ${startupLog.slice(-1600)}`);
     try {
-      if ((await fetch(origin, { signal: globalThis.AbortSignal.timeout(5000) })).ok) {
+      if ((await fetch(origin, { signal: globalThis.AbortSignal.timeout(runtime.fetchMs) })).ok) {
         ready = true;
         break;
       }
     } catch {
       /* server is starting */
     }
-    await delay(250);
+    await delay(500);
   }
   if (!ready) throw new Error(`Development Metro readiness timeout: ${startupLog.slice(-1600)}`);
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch({ headless: true, timeout: runtime.navigationMs });
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
+  page.setDefaultTimeout(runtime.expectMs);
+  page.setDefaultNavigationTimeout(runtime.navigationMs);
   page.on('pageerror', (error) => diagnostics.push(error.message));
   page.on('console', (message) => {
     if (message.type() === 'error') diagnostics.push(message.text());
@@ -145,9 +157,8 @@ try {
   const visible = (text) =>
     page
       .getByText(text, { exact: false })
-      .filter({ visible: true })
       .first()
-      .waitFor({ state: 'visible', timeout: 20000 });
+      .waitFor({ state: 'visible', timeout: runtime.testMs });
   const url = (grant, leaf) => `${origin}/grants/${encodeURIComponent(grant)}/${leaf}`;
 
   await check('cold grant-2 drafting resolves without a prior selection', async () => {
@@ -191,32 +202,36 @@ try {
   await check('a grant index redirects to its own dashboard', async () => {
     await page.goto(`${origin}/grants/2`);
     await page.waitForURL(url('2', 'dashboard'));
-    await visible('Good morning, Alex.');
+    await visible('Welcome back, Alex.');
   });
   await check('root opens onboarding, which hands off a queried grant', async () => {
     await page.goto(origin);
     await page.waitForURL(`${origin}/onboarding`);
     await visible('Discover funders that match your project.');
     await page.getByRole('button', { name: 'Next', exact: true }).click();
-    await visible('Draft with an assistant that knows compliance rules.');
+    await visible('Give every requirement a place in your draft.');
     await page.getByRole('button', { name: 'Next', exact: true }).click();
-    await visible('A deterministic auditor checks your math before you submit.');
+    await visible('Check your sections before the final review.');
     await page.getByRole('button', { name: 'Get started', exact: true }).click();
     await page.waitForURL(url('1', 'dashboard'));
-    await visible('Good morning, Alex.');
+    await visible('Welcome back, Alex.');
   });
   await check('dashboard recovery entry selects an actual queried grant', async () => {
     await page.goto(`${origin}/dashboard`);
     await page.waitForURL(url('1', 'dashboard'));
-    await visible('Good morning, Alex.');
+    await visible('Welcome back, Alex.');
   });
   await check('mobile navigation also preserves grant identity', async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(url('2', 'drafting'));
     await visible('Community Health Access');
-    await page.getByRole('tab').nth(4).click();
+    await page.getByRole('button', { name: 'Next navigation tabs' }).click();
+    await page.getByRole('tab', { name: 'Export', exact: true }).click();
     await page.waitForURL(url('2', 'export-humanizer'));
-    await expect(page.getByRole('tab').nth(4)).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: 'Export', exact: true })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
   });
   await check('unknown grant never falls back to another grant', async () => {
     await page.goto(url('missing-grant', 'drafting'));
@@ -242,8 +257,8 @@ try {
   fs.mkdirSync(path.join(root, '.expo/s8'), { recursive: true });
   fs.writeFileSync(path.join(root, '.expo/s8/routes-startup.log'), startupLog);
   stop();
-  const cleanupDeadline = Date.now() + 5000;
-  while (!childExited && child.pid && Date.now() < cleanupDeadline) await delay(50);
+  const cleanupDeadline = Date.now() + runtime.cleanupMs;
+  while (!childExited && child.pid && Date.now() < cleanupDeadline) await delay(100);
   process.removeListener('exit', stop);
   if (child.pid && !childExited) throw new Error('Owned Metro process did not exit during cleanup');
 }

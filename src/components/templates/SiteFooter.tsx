@@ -11,11 +11,11 @@ export function SiteFooter() {
   return (
     <View style={[styles.footer, { borderTopColor: theme.border }]}>
       <AppText variant="caption" color="muted" align="center">
-        Grantum — grant intelligence, instrumented.
+        Grantum - Find funding. Build your application.
       </AppText>
       {ENV.DATA_SOURCE === 'mock' && (
         <AppText variant="caption" color="muted" align="center">
-          Mock preview · no live data · Astana Hub backed.
+          Interactive preview - Sample data - Session-only edits
         </AppText>
       )}
       <AppText variant="caption" color="muted" align="center">

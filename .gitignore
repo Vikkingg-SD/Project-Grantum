@@ -41,3 +41,15 @@ yarn-error.*
 /android
 repomix-output*.xml
 .env
+
+# Local assistant state belongs outside the application
+/.codex/
+/.claude/
+/.agents/
+/AGENTS.md
+/SKILL.md
+/PRODUCT.md
+/DESIGN.md
+/WORKPLAN.md
+/ck-state.json
+/.mcp.json

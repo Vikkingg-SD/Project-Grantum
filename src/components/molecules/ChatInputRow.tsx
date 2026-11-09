@@ -1,6 +1,6 @@
 import React from 'react';
 import { Platform, View, TextInput, StyleSheet, type TextInputProps } from 'react-native';
-import { Send } from 'lucide-react-native';
+import Send from 'lucide-react-native/icons/send';
 import { IconButton } from '../atoms/IconButton';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, SPACING, TYPOGRAPHY } from '@/config/theme';

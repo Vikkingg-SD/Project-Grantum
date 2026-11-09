@@ -3,7 +3,6 @@ import { View, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, withAlpha } from '@/config/theme';
-import { platformShadow } from '@/utils/platformShadow';
 
 export interface StatusBadgeProps {
   label: string;
@@ -55,13 +54,7 @@ export function StatusBadge({ label, variant = 'neutral' }: StatusBadgeProps) {
   const colors = getColors();
 
   return (
-    <View
-      style={[
-        styles.badge,
-        { backgroundColor: colors.bg, borderColor: colors.border },
-        variant !== 'neutral' && platformShadow(mode, variant === 'brand' ? 'primary' : variant),
-      ]}
-    >
+    <View style={[styles.badge, { backgroundColor: colors.bg, borderColor: colors.border }]}>
       <AppText variant="caption" style={{ color: colors.text }}>
         {label}
       </AppText>

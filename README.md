@@ -1,36 +1,29 @@
-# Project-Grantum (grantum-r-n)
+# Grantum
 
-Grantum is an autonomous grant-discovery, drafting, and deterministic compliance-audit engine, ported from the frozen Next.js pitch instrument (`grantum-local`, V7.x) to a universal React Native client.
-
-## Stack
-
-| Layer          | Choice                                                                   |
-| -------------- | ------------------------------------------------------------------------ |
-| Runtime        | Expo SDK 57 · React Native 0.86.3 · React 19.2.3                         |
-| Language       | TypeScript ~6.0.3 (strict)                                               |
-| Routing        | Expo Router (`app/` at root)                                             |
-| Server state   | TanStack Query v5                                                        |
-| Client state   | Zustand v5                                                               |
-| Styling        | `PALETTE` tokens + raw StyleSheet (NativeWind removed by ruling R-1)     |
-| Backend target | Flask + PostgreSQL per `API_CONTRACTS.md` (mock data source until wired) |
+A universal grant discovery and application workspace built with Expo, React Native, and TypeScript.
 
 ## Run
 
-pnpm install
-pnpm web # http://localhost:8081
-pnpm start # QR → Expo Go over LAN (DATA_SOURCE=mock needs no backend)
-pnpm typecheck · pnpm lint · pnpm format:check
+```sh
+pnpm install --frozen-lockfile
+pnpm web
+```
 
-No Android emulator on the dev box (hardware ruling); devices via Expo Go over LAN.
+Use `pnpm start` for Expo Go, `pnpm android` or `pnpm ios` for a native development environment. Copy `.env.example` to `.env` to configure the data source.
 
-## Layout
+The default interactive preview uses sample opportunities and award records. Working notes and document edits last for the current session. The preview checks section presence only; it does not verify eligibility, budget math, or evidence. AI narrative generation, uploads, live notifications, and downloadable exports require connected services.
 
-`app/` routes · `src/components/{atoms,molecules,organisms,templates}` UI kit · `src/screens` (WP-H) · `src/config` tokens/env/constants · `src/api` hooks + data-source seam · `src/mock` hermetic demo data · `src/store` Zustand · `src/utils` scoring/formatting/uuid.
+## Development
 
-## Design
+- `pnpm typecheck`, `pnpm lint`, `pnpm format:check`
+- `pnpm gate:local` runs serial source and contract checks.
+- `pnpm gate:full` also runs the configured browser recovery and route checks. Install Chromium first with `pnpm exec playwright install chromium`.
+- CI installs browser dependencies and runs the full gate.
 
-Obsidian (dark) / Quartz (light) instrument language — see `DESIGN_MANIFESTO.md` (regenerated from `src/config/theme.ts` in WP-B).
+Verification is portable and does not require local agent software, Python, or a machine-specific control-plane directory. Optional `BRAIN_RUNTIME_POLICY` and `BRAIN_RUN_PROFILE` environment variables let a developer supply external resource limits; conservative serial defaults apply otherwise.
 
-## Git workflow
+## Structure
 
-Feature branches → Conventional Commits → PR → Squash & Merge only. Husky + lint-staged block non-conforming code at commit.
+`app/` contains Expo Router routes. `src/screens/` contains work areas. `src/components/` contains the shared UI. `src/config/theme.ts` owns Obsidian and Quartz color and type tokens. `src/api/` contains TanStack Query hooks and the data-source interface; `src/mock/` provides sample records. Zustand holds per-grant session notes and narrative edits.
+
+See [API contracts](API_CONTRACTS.md) for backend integration. Agent configuration, task plans, review packs, and session records belong outside this application repository.

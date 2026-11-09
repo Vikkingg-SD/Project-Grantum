@@ -1,9 +1,13 @@
 import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Check, Flag, Clock3, CircleAlert } from 'lucide-react-native';
+import Check from 'lucide-react-native/icons/check';
+import Flag from 'lucide-react-native/icons/flag';
+import Clock3 from 'lucide-react-native/icons/clock-3';
+import CircleAlert from 'lucide-react-native/icons/circle-alert';
 import { AppText } from '../atoms/AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, SPACING } from '@/config/theme';
+import { formatEventDate } from '@/utils/presentation';
 
 export interface AuditLogLineProps {
   agent: 'agent-1-narrative' | 'agent-2-deterministic' | 'system';
@@ -36,12 +40,10 @@ export const AuditLogLine = memo(function AuditLogLine({
         <Icon size={SPACING.lg} color={color} />
       </View>
       <View style={styles.message}>
-        <AppText variant="metric-sm" color="muted">
-          {message}
-        </AppText>
+        <AppText variant="body">{message}</AppText>
         {timestamp && (
-          <AppText variant="metric-sm" color="muted" style={styles.timestamp}>
-            {timestamp}
+          <AppText variant="caption" color="muted" style={styles.timestamp}>
+            {formatEventDate(timestamp)}
           </AppText>
         )}
       </View>

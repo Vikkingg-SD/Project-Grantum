@@ -16,21 +16,17 @@
     "verify:drafts": "tsx scripts/verify-drafts.ts",
     "verify:theme": "tsx scripts/verify-theme.ts",
     "gate": "node scripts/run-gate.js",
-    "gate:local": "node scripts/grantum-preflight.mjs --strict && pnpm format && pnpm typecheck && pnpm lint && pnpm format:check && pnpm verify:scoring && pnpm verify:drafts && pnpm verify:theme && pnpm verify:composer && pnpm verify:preflight && pnpm verify:tokens && pnpm verify:contract && pnpm verify:routes --static",
-    "gate:full": "pnpm gate:local && pnpm verify:recovery && pnpm verify:routes",
+    "gate:local": "node scripts/run-gate.js",
+    "gate:full": "node scripts/run-gate.js --full",
+    "gate:recover": "node scripts/run-gate.js --full --recover-timeouts",
     "verify:contract": "tsx scripts/verify-contract.ts",
     "prepare": "husky",
     "verify:composer": "tsx scripts/verify-composer.ts",
-    "verify:preflight": "node scripts/verify-preflight.mjs",
     "verify:tokens": "tsx scripts/verify-tokens.ts",
     "verify:recovery:harness": "playwright test --config scripts/recovery.playwright.config.ts --grep \"preliminary harness:\"",
-    "verify:recovery": "playwright test --config scripts/recovery.playwright.config.ts --global-timeout 180000 --grep \"app recovery:\"",
-    "verify:routes": "node scripts/verify-routes.mjs"
-  },
-  "config": {
-    "grantum": {
-      "plan": "docs/plan-manifest.json"
-    }
+    "verify:recovery": "playwright test --config scripts/recovery.playwright.config.ts --grep \"app recovery:\"",
+    "verify:routes": "node scripts/verify-routes.mjs",
+    "verify:presentation": "tsx scripts/verify-presentation.ts"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.2.3",

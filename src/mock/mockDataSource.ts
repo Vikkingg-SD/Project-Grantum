@@ -70,7 +70,16 @@ export const mockDataSource: DataSource = {
   },
   async getDashboardSummary() {
     await sleep(ENV.MOCK_LATENCY_MS);
-    return mockDashboardSummary;
+    const active = mockDashboardSummary.activeDraft;
+    return {
+      ...mockDashboardSummary,
+      activeDraft: active
+        ? {
+            ...active,
+            completionPct: getMockDraft(active.grantId).completionPct,
+          }
+        : null,
+    };
   },
   async getMe() {
     await sleep(ENV.MOCK_LATENCY_MS);

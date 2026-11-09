@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Bell, Filter } from 'lucide-react-native';
+import Bell from 'lucide-react-native/icons/bell';
+import Filter from 'lucide-react-native/icons/funnel';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
@@ -19,13 +20,17 @@ import { useDashboardSummary } from '@/api/hooks/useDashboardSummary';
 import { useDraftStore } from '@/store/useDraftStore';
 import { useTheme } from '@/hooks/useTheme';
 import { SPACING } from '@/config/theme';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
+import { ENV } from '@/config/env';
 import { DASHBOARD_COPY } from '@/config/copy';
 import type { Grant } from '@/types/grant';
 
 export default function DashboardScreen() {
   const navigation = useAppNavigation();
   const theme = useTheme();
+  const { mobile } = useLayoutMetrics();
   const [query, setQuery] = useState('');
+  const [activityOpen, setActivityOpen] = useState(false);
   const grants = useGrants();
   const summary = useDashboardSummary();
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
@@ -59,23 +64,20 @@ export default function DashboardScreen() {
     <ScreenContainer>
       <View style={styles.content}>
         <View style={styles.row}>
-          <IconButton
-            label={DASHBOARD_COPY.notifications}
-            disabled
-            onPress={() => undefined}
-            icon={<Bell size={SPACING.lg} color={theme.textMuted} />}
-          />
-          <AppText variant="display" style={styles.flexible}>
-            {'Good morning, ' + summary.data.greetingName + '.'}
-          </AppText>
+          <View style={[styles.greeting, mobile ? styles.fullWidth : styles.grow]}>
+            <AppText variant={mobile ? 'h1' : 'display'} style={styles.flexible}>
+              {'Welcome back, ' + summary.data.greetingName + '.'}
+            </AppText>
+            <IconButton
+              label={DASHBOARD_COPY.notifications}
+              onPress={() => setActivityOpen(true)}
+              icon={<Bell size={SPACING.lg} color={theme.textMuted} />}
+            />
+          </View>
           <AppButton
             label={DASHBOARD_COPY.newApplication}
             variant="primary"
-            onPress={() => {
-              const grantId = active?.grantId ?? grants.data?.[0]?.id;
-              if (grantId) openDraft(grantId);
-              else navigation.navigateTo('discovery');
-            }}
+            onPress={() => navigation.navigateTo('discovery')}
           />
         </View>
         {active ? (
@@ -90,12 +92,16 @@ export default function DashboardScreen() {
             onStartNew={() => navigation.navigateTo('discovery')}
           />
         )}
+        <AppText variant="caption" color="muted">
+          {ENV.DATA_SOURCE === 'mock'
+            ? 'Sample portfolio · Pipeline overview'
+            : 'Portfolio overview'}
+        </AppText>
         <PipelineFunnelBar stages={summary.data.pipeline} />
         <View style={styles.row}>
           <IconButton
             label={DASHBOARD_COPY.filter}
-            disabled
-            onPress={() => undefined}
+            onPress={() => navigation.navigateTo('discovery')}
             icon={<Filter size={SPACING.lg} color={theme.textMuted} />}
           />
           <AppText variant="h2" style={styles.flexible}>
@@ -110,7 +116,10 @@ export default function DashboardScreen() {
           returnKeyType="search"
         />
         <View style={styles.row}>
-          <StatusBadge label={DASHBOARD_COPY.liveMatching} variant="brand" />
+          <StatusBadge
+            label={ENV.DATA_SOURCE === 'mock' ? 'Sample opportunities' : 'Your opportunities'}
+            variant="brand"
+          />
           <StatusBadge
             label={'Project profile ' + summary.data.profileCompletionPct + '% done'}
             variant="pending"
@@ -128,6 +137,24 @@ export default function DashboardScreen() {
         />
       </View>
       <ModalSheetLayout
+        visible={activityOpen}
+        onClose={() => setActivityOpen(false)}
+        accessibilityLabel="Workspace activity"
+      >
+        <View style={styles.content}>
+          <AppText variant="h2">Workspace activity</AppText>
+          <AppText>
+            {active ? `Active application: ${active.title}` : 'No active application yet.'}
+          </AppText>
+          <AppText color="muted">
+            {ENV.DATA_SOURCE === 'mock'
+              ? 'You are viewing sample data. Live notifications are not connected.'
+              : 'Live notifications are not available in this workspace.'}
+          </AppText>
+          <AppButton label="Close activity" onPress={() => setActivityOpen(false)} />
+        </View>
+      </ModalSheetLayout>
+      <ModalSheetLayout
         visible={Boolean(selectedGrant)}
         onClose={() => setSelectedGrant(null)}
         accessibilityLabel={selectedGrant?.title ?? ''}
@@ -139,6 +166,9 @@ export default function DashboardScreen() {
 }
 const styles = StyleSheet.create({
   content: { gap: SPACING.lg },
+  greeting: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, minWidth: 0 },
+  fullWidth: { width: '100%' },
+  grow: { flex: 1 },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.sm },
-  flexible: { flexShrink: 1, minWidth: 0 },
+  flexible: { flexGrow: 1, flexShrink: 1, minWidth: 0 },
 });

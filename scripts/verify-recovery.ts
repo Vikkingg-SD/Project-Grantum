@@ -1,5 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import { LAYOUT, BREAKPOINTS } from '../src/config/layout';
+import { loadPolicy, childEnvironment } from './runtime-policy.cjs';
+
+const runtime = loadPolicy();
 
 // Like verify:tokens, this CLI types its small Node boundary without adding Node
 // declarations to the app's dependency/config surface. Runtime modules remain genuine.
@@ -28,7 +31,13 @@ interface Server {
 let spawn: (
   exe: string,
   args: string[],
-  options: { cwd: string; windowsHide: boolean; detached: boolean; stdio: string[] }
+  options: {
+    cwd: string;
+    windowsHide: boolean;
+    detached: boolean;
+    stdio: string[];
+    env: Record<string, string | undefined>;
+  }
 ) => ChildProcess;
 let spawnSync: (
   exe: string,
@@ -103,7 +112,7 @@ test.describe('app recovery:', () => {
       spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
         windowsHide: true,
         stdio: 'ignore',
-        timeout: 5000,
+        timeout: runtime.cleanupMs,
       });
     } else {
       try {
@@ -121,6 +130,7 @@ test.describe('app recovery:', () => {
       windowsHide: true,
       detached: process.platform !== 'win32',
       stdio: ['ignore', 'pipe', 'pipe'],
+      env: childEnvironment(runtime),
     });
     children.push(child);
     for (const stream of [child.stdout, child.stderr]) {
@@ -155,7 +165,7 @@ test.describe('app recovery:', () => {
     });
 
   test.beforeAll(async () => {
-    test.setTimeout(120000);
+    test.setTimeout(runtime.setupMs);
     const modules = {
       child: 'node:child_process',
       http: 'node:http',
@@ -179,11 +189,13 @@ test.describe('app recovery:', () => {
       'web',
       '--output-dir',
       '.expo/recovery-export',
+      '--max-workers',
+      String(runtime.workers),
     ]);
     try {
       await Promise.race([
         exporting.complete,
-        delay(80000).then(() => {
+        delay(runtime.exportMs).then(() => {
           throw new Error('Expo export timeout');
         }),
       ]);
@@ -222,24 +234,33 @@ test.describe('app recovery:', () => {
     const reservation = createServer();
     const port = await listen(reservation);
     await close(reservation);
-    const dev = command(['start', '--web', '--localhost', '--port', String(port)]);
+    const dev = command([
+      'start',
+      '--web',
+      '--offline',
+      '--max-workers',
+      String(runtime.workers),
+      '--port',
+      String(port),
+    ]);
     devOrigin = `http://localhost:${port}`;
-    const deadline = Date.now() + 30000;
+    const deadline = Date.now() + runtime.readyMs;
     while (Date.now() < deadline) {
       if (dev.child.exitCode !== null) await dev.complete;
       try {
-        if ((await fetch(devOrigin)).ok) return;
+        if ((await fetch(devOrigin, { signal: AbortSignal.timeout(runtime.fetchMs) })).ok) return;
       } catch {
         /* owned server is starting */
       }
-      await delay(100);
+      await delay(200);
     }
     throw new Error('Owned Metro readiness timeout');
   });
   test.afterAll(async () => {
+    test.setTimeout(runtime.cleanupMs);
     for (const server of servers) if (server.listening) await close(server);
     children.forEach(stop);
-    const deadline = Date.now() + 2000;
+    const deadline = Date.now() + runtime.cleanupMs;
     const alive = () =>
       children.filter((child) => {
         if (!child.pid) return false;
@@ -251,7 +272,7 @@ test.describe('app recovery:', () => {
           throw error;
         }
       });
-    while (alive().length && Date.now() < deadline) await delay(50);
+    while (alive().length && Date.now() < deadline) await delay(100);
     expect(alive(), 'All owned Expo processes must stop').toHaveLength(0);
     process.removeListener('exit', cleanupOnExit);
   });
@@ -278,10 +299,10 @@ test.describe('app recovery:', () => {
       ['Test screen recovery', 'SCREEN', 1, 'Dev Gallery'],
       ['Test repeated failure', 'SCREEN', 2, 'Dev Gallery'],
       ['Test root recovery', 'ROOT', 1, 'Discover funders that match your project.'],
-      ['Test tab recovery', 'TAB', 1, 'Good morning, Alex.'],
+      ['Test tab recovery', 'TAB', 1, 'Welcome back, Alex.'],
     ] as const) {
       test(`${mode} ${target} ${repeats} real throw and retry`, async ({ page }) => {
-        test.setTimeout(30000);
+        test.setTimeout(runtime.testMs);
         await setTheme(page, mode);
         const diagnostics = observe(page);
         await page.goto(`${devOrigin}/dev-gallery`);
@@ -315,7 +336,7 @@ test.describe('app recovery:', () => {
             const append = Node.prototype.appendChild;
             let armed = sessionStorage.getItem('grantum-test-fault') !== 'clear';
             Node.prototype.appendChild = function <T extends Node>(child: T): T {
-              if (armed && child.textContent === 'Good morning, Alex.')
+              if (armed && child.textContent === 'Welcome back, Alex.')
                 throw new Error('GRANTUM_DOM_SCREEN_FAULT');
               return append.call(this, child) as T;
             };
@@ -356,7 +377,7 @@ test.describe('app recovery:', () => {
               page.getByRole('button', { name: 'Reload Grantum', exact: true }).click(),
             ]);
           }
-          await expect(page.getByText('Good morning, Alex.', { exact: true })).toBeVisible();
+          await expect(page.getByText('Welcome back, Alex.', { exact: true })).toBeVisible();
           const container = await page.getByTestId('screen-container').boundingBox();
           const content = await page.getByTestId('screen-content').boundingBox();
           expect(container).not.toBeNull();
