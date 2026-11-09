@@ -72,17 +72,10 @@ function ExportSession({ grantId }: { grantId: string }) {
       <View style={styles.content}>
         <AppText variant="h1">Review & export</AppText>
         <GrantContext grantId={grantId} />
-        <AppText color="muted">
-          Review your application narrative, then choose a format. Edits are kept for this session
-          only.
-        </AppText>
         {!serviceAvailable && (
           <View style={[styles.notice, { backgroundColor: theme.subtle }]}>
-            <AppText variant="label">Document service not connected</AppText>
-            <AppText color="muted">
-              You can edit this sample document. Downloads and AI rewriting are unavailable in this
-              preview.
-            </AppText>
+            <AppText variant="label">Downloads unavailable</AppText>
+            <AppText color="muted">Preview - edits stay in this session.</AppText>
           </View>
         )}
         <AppText variant="h3">Document format</AppText>
@@ -105,17 +98,18 @@ function ExportSession({ grantId }: { grantId: string }) {
               style={[
                 styles.format,
                 {
-                  flexBasis: effectiveWidth < 360 ? '100%' : effectiveWidth >= 1024 ? '22%' : '45%',
+                  flexBasis: effectiveWidth >= 1024 ? '22%' : '45%',
                   backgroundColor: format === item.id ? theme.subtle : theme.surface,
                   borderColor: format === item.id ? theme.primary : theme.border,
                 },
               ]}
             >
-              <AppText variant="label" color={format === item.id ? 'primary' : 'main'}>
-                {item.label}
-              </AppText>
-              <AppText variant="caption" color="muted">
-                {item.blurb}
+              <AppText
+                variant="caption"
+                numberOfLines={1}
+                color={format === item.id ? 'primary' : 'main'}
+              >
+                {item.label.split(' (')[0]}
               </AppText>
             </Pressable>
           ))}
@@ -185,12 +179,7 @@ function ExportSession({ grantId }: { grantId: string }) {
               </AppText>
             ) : null}
           </View>
-        ) : (
-          <EmptyStateLayout
-            title="Choose an export format"
-            description="Your narrative is ready to edit above. Select a format when you are ready to export."
-          />
-        )}
+        ) : null}
       </View>
     </ScreenContainer>
   );
@@ -202,7 +191,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexShrink: 1,
     minWidth: 0,
-    minHeight: 96,
+    minHeight: 64,
     borderWidth: 1,
     borderRadius: RADIUS.md,
     padding: SPACING.md,

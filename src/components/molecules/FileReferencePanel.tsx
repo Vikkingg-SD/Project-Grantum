@@ -1,3 +1,5 @@
+import { ModalSheetLayout } from '../templates/ModalSheetLayout';
+import { IconButton } from '../atoms/IconButton';
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Paperclip from 'lucide-react-native/icons/paperclip';
@@ -25,15 +27,16 @@ export function FileReferencePanel({
   const setFiles = useDraftStore((s) => s.setAttachments);
   return (
     <View style={styles.group}>
-      <AppButton
-        label={`File references${files.length ? ` (${files.length})` : ''}`}
-        size="sm"
-        variant="outline"
-        expanded={open}
+      <IconButton
+        label="File references"
         onPress={() => setOpen(!open)}
         icon={<Paperclip size={20} color={theme.textMuted} />}
       />
-      {open && (
+      <ModalSheetLayout
+        visible={open}
+        onClose={() => setOpen(false)}
+        accessibilityLabel="File references"
+      >
         <View style={styles.group}>
           <AppText variant="caption" color="muted">
             Keep up to 5 file references for this session. Only names, types, and sizes are kept;
@@ -82,7 +85,7 @@ export function FileReferencePanel({
             </AppText>
           )}
         </View>
-      )}
+      </ModalSheetLayout>
     </View>
   );
 }

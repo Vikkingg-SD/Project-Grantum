@@ -32,7 +32,13 @@ export function PipelineFunnelBar({ stages }: PipelineFunnelBarProps) {
             <View
               style={[styles.tile, { backgroundColor: theme.surface, borderColor: theme.border }]}
             >
-              <AppText variant="caption" style={[styles.label, { color: labelColor }]}>
+              <AppText
+                variant="caption"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+                style={[styles.label, { color: labelColor }]}
+              >
                 {stage.label}
               </AppText>
               <AppText variant="metric-lg" style={{ color: valueColor }}>
@@ -49,6 +55,15 @@ export function PipelineFunnelBar({ stages }: PipelineFunnelBarProps) {
 const styles = StyleSheet.create({
   card: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -SPACING.xs },
   stage: { padding: SPACING.xs },
-  tile: { flex: 1, borderWidth: 1, borderRadius: RADIUS.md, padding: SPACING.md, gap: SPACING.sm },
-  label: { textAlign: 'left' },
+  tile: {
+    minHeight: 96,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  label: { textAlign: 'center' },
 });
