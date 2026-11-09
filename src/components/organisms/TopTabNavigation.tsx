@@ -23,7 +23,6 @@ export interface NavigationItem {
   label: string;
   href: Href;
   icon: typeof LayoutDashboard;
-  locked?: boolean;
   disabled?: boolean;
 }
 
@@ -37,7 +36,6 @@ export const NAVIGATION_ITEMS: readonly Omit<NavigationItem, 'href'>[] = [
     name: 'post-award',
     label: NAV_COPY.postAward,
     icon: Award,
-    locked: false,
   },
 ];
 
