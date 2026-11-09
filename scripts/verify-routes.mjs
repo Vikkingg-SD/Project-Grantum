@@ -157,6 +157,7 @@ try {
   const visible = (text) =>
     page
       .getByText(text, { exact: false })
+      .filter({ visible: true })
       .first()
       .waitFor({ state: 'visible', timeout: runtime.testMs });
   const url = (grant, leaf) => `${origin}/grants/${encodeURIComponent(grant)}/${leaf}`;
