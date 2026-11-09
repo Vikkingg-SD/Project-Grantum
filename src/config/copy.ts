@@ -6,20 +6,11 @@ export const GRANT_CARD_COPY = {
   matchLabel: (pct: number): string => `${pct}% match`,
 } as const;
 
-export const CONFIDENCE_COPY = {
-  label: 'complete',
-  unlocked: 'Export unlocked',
-  locked: 'Export locked',
-  thresholdPrefix: 'Threshold: ',
-  thresholdSuffix: ' confidence',
-} as const;
-
 export const HERO_CONTINUE_COPY = {
   activeEyebrow: 'Active session',
   inactiveEyebrow: 'Next action',
   untitled: 'Untitled application',
   inactiveTitle: 'Start a new grant application',
-  progress: 'Almost there',
   resume: 'Continue drafting',
   start: 'Start application',
 } as const;
@@ -31,7 +22,6 @@ export const CHAT_COPY = {
   failed: 'Message failed to send.',
 } as const;
 
-// Pinned V7.2 app/error.tsx and app-root ScreenErrorBoundary, copied verbatim.
 export const ERROR_COPY = {
   title: 'Instrument fault',
   routeMessage: 'Something interrupted this view. Try again, or reload to restore the instrument.',
@@ -41,7 +31,6 @@ export const ERROR_COPY = {
   screenReload: 'Reload Grantum',
 } as const;
 
-// Header/navigation labels from the pinned V7.2 header and TopTabNavigation.
 export const HEADER_COPY = { brand: 'Grantum', back: 'Go back', home: 'Go to dashboard' } as const;
 
 export const ROUTE_COPY = {
@@ -63,9 +52,7 @@ export const NAV_COPY = {
   audit: 'Audit',
   export: 'Export',
   postAward: 'Post-award',
-  lockedPreview: 'tier-locked preview, still navigable',
 } as const;
-// V7.2 GrantDetailModalTemplate labels; API mode must not claim a mock record.
 export const MODAL_COPY = {
   close: 'Close',
   funding: 'Funding',
@@ -77,7 +64,6 @@ export const MODAL_COPY = {
   apply: 'Help me apply',
 } as const;
 
-// Verbatim V7.2 DashboardContainer labels. Bell/filter remain declared inert.
 export const DASHBOARD_COPY = {
   notifications: 'Notifications',
   filter: 'Filter grants',
@@ -91,8 +77,6 @@ export const DASHBOARD_COPY = {
 export const DRAFTING_COPY = {
   title: 'Drafting workspace',
   chips: ['Tighten the mission statement', 'Align budget to funder cap', 'Add evidence references'],
-  welcome: (title: string, funder: string): string =>
-    `Welcome to the drafting assistant. Current file: ${title} (${funder}). Use this space to keep working notes. Review and edit the application narrative in Export. Notes are saved for this session only.`,
 } as const;
 export const AUDIT_COPY = {
   title: 'Application check',

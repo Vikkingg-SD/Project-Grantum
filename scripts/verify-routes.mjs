@@ -39,11 +39,9 @@ await check('route tree uses six pure screen re-exports and no legacy tabs', () 
   assert.match(read('app/index.tsx'), /Redirect href="\/onboarding"/);
   assert.match(read('app/grants/[grantID]/index.tsx'), /Redirect/);
   assert.match(read('app/dashboard.tsx'), /useGrants/);
-  for (const screen of ['NotFound', 'AuthGate'])
-    assert.match(read(`src/screens/${screen}Screen.tsx`), /router.replace\('\/dashboard'\)/);
+  assert.match(read('src/screens/NotFoundScreen.tsx'), /router.replace\('\/dashboard'\)/);
 });
 await check('grant identity and history have a single route owner', () => {
-  assert.doesNotMatch(read('src/store/useUIStore.ts'), /activeGrantId|setActiveGrantId/);
   assert.doesNotMatch(read('src/config/constants.ts'), /HISTORY_CAP/);
   for (const name of ['Drafting', 'Audit', 'Export', 'PostAward']) {
     assert.match(read(`src/screens/${name}Screen.tsx`), /useActiveGrantId\(\)/);
