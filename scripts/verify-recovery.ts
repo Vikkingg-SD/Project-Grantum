@@ -330,20 +330,22 @@ test.describe('app recovery:', () => {
           page,
         }) => {
           await page.setViewportSize({ width, height: 900 });
+          const dashboardHeading =
+            width < BREAKPOINTS.md ? 'Your workspace' : 'Welcome back, Alex.';
           await setTheme(page, mode);
           const diagnostics = observe(page);
-          await page.addInitScript(() => {
+          await page.addInitScript((heading) => {
             const append = Node.prototype.appendChild;
             let armed = sessionStorage.getItem('grantum-test-fault') !== 'clear';
             Node.prototype.appendChild = function <T extends Node>(child: T): T {
-              if (armed && child.textContent === 'Welcome back, Alex.')
+              if (armed && child.textContent === heading)
                 throw new Error('GRANTUM_DOM_SCREEN_FAULT');
               return append.call(this, child) as T;
             };
             window.addEventListener('grantum-test-clear', () => {
               armed = false;
             });
-          });
+          }, dashboardHeading);
           await page.goto(`${releaseOrigin}/grants/1/dashboard`);
           await expect(
             page.getByText(
@@ -377,7 +379,7 @@ test.describe('app recovery:', () => {
               page.getByRole('button', { name: 'Reload Grantum', exact: true }).click(),
             ]);
           }
-          await expect(page.getByText('Welcome back, Alex.', { exact: true })).toBeVisible();
+          await expect(page.getByText(dashboardHeading, { exact: true })).toBeVisible();
           const container = await page.getByTestId('screen-container').boundingBox();
           const content = await page.getByTestId('screen-content').boundingBox();
           expect(container).not.toBeNull();
