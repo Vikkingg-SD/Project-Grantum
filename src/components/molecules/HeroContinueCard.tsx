@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { ArrowRight } from 'lucide-react-native';
+import ArrowRight from 'lucide-react-native/icons/arrow-right';
 import { AppText } from '../atoms/AppText';
 import { AppButton } from '../atoms/AppButton';
 import { ProgressBar } from '../atoms/ProgressBar';
@@ -9,6 +9,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
 import { HERO_CONTINUE_COPY } from '@/config/copy';
 import { platformShadow, platformTextGlow } from '@/utils/platformShadow';
+import { progressLabel } from '@/utils/presentation';
 
 export type HeroContinueCardProps =
   | {
@@ -55,7 +56,7 @@ export function HeroContinueCard(props: HeroContinueCardProps) {
         </AppText>
         {props.variant !== 'no-session' && (
           <View style={styles.progress}>
-            <ProgressBar percent={props.completionPct} label={HERO_CONTINUE_COPY.progress} />
+            <ProgressBar percent={props.completionPct} label={progressLabel(props.completionPct)} />
           </View>
         )}
       </View>

@@ -14,6 +14,6 @@ export const mockDashboardSummary: DashboardSummary = {
   activeDraft: {
     grantId: '1',
     title: 'Climate Resilience Infrastructure',
-    completionPct: 42,
+    completionPct: 100,
   },
 };

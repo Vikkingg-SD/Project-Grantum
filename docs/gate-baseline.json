@@ -1,5 +1,0 @@
-{
-  "warnBaseline": 17,
-  "setAtStage": "S7-candidate",
-  "note": "Owner-approved downward ratchet, 2026-11-02: S6 25 to S7 measured 17. Strict preflight passed FAIL 0 / WARN 17 / INFO 4 / SKIPPED 0 with zero active exemptions; all nine planned screen modules exist. Typecheck passed. Staged lint/format hooks remain active. Full behavioral, browser/device and API-render acceptance is deferred by owner instruction, not certified by this ceiling. Raise only by owner ruling."
-}

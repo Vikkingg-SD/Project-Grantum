@@ -25,7 +25,7 @@ export function getMockDraft(grantId: string): ProposalDraft {
       grantId,
       completedSections: [...DEFAULT_REQUIRED_SECTIONS],
       requiredSections: [...DEFAULT_REQUIRED_SECTIONS],
-      completionPct: 42,
+      completionPct: 100,
       confidenceScore: 100,
       body: seedExportDoc(grant),
     };
@@ -49,7 +49,10 @@ export function createMockScan(grantId: string): AuditScan {
     {
       id: generateId('evt'),
       agent: 'agent-2-deterministic',
-      message: missing.length === 0 ? 'All sections verified' : `Missing: ${missing.join(', ')}`,
+      message:
+        missing.length === 0
+          ? 'All required sections are marked present'
+          : `Missing: ${missing.join(', ')}`,
       status: missing.length === 0 ? 'passed' : 'failed',
       timestamp: new Date().toISOString(),
     },
@@ -98,21 +101,21 @@ export function getMockAward(grantId: string): AwardRecord {
         agent: 'agent-2-deterministic',
         message: 'Final budget reconciliation passed',
         status: 'passed',
-        timestamp: '18 May · 14:32',
+        timestamp: '2026-05-18T14:32:00Z',
       },
       {
         id: '2',
         agent: 'agent-1-narrative',
         message: 'Evidence references locked',
         status: 'passed',
-        timestamp: '18 May · 14:31',
+        timestamp: '2026-05-18T14:31:00Z',
       },
       {
         id: '3',
         agent: 'system',
         message: 'Submission receipt stored',
         status: 'passed',
-        timestamp: '18 May · 14:30',
+        timestamp: '2026-05-18T14:30:00Z',
       },
     ],
   };

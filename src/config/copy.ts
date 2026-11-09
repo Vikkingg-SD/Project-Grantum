@@ -7,7 +7,7 @@ export const GRANT_CARD_COPY = {
 } as const;
 
 export const CONFIDENCE_COPY = {
-  label: 'confidence',
+  label: 'complete',
   unlocked: 'Export unlocked',
   locked: 'Export locked',
   thresholdPrefix: 'Threshold: ',
@@ -25,8 +25,8 @@ export const HERO_CONTINUE_COPY = {
 } as const;
 
 export const CHAT_COPY = {
-  placeholder: 'Describe what you want to draft',
-  send: 'Send message',
+  placeholder: 'Add a working note…',
+  send: 'Save note',
   now: 'now',
   failed: 'Message failed to send.',
 } as const;
@@ -84,19 +84,19 @@ export const DASHBOARD_COPY = {
   newApplication: 'New application',
   recommended: 'Recommended opportunities',
   search: 'Search grants',
-  liveMatching: 'Live matching',
+  liveMatching: 'Sample opportunities',
   showAll: 'Show all',
 } as const;
 
 export const DRAFTING_COPY = {
-  title: 'Drafting assistant',
+  title: 'Drafting workspace',
   chips: ['Tighten the mission statement', 'Align budget to funder cap', 'Add evidence references'],
   welcome: (title: string, funder: string): string =>
-    `Welcome to the drafting assistant. Current file: ${title} (${funder}). Tell me what your project needs to change, and I will keep the narrative aligned to the funder requirements.`,
+    `Welcome to the drafting assistant. Current file: ${title} (${funder}). Use this space to keep working notes. Review and edit the application narrative in Export. Notes are saved for this session only.`,
 } as const;
 export const AUDIT_COPY = {
-  title: 'Audit agent',
+  title: 'Application check',
   chips: ['Verify budget math', 'Check eligibility window', 'Confirm evidence references'],
   welcome:
-    'AUDIT AGENT ONLINE · deterministic pass armed. Ask me to verify budget math, eligibility windows, or evidence references.',
+    'Run a check to find missing sections. This preview checks section presence; it does not validate budget math, eligibility, or evidence. Notes stay in this session.',
 } as const;

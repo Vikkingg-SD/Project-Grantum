@@ -1,7 +1,8 @@
 import React from 'react';
 import { Text, TextProps } from 'react-native';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE, TYPOGRAPHY } from '@/config/theme';
+import { PALETTE, TYPOGRAPHY, DESKTOP_TYPOGRAPHY } from '@/config/theme';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 
 export interface AppTextProps extends TextProps {
   variant?: keyof typeof TYPOGRAPHY;
@@ -29,6 +30,7 @@ export function AppText({
 }: AppTextProps) {
   const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
+  const { desktop } = useLayoutMetrics();
 
   const colorStyles = {
     main: theme.textMain,
@@ -49,7 +51,12 @@ export function AppText({
   return (
     <Text
       accessibilityRole={isHeader ? 'header' : undefined}
-      style={[TYPOGRAPHY[variant], { color: colorStyles[color], textAlign: align }, style]}
+      style={[
+        TYPOGRAPHY[variant],
+        desktop && DESKTOP_TYPOGRAPHY[variant],
+        { color: colorStyles[color], textAlign: align },
+        style,
+      ]}
       {...props}
     >
       {children}

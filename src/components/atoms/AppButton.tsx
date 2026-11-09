@@ -19,10 +19,11 @@ export interface AppButtonProps {
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   disabled?: boolean;
-  selected?: boolean;
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   style?: StyleProp<ViewStyle>;
+  expanded?: boolean;
+  selected?: boolean;
 }
 
 export function AppButton({
@@ -32,10 +33,11 @@ export function AppButton({
   size = 'md',
   isLoading = false,
   disabled = false,
-  selected,
   icon,
   iconPosition = 'left',
   style,
+  expanded,
+  selected,
 }: AppButtonProps) {
   const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
@@ -86,7 +88,7 @@ export function AppButton({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled: disabled || isLoading, busy: isLoading, selected }}
+      accessibilityState={{ disabled: disabled || isLoading, busy: isLoading, expanded, selected }}
       aria-busy={isLoading}
       aria-pressed={Platform.OS === 'web' ? selected : undefined}
       onPress={onPress}

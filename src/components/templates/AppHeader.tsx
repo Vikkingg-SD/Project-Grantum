@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { View, Pressable, StyleSheet, Platform } from 'react-native';
-import { ArrowLeft, Sun, Moon } from 'lucide-react-native';
+import ArrowLeft from 'lucide-react-native/icons/arrow-left';
+import Sun from 'lucide-react-native/icons/sun';
+import Moon from 'lucide-react-native/icons/moon';
 import { AppText } from '@/components/atoms/AppText';
 import { IconButton } from '@/components/atoms/IconButton';
 import { useTheme } from '@/hooks/useTheme';

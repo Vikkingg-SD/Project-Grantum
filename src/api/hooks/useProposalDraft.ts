@@ -66,6 +66,7 @@ export function sectionMutationOptions(
               completedSections: sections.completedSections,
               requiredSections: sections.requiredSections,
               confidenceScore: sections.confidenceScore,
+              completionPct: sections.requiredSections.length ? sections.confidenceScore : 0,
             }
           : draft
       );

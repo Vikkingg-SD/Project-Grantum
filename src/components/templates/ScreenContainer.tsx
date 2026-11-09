@@ -5,7 +5,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  useWindowDimensions,
   type ViewStyle,
   type StyleProp,
   type KeyboardAvoidingViewProps,
@@ -15,6 +14,7 @@ import { useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, SPACING } from '@/config/theme';
 import { BREAKPOINTS, LAYOUT } from '@/config/layout';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 
 export interface ScreenContainerProps {
   children: React.ReactNode;
@@ -39,7 +39,7 @@ export function ScreenContainer({
   const theme = PALETTE[mode];
   const insets = useSafeAreaInsets();
   const segments = useSegments();
-  const { width } = useWindowDimensions();
+  const { effectiveWidth: width } = useLayoutMetrics();
   const measureRef = useRef<View>(null);
   const [windowY, setWindowY] = useState(0);
   // The grant layout owns safe-area edges around its header and navigation.
@@ -66,10 +66,12 @@ export function ScreenContainer({
         contentStyle,
       ]}
     >
-      <View testID="screen-content">{children}</View>
+      <View testID="screen-content" style={styles.inner}>
+        {children}
+      </View>
     </ScrollView>
   ) : (
-    <View testID="screen-content" style={[styles.container, style, contentStyle]}>
+    <View testID="screen-content" style={[styles.container, styles.inner, style, contentStyle]}>
       {children}
     </View>
   );
@@ -102,4 +104,5 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
   },
+  inner: { flexGrow: 1, width: '100%', maxWidth: LAYOUT.contentMaxWidth, alignSelf: 'center' },
 });

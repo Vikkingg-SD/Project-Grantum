@@ -1,19 +1,12 @@
 import React from 'react';
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X } from 'lucide-react-native';
+import X from 'lucide-react-native/icons/x';
 import { IconButton } from '../atoms/IconButton';
 import { useTheme } from '@/hooks/useTheme';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
-import { BREAKPOINTS, LAYOUT } from '@/config/layout';
+import { LAYOUT } from '@/config/layout';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { RADIUS, SPACING } from '@/config/theme';
 import { MODAL_COPY } from '@/config/copy';
 
@@ -32,9 +25,9 @@ export function ModalSheetLayout({
 }: ModalSheetLayoutProps) {
   const theme = useTheme();
   const reduceMotion = useReduceMotion();
-  const { width, height } = useWindowDimensions();
+  const { mobile, height } = useLayoutMetrics();
   const insets = useSafeAreaInsets();
-  const wide = width >= BREAKPOINTS.md;
+  const wide = !mobile;
 
   return (
     <Modal

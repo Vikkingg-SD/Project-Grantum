@@ -69,6 +69,7 @@ export function applySectionMutation(draft: ProposalDraft, input: SectionMutatio
     ...draft,
     completedSections: completed,
     requiredSections: required,
+    completionPct: required.length ? draftConfidenceScore(completed, required) : 0,
     confidenceScore: draftConfidenceScore(completed, required),
   };
 }

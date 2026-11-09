@@ -1,8 +1,12 @@
-import React from 'react';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { AppText } from '@/components/atoms/AppText';
+import { AppButton } from '@/components/atoms/AppButton';
+import { ENV } from '@/config/env';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
+import { reportUrgency } from '@/utils/presentation';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { AuditLogLine } from '@/components/molecules/AuditLogLine';
 import { useAward } from '@/api/hooks/useAward';
@@ -14,7 +18,8 @@ import { RADIUS, SPACING } from '@/config/theme';
 
 export default function PostAwardScreen() {
   const theme = useTheme();
-  const { width, fontScale } = useWindowDimensions();
+  const { mobile } = useLayoutMetrics();
+  const [tab, setTab] = useState('Notifications');
   const grantId = useActiveGrantId();
   const query = useAward(grantId);
   const detail = useGrantDetail(grantId);
@@ -48,6 +53,7 @@ export default function PostAwardScreen() {
     );
   }
   const award = query.data;
+  const urgency = reportUrgency(award.nextReportAt);
   const metrics = [
     { label: 'Award status', value: award.contractStatus },
     { label: 'Next report', value: new Date(award.nextReportAt).toLocaleDateString() },
@@ -56,12 +62,29 @@ export default function PostAwardScreen() {
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <AppText variant="eyebrow" color="primary">
-          POST-AWARD / PROGRESS TRACKER
-        </AppText>
+        <AppText variant="h1">Reporting & activity</AppText>
         <AppText color="muted">
-          A durable record of what was submitted, when, and with which verified evidence.
+          {ENV.DATA_SOURCE === 'mock'
+            ? 'Sample award record. Confirm reporting dates and submission status with your funder.'
+            : 'Review your next reporting date and application history.'}
         </AppText>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <AppText variant="h2">Next reporting date</AppText>
+          <AppText variant="h3">
+            {Number.isNaN(Date.parse(award.nextReportAt))
+              ? 'Date unavailable'
+              : new Date(award.nextReportAt).toLocaleDateString('en', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+          </AppText>
+          <StatusBadge label={urgency.label} variant={urgency.variant} />
+          <AppText variant="caption" color="muted">
+            Report submission status is not available. Check your funder's records before taking
+            action.
+          </AppText>
+        </View>
         <View style={styles.heading}>
           <AppText variant="h1" style={{ flexShrink: 1 }}>
             Submission status
@@ -84,14 +107,17 @@ export default function PostAwardScreen() {
               ' · Submitted ' +
               new Date(award.submittedAt).toLocaleDateString()}
           </AppText>
+          <AppText variant="caption" color="muted">
+            Opportunity funding range
+          </AppText>
           <AppText variant="metric-lg">{award.amount}</AppText>
-          <View style={[styles.metrics, width / fontScale < 600 && styles.stacked]}>
+          <View style={[styles.metrics, mobile && styles.stacked]}>
             {metrics.map((metric) => (
               <View
                 key={metric.label}
                 style={[
                   styles.metric,
-                  width / fontScale < 600 && { flexBasis: 'auto' },
+                  mobile && { flexBasis: 'auto' },
                   { backgroundColor: theme.subtle },
                 ]}
               >
@@ -104,11 +130,34 @@ export default function PostAwardScreen() {
           </View>
         </View>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <AppText variant="h3">Audit trail</AppText>
-          {award.events.length ? (
-            award.events.map((event) => <AuditLogLine key={event.id} {...event} />)
+          <View style={styles.heading}>
+            {['Notifications', 'Details', 'Recommendations'].map((label) => (
+              <AppButton
+                key={label}
+                label={label}
+                size="sm"
+                variant={tab === label ? 'outline' : 'ghost'}
+                selected={tab === label}
+                onPress={() => setTab(label)}
+              />
+            ))}
+          </View>
+          {tab === 'Notifications' ? (
+            <AppText>
+              No live notifications connected. The reporting date above comes from this award
+              record.
+            </AppText>
+          ) : tab === 'Recommendations' ? (
+            <AppText>No recommendations available for this application.</AppText>
           ) : (
-            <AppText color="muted">No audit events recorded.</AppText>
+            <View style={styles.content}>
+              <AppText variant="h3">Activity history</AppText>
+              {award.events.length ? (
+                award.events.map((event) => <AuditLogLine key={event.id} {...event} />)
+              ) : (
+                <AppText color="muted">No activity recorded.</AppText>
+              )}
+            </View>
           )}
         </View>
       </View>

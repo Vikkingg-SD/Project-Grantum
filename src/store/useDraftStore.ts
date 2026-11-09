@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 import type { ChatEntry } from '@/types/chat';
 import { generateId } from '@/utils/uuid';
+import type { LocalAttachment } from '@/utils/attachments';
 
 export interface GrantDraftState {
   draftingMessages: ChatEntry[];
   auditMessages: ChatEntry[];
   exportDocument: string | null;
+  attachments: LocalAttachment[];
 }
 interface DraftStoreState {
   drafts: Record<string, GrantDraftState>;
@@ -14,12 +16,14 @@ interface DraftStoreState {
   addDraftingMessage: (grantId: string, text: string, variant: ChatEntry['variant']) => void;
   addAuditMessage: (grantId: string, text: string, variant: ChatEntry['variant']) => void;
   setExportDocument: (grantId: string, doc: string) => void;
+  setAttachments: (grantId: string, attachments: LocalAttachment[]) => void;
   resetDraftForGrant: (grantId: string, grantTitle: string, funder: string) => void;
 }
 const empty = (): GrantDraftState => ({
   draftingMessages: [],
   auditMessages: [],
   exportDocument: null,
+  attachments: [],
 });
 export const EMPTY_DRAFT: GrantDraftState = Object.freeze(empty());
 export const useDraftStore = create<DraftStoreState>((set, get) => ({
@@ -59,6 +63,11 @@ export const useDraftStore = create<DraftStoreState>((set, get) => ({
     if (!grantId) return;
     const draft = get().getDraft(grantId);
     set((state) => ({ drafts: { ...state.drafts, [grantId]: { ...draft, exportDocument } } }));
+  },
+  setAttachments: (grantId, attachments) => {
+    if (!grantId) return;
+    const draft = get().getDraft(grantId);
+    set((state) => ({ drafts: { ...state.drafts, [grantId]: { ...draft, attachments } } }));
   },
   resetDraftForGrant: (grantId) => {
     if (!grantId) return;

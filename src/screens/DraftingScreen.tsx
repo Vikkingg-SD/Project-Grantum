@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
@@ -14,6 +14,11 @@ import { useActiveGrantId } from '@/hooks/useActiveGrantId';
 import { useTheme } from '@/hooks/useTheme';
 import { RADIUS, SPACING } from '@/config/theme';
 import { DRAFTING_COPY } from '@/config/copy';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
+import { GrantContext } from '@/components/molecules/GrantContext';
+import { LocalAttachments } from '@/components/molecules/LocalAttachments';
+import { ModalSheetLayout } from '@/components/templates/ModalSheetLayout';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 
 export default function DraftingScreen() {
@@ -23,6 +28,14 @@ export default function DraftingScreen() {
 
 function DraftingSession({ grantId }: { grantId: string }) {
   const theme = useTheme();
+  const { mobile } = useLayoutMetrics();
+  const [promptsOpen, setPromptsOpen] = useState(false);
+  const navigation = useAppNavigation();
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollAfterNote = useRef(false);
+  const [sectionsOpen, setSectionsOpen] = useState(false);
+  const [page, setPage] = useState(0);
+  const [deleteSection, setDeleteSection] = useState<string | null>(null);
   const query = useProposalDraft(grantId);
   const mutation = useMutateProposalSections(grantId);
   const local = useDraftStore((state) => state.drafts[grantId] ?? EMPTY_DRAFT);
@@ -58,108 +71,165 @@ function DraftingSession({ grantId }: { grantId: string }) {
   const verified =
     requiredSections.length > 0 &&
     requiredSections.every((section) => completedSections.includes(section));
+  const pageCount = Math.max(1, Math.ceil(requiredSections.length / 3));
+  const currentPage = Math.min(page, pageCount - 1);
   return (
     <ScreenContainer scrollable={false}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
+      <ScrollView
+        ref={scrollRef}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.content}
+        onContentSizeChange={() => {
+          if (scrollAfterNote.current) {
+            scrollRef.current?.scrollToEnd({ animated: false });
+            scrollAfterNote.current = false;
+          }
+        }}
+      >
         <View style={styles.heading}>
           <AppText variant="h1" style={styles.flexible}>
             {DRAFTING_COPY.title}
           </AppText>
           <StatusBadge
-            label={completedSections.length + '/' + requiredSections.length + ' sections verified'}
+            label={completedSections.length + '/' + requiredSections.length + ' sections present'}
             variant={verified ? 'verified' : 'pending'}
           />
         </View>
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <AppText variant="caption" color="muted">
-            APPLICATION DRAFT — REQUIRED SECTIONS
-          </AppText>
-          {requiredSections.map((section) => (
-            <View key={section} style={styles.section}>
-              <AppText variant="body" style={styles.flexible}>
-                {section}
-              </AppText>
-              <View style={styles.actions}>
-                {completedSections.includes(section) && (
+        <GrantContext grantId={grantId} />
+        <AppText color="muted">
+          Notes stay in this session. Edit your application narrative in Export.
+        </AppText>
+        <View style={styles.actions}>
+          <AppButton
+            label="Edit application narrative"
+            variant="primary"
+            onPress={() => navigation.navigateTo('export', grantId)}
+          />
+          <AppButton
+            label={`Required sections (${completedSections.length}/${requiredSections.length})`}
+            variant="outline"
+            expanded={sectionsOpen}
+            onPress={() => setSectionsOpen(!sectionsOpen)}
+          />
+        </View>
+        {sectionsOpen && (
+          <View
+            style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
+          >
+            <AppText variant="h3">Section checklist</AppText>
+            <AppText variant="caption" color="muted">
+              Mark presence only. This checklist does not review section content.
+            </AppText>
+            {requiredSections.length === 0 && (
+              <AppText>No sections yet. Add a requirement below.</AppText>
+            )}
+            {requiredSections.slice(currentPage * 3, currentPage * 3 + 3).map((section) => (
+              <View key={section} style={styles.section}>
+                <AppText variant="body" style={styles.flexible}>
+                  {section}
+                </AppText>
+                <View style={styles.actions}>
+                  {completedSections.includes(section) ? (
+                    <AppButton
+                      label="Mark missing"
+                      size="sm"
+                      disabled={mutation.isPending}
+                      onPress={() => mutation.mutate({ action: 'remove', sectionName: section })}
+                    />
+                  ) : (
+                    <StatusBadge label="Missing" variant="failure" />
+                  )}
                   <AppButton
-                    label="Mark missing"
+                    label="Delete"
                     size="sm"
                     disabled={mutation.isPending}
-                    onPress={() => mutation.mutate({ action: 'remove', sectionName: section })}
+                    onPress={() => setDeleteSection(section)}
                   />
-                )}
-                <AppButton
-                  label="Delete"
-                  size="sm"
-                  disabled={mutation.isPending}
-                  onPress={() =>
-                    mutation.mutate({ action: 'deleteRequirement', sectionName: section })
-                  }
-                />
+                </View>
               </View>
-            </View>
-          ))}
-          <View style={styles.actions}>
-            <View style={styles.input}>
-              <AppInput
-                placeholder="Add section (e.g. Moat)"
-                value={sectionName}
-                onChangeText={setSectionName}
+            ))}
+            <View style={styles.actions}>
+              <AppButton
+                label="Previous sections"
+                size="sm"
+                disabled={currentPage === 0}
+                onPress={() => setPage(currentPage - 1)}
+              />
+              <AppText variant="caption">
+                {String(currentPage + 1).padStart(2, '0')} / {String(pageCount).padStart(2, '0')}
+              </AppText>
+              <AppButton
+                label="Next sections"
+                size="sm"
+                disabled={currentPage === pageCount - 1}
+                onPress={() => setPage(currentPage + 1)}
               />
             </View>
-            <AppButton
-              label="Add"
-              size="sm"
-              disabled={mutation.isPending || !sectionName.trim()}
-              onPress={() => {
-                const name = sectionName.trim();
-                mutation.mutate(
-                  { action: 'add', sectionName: name },
-                  {
-                    onSuccess: () =>
-                      setSectionName((current) => (current.trim() === name ? '' : current)),
-                  }
-                );
-              }}
-            />
+            <View style={styles.actions}>
+              <View style={styles.input}>
+                <AppInput
+                  accessibilityLabel="New section name"
+                  placeholder="Add a required section"
+                  value={sectionName}
+                  onChangeText={setSectionName}
+                />
+              </View>
+              <AppButton
+                label="Add"
+                size="sm"
+                disabled={mutation.isPending || !sectionName.trim()}
+                onPress={() => {
+                  const name = sectionName.trim();
+                  mutation.mutate(
+                    { action: 'add', sectionName: name },
+                    {
+                      onSuccess: () =>
+                        setSectionName((current) => (current.trim() === name ? '' : current)),
+                    }
+                  );
+                }}
+              />
+            </View>
+            {!verified && requiredSections.length > 0 && (
+              <AppButton
+                label="Restore all sections"
+                disabled={mutation.isPending}
+                onPress={() => mutation.mutate({ action: 'restore' })}
+              />
+            )}
+            {mutation.isError && (
+              <AppText color="failure" accessibilityRole="alert">
+                {mutation.error.message}
+              </AppText>
+            )}
           </View>
-          {!verified && requiredSections.length > 0 && (
-            <AppButton
-              label="Restore all sections"
-              disabled={mutation.isPending}
-              onPress={() => mutation.mutate({ action: 'restore' })}
-            />
-          )}
-          {mutation.isError && (
-            <AppText color="failure" accessibilityRole="alert">
-              {mutation.error.message}
-            </AppText>
-          )}
-        </View>
-        <View style={styles.actions}>
-          {DRAFTING_COPY.chips.map((chip) => (
-            <AppButton
-              key={chip}
-              label={chip}
-              size="sm"
-              style={styles.flexible}
-              onPress={() => setMessage(chip)}
-            />
-          ))}
-        </View>
-        <AppText variant="caption" color="muted">
-          Local drafting notes. Narrative generation is not connected.
-        </AppText>
-        {detail.data && (
-          <View style={styles.card}>
-            <AppText variant="caption" color="muted">
-              Local preview
-            </AppText>
-            <ChatMessageBubble
-              text={DRAFTING_COPY.welcome(detail.data.title, detail.data.funder)}
-              variant="assistant-narrative"
-              timestamp="now"
-            />
+        )}
+        <AppText variant="h3">Working notes</AppText>
+        {local.draftingMessages.length === 0 && detail.data && (
+          <AppText color="muted">
+            Start with a project idea or an evidence reference. Save a note using the field below.
+          </AppText>
+        )}
+        <LocalAttachments grantId={grantId} />
+        {mobile && (
+          <AppButton
+            label="Writing prompts"
+            size="sm"
+            expanded={promptsOpen}
+            onPress={() => setPromptsOpen(!promptsOpen)}
+          />
+        )}
+        {(!mobile || promptsOpen) && (
+          <View style={styles.actions}>
+            {DRAFTING_COPY.chips.map((chip) => (
+              <AppButton
+                key={chip}
+                label={chip}
+                size="sm"
+                style={styles.flexible}
+                onPress={() => setMessage(chip)}
+              />
+            ))}
           </View>
         )}
         {local.draftingMessages.map((item) => (
@@ -171,10 +241,42 @@ function DraftingSession({ grantId }: { grantId: string }) {
         onChangeText={setMessage}
         onSend={() => {
           if (!message.trim()) return;
+          scrollAfterNote.current = true;
           addNote(grantId, message.trim(), 'user');
           setMessage('');
         }}
       />
+      <ModalSheetLayout
+        visible={Boolean(deleteSection)}
+        onClose={() => setDeleteSection(null)}
+        accessibilityLabel="Delete required section"
+      >
+        <View style={styles.content}>
+          <AppText variant="h2">Delete {deleteSection}?</AppText>
+          <AppText>
+            This removes the requirement from your checklist and changes its completeness score.
+            Your notes and narrative will stay.
+          </AppText>
+          {mutation.isError && (
+            <AppText color="failure" accessibilityRole="alert">
+              {mutation.error.message}
+            </AppText>
+          )}
+          <AppButton label="Keep section" onPress={() => setDeleteSection(null)} />
+          <AppButton
+            label="Delete section"
+            variant="danger"
+            isLoading={mutation.isPending}
+            onPress={() => {
+              if (deleteSection)
+                mutation.mutate(
+                  { action: 'deleteRequirement', sectionName: deleteSection },
+                  { onSuccess: () => setDeleteSection(null) }
+                );
+            }}
+          />
+        </View>
+      </ModalSheetLayout>
     </ScreenContainer>
   );
 }

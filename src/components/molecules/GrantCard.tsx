@@ -1,11 +1,12 @@
 import React, { memo } from 'react';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { AppText } from '../atoms/AppText';
 import { AppButton } from '../atoms/AppButton';
 import { StatusBadge } from '../atoms/StatusBadge';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
 import { BREAKPOINTS } from '@/config/layout';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { GRANT_CARD_COPY } from '@/config/copy';
 import { matchTier } from '@/utils/scoring';
 import type { Grant } from '@/types/grant';
@@ -19,7 +20,7 @@ export interface GrantCardProps {
 export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: GrantCardProps) {
   const mode = useThemeStore((state) => state.mode);
   const theme = PALETTE[mode];
-  const { width } = useWindowDimensions();
+  const { effectiveWidth: width } = useLayoutMetrics();
 
   return (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -87,11 +88,11 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     marginBottom: SPACING.md,
   },
-  title: { marginBottom: SPACING.lg, flexShrink: 1 },
+  title: { marginBottom: SPACING.md, flexShrink: 1 },
   metricsGrid: {
     flexDirection: 'row',
     gap: SPACING.md,
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.md,
   },
   metricColumn: { flex: 1, minWidth: 0 },
   footer: {

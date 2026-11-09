@@ -72,12 +72,12 @@ export const SPACING = {
 
 export const TYPOGRAPHY = {
   display: { fontFamily: FONT.sans.bold, fontSize: 32, lineHeight: 38, letterSpacing: -0.64 },
-  h1: { fontFamily: FONT.sans.bold, fontSize: 24, lineHeight: 30, letterSpacing: -0.24 },
+  h1: { fontFamily: FONT.sans.bold, fontSize: 28, lineHeight: 34, letterSpacing: -0.28 },
   h2: { fontFamily: FONT.sans.semibold, fontSize: 20, lineHeight: 26, letterSpacing: 0 },
-  h3: { fontFamily: FONT.sans.semibold, fontSize: 16, lineHeight: 22, letterSpacing: 0.16 },
-  label: { fontFamily: FONT.sans.semibold, fontSize: 14, lineHeight: 20 },
-  body: { fontFamily: FONT.sans.regular, fontSize: 14, lineHeight: 20, letterSpacing: 0.14 },
-  caption: { fontFamily: FONT.sans.medium, fontSize: 12, lineHeight: 16, letterSpacing: 0.24 },
+  h3: { fontFamily: FONT.sans.semibold, fontSize: 18, lineHeight: 24, letterSpacing: 0 },
+  label: { fontFamily: FONT.sans.semibold, fontSize: 16, lineHeight: 22 },
+  body: { fontFamily: FONT.sans.regular, fontSize: 16, lineHeight: 24, letterSpacing: 0 },
+  caption: { fontFamily: FONT.sans.medium, fontSize: 14, lineHeight: 20, letterSpacing: 0 },
   eyebrow: {
     fontFamily: FONT.sans.bold,
     fontSize: 12,
@@ -88,8 +88,15 @@ export const TYPOGRAPHY = {
   'metric-xl': { fontFamily: FONT.mono.bold, fontSize: 30, lineHeight: 36 },
   'metric-lg': { fontFamily: FONT.mono.bold, fontSize: 28, lineHeight: 32, letterSpacing: 0 },
   'metric-md': { fontFamily: FONT.mono.bold, fontSize: 18, lineHeight: 28 },
-  'metric-sm': { fontFamily: FONT.mono.medium, fontSize: 13, lineHeight: 18, letterSpacing: 0.52 },
+  'metric-sm': { fontFamily: FONT.mono.medium, fontSize: 14, lineHeight: 20, letterSpacing: 0 },
 } as const satisfies Record<string, TextStyle>;
+
+export const DESKTOP_TYPOGRAPHY: Partial<Record<keyof typeof TYPOGRAPHY, TextStyle>> = {
+  display: { fontSize: 40, lineHeight: 48 },
+  h1: { fontSize: 32, lineHeight: 40 },
+  body: { fontSize: 18, lineHeight: 26 },
+  caption: { fontSize: 16, lineHeight: 22 },
+};
 
 export type TypographyVariant = keyof typeof TYPOGRAPHY;
 

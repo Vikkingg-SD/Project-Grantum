@@ -1,25 +1,58 @@
 const { spawnSync } = require('node:child_process');
-
-require('tsx/cjs');
-const { IS_CI } = require('../src/config/env');
-
-const full = IS_CI;
-const script = full ? 'gate:full' : 'gate:local';
-
-process.stdout.write(`Gate scope: ${script}\n`);
-if (!full) {
-  process.stdout.write(
-    'Owner-approved local scope: build/browser recovery and route acceptance DEFERRED.\n' +
-      'No Metro or production export. CI runs the complete gate:full chain.\n'
-  );
+const { loadPolicy, childEnvironment } = require('./runtime-policy.cjs');
+const runtime = loadPolicy();
+const env = childEnvironment(runtime);
+const allowed = ['--full', '--recover-timeouts'];
+if (process.argv.slice(2).some((arg) => !allowed.includes(arg)))
+  throw new Error('Unknown gate argument');
+const full =
+  process.argv.includes('--full') ||
+  Boolean(env.CI && !['false', '0'].includes(env.CI.toLowerCase()));
+const recover = process.argv.includes('--recover-timeouts');
+const tsx = require.resolve('tsx/cli');
+const tasks = [
+  [require.resolve('typescript/bin/tsc'), '--noEmit'],
+  ['scripts/lint-project.js', '--max-warnings=0'],
+  [
+    require('node:path').join(require.resolve('prettier/package.json'), '..', 'bin/prettier.cjs'),
+    '--check',
+    '.',
+  ],
+  ...['scoring', 'drafts', 'theme', 'composer', 'tokens', 'contract', 'presentation'].map(
+    (name) => [tsx, `scripts/verify-${name}.ts`]
+  ),
+  ['scripts/verify-routes.mjs', '--static'],
+];
+if (full) {
+  tasks.push([
+    require.resolve('@playwright/test/cli'),
+    'test',
+    '--config',
+    'scripts/recovery.playwright.config.ts',
+    '--grep',
+    'app recovery:',
+  ]);
+  tasks.push(['scripts/verify-routes.mjs']);
 }
-
-const result = spawnSync(`pnpm run ${script}`, {
-  cwd: process.cwd(),
-  stdio: 'inherit',
-  shell: true,
-  windowsHide: true,
-});
-
-if (result.error) process.stderr.write(`${result.error.message}\n`);
-process.exit(result.status ?? 1);
+for (const args of tasks) {
+  let result = spawnSync(process.execPath, args, {
+    env,
+    stdio: 'inherit',
+    windowsHide: true,
+    timeout: runtime.stageMs,
+  });
+  if (result.error?.code === 'ETIMEDOUT' && recover)
+    result = spawnSync(process.execPath, args, {
+      env,
+      stdio: 'inherit',
+      windowsHide: true,
+      timeout: runtime.stageMs * 2,
+    });
+  if (result.error || result.status !== 0) {
+    process.stderr.write(`${result.error?.message || 'Verification failed'}\n`);
+    process.exit(result.error?.code === 'ETIMEDOUT' ? 124 : result.status || 1);
+  }
+}
+process.stdout.write(
+  `PASS ${full ? 'full' : 'local'} gate${full ? '' : '; browser acceptance not included'}\n`
+);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Linking } from 'react-native';
+import { View, StyleSheet, Linking, Pressable } from 'react-native';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { AppText } from '@/components/atoms/AppText';
@@ -12,7 +12,11 @@ import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
 import { MAX_INPUT_CHARS, TIERS } from '@/config/constants';
 import { EXPORT_FORMATS } from '@/config/exportFormats';
-import { SPACING } from '@/config/theme';
+import { GrantContext } from '@/components/molecules/GrantContext';
+import { ENV } from '@/config/env';
+import { useTheme } from '@/hooks/useTheme';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
+import { RADIUS, SPACING } from '@/config/theme';
 import { isExportUnlocked } from '@/utils/scoring';
 import type { ExportFormat } from '@/types/api';
 
@@ -22,6 +26,9 @@ export default function ExportScreen() {
 }
 
 function ExportSession({ grantId }: { grantId: string }) {
+  const theme = useTheme();
+  const { effectiveWidth } = useLayoutMetrics();
+  const serviceAvailable = ENV.DATA_SOURCE !== 'mock';
   const local = useDraftStore((state) => state.drafts[grantId] ?? EMPTY_DRAFT);
   const setDocument = useDraftStore((state) => state.setExportDocument);
   const draft = useProposalDraft(grantId);
@@ -63,64 +70,90 @@ function ExportSession({ grantId }: { grantId: string }) {
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <AppText variant="h1">Export control</AppText>
+        <AppText variant="h1">Review & export</AppText>
+        <GrantContext grantId={grantId} />
         <AppText color="muted">
-          Select the document format the humanizer will draft into. You can edit the output here
-          before export.
+          Review your application narrative, then choose a format. Edits are kept for this session
+          only.
         </AppText>
-        <View style={styles.formats}>
+        {!serviceAvailable && (
+          <View style={[styles.notice, { backgroundColor: theme.subtle }]}>
+            <AppText variant="label">Document service not connected</AppText>
+            <AppText color="muted">
+              You can edit this sample document. Downloads and AI rewriting are unavailable in this
+              preview.
+            </AppText>
+          </View>
+        )}
+        <AppText variant="h3">Document format</AppText>
+        <View
+          style={styles.formats}
+          accessibilityRole="radiogroup"
+          accessibilityLabel="Document format"
+        >
           {EXPORT_FORMATS.map((item) => (
-            <View key={item.id} style={[styles.content, styles.format]}>
-              <AppButton
-                label={item.label}
-                variant={format === item.id ? 'primary' : 'outline'}
-                selected={format === item.id}
-                disabled={mutation.isPending}
-                onPress={() => {
-                  setFormat(item.id);
-                  setDownloadError('');
-                }}
-              />
+            <Pressable
+              key={item.id}
+              accessibilityRole="radio"
+              accessibilityLabel={item.label}
+              accessibilityState={{ checked: format === item.id, disabled: mutation.isPending }}
+              disabled={mutation.isPending}
+              onPress={() => {
+                setFormat(item.id);
+                setDownloadError('');
+              }}
+              style={[
+                styles.format,
+                {
+                  flexBasis: effectiveWidth < 360 ? '100%' : effectiveWidth >= 1024 ? '22%' : '45%',
+                  backgroundColor: format === item.id ? theme.subtle : theme.surface,
+                  borderColor: format === item.id ? theme.primary : theme.border,
+                },
+              ]}
+            >
+              <AppText variant="label" color={format === item.id ? 'primary' : 'main'}>
+                {item.label}
+              </AppText>
               <AppText variant="caption" color="muted">
                 {item.blurb}
               </AppText>
-            </View>
+            </Pressable>
           ))}
         </View>
+        <AppTextArea
+          label="Application narrative"
+          value={documentBody}
+          onChangeText={(text) => setDocument(grantId, text)}
+          charLimit={MAX_INPUT_CHARS}
+        />
         {selectedFormat ? (
           <View style={styles.content}>
-            <StatusBadge
-              label={
-                unlocked
-                  ? `Export unlocked — confidence ${draft.data.confidenceScore}`
-                  : `Export locked — confidence ${draft.data.confidenceScore} below ${TIERS.confidence.pass}`
-              }
-              variant={unlocked ? 'verified' : 'pending'}
-            />
-            <StatusBadge label={'Editing · ' + selectedFormat.label} variant="verified" />
-            {/* RUL-SSU-05: the reference humanizer is declared inert, not simulated. */}
-            <AppButton
-              label="Run humanizer pass"
-              variant="outline"
-              disabled
-              onPress={() => undefined}
-            />
+            <View style={styles.formats}>
+              <StatusBadge
+                label={
+                  unlocked
+                    ? `Checklist ready - ${draft.data.confidenceScore}% complete`
+                    : `Needs ${TIERS.confidence.pass}% completeness ? currently ${draft.data.confidenceScore}%`
+                }
+                variant={unlocked ? 'verified' : 'pending'}
+              />
+              <StatusBadge label={'Selected - ' + selectedFormat.label} variant="neutral" />
+            </View>
             <AppButton
               label="Export bundle"
               variant="primary"
               isLoading={mutation.isPending}
-              disabled={!unlocked || !documentBody.trim() || documentBody.length > MAX_INPUT_CHARS}
+              disabled={
+                !serviceAvailable ||
+                !unlocked ||
+                !documentBody.trim() ||
+                documentBody.length > MAX_INPUT_CHARS
+              }
               onPress={() => {
                 setDownloadError('');
                 setRequestedGrantId(grantId);
                 mutation.mutate({ format: selectedFormat.id, documentBody });
               }}
-            />
-            <AppTextArea
-              label="Document body"
-              value={documentBody}
-              onChangeText={(text) => setDocument(grantId, text)}
-              charLimit={MAX_INPUT_CHARS}
             />
             {mutation.isError && (
               <AppText color="failure" accessibilityRole="alert">
@@ -137,9 +170,11 @@ function ExportSession({ grantId }: { grantId: string }) {
                 <AppButton
                   label="Download bundle"
                   onPress={() => {
-                    void Linking.openURL(result.downloadUrl).catch(() =>
-                      setDownloadError('Unable to open the download. Try again.')
-                    );
+                    void (async () => {
+                      if (!/^https?:\/\//i.test(result.downloadUrl))
+                        throw new Error('Unsupported download URL');
+                      await Linking.openURL(result.downloadUrl);
+                    })().catch(() => setDownloadError('Unable to open the download. Try again.'));
                   }}
                 />
               </View>
@@ -152,8 +187,8 @@ function ExportSession({ grantId }: { grantId: string }) {
           </View>
         ) : (
           <EmptyStateLayout
-            title="No format selected"
-            description="Pick a format above to open the editing surface."
+            title="Choose an export format"
+            description="Your narrative is ready to edit above. Select a format when you are ready to export."
           />
         )}
       </View>
@@ -163,5 +198,15 @@ function ExportSession({ grantId }: { grantId: string }) {
 const styles = StyleSheet.create({
   content: { gap: SPACING.md },
   formats: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
-  format: { flexGrow: 1, flexBasis: '45%', flexShrink: 1, minWidth: 0 },
+  format: {
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    minHeight: 96,
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    gap: SPACING.sm,
+  },
+  notice: { borderRadius: RADIUS.md, padding: SPACING.lg, gap: SPACING.sm },
 });

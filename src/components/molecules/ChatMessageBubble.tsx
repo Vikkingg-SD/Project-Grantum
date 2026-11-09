@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Bot, User } from 'lucide-react-native';
+import Bot from 'lucide-react-native/icons/bot';
+import User from 'lucide-react-native/icons/user';
 import { AppText } from '../atoms/AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';

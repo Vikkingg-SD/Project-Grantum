@@ -27,6 +27,7 @@ export default function DiscoveryScreen() {
   const navigation = useAppNavigation();
   const wide = useBreakpoint() !== 'mobile';
   const [query, setQuery] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [regions, setRegions] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
@@ -50,52 +51,72 @@ export default function DiscoveryScreen() {
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <AppText variant="h1">Grant Match-Making</AppText>
-        {summary.data && (
-          <StatusBadge
-            label={'Project profile ' + summary.data.profileCompletionPct + '% Done'}
-            variant={summary.data.profileCompletionPct < 70 ? 'pending' : 'verified'}
-          />
-        )}
+        <AppText variant="h1">Find your next opportunity</AppText>
+        <AppText color="muted">
+          {ENV.DATA_SOURCE === 'mock'
+            ? 'Explore sample grants and try the application workspace.'
+            : 'Search grants by mission, funder, and region.'}
+        </AppText>
+        <AppInput
+          accessibilityLabel="Search the grant index"
+          placeholder="Search grants"
+          value={query}
+          onChangeText={setQuery}
+          returnKeyType="search"
+        />
+        <View style={styles.heading}>
+          <AppText variant="caption" color="muted" accessibilityLiveRegion="polite">
+            {grants.isFetching
+              ? 'Updating opportunities...'
+              : `${grants.data?.length ?? 0} opportunities`}
+          </AppText>
+          {!wide && (
+            <AppButton
+              label={`Filters${regions.length + categories.length ? ` (${regions.length + categories.length})` : ''}`}
+              size="sm"
+              variant="outline"
+              expanded={filtersOpen}
+              onPress={() => setFiltersOpen(!filtersOpen)}
+            />
+          )}
+          {summary.data && (
+            <StatusBadge
+              label={`Profile ${summary.data.profileCompletionPct}% complete`}
+              variant="neutral"
+            />
+          )}
+        </View>
         <View style={[styles.content, wide && styles.columns]}>
-          <View style={[styles.content, wide && styles.filters]}>
-            <View style={styles.heading}>
-              <AppText variant="h3">Filters</AppText>
-              <AppButton
-                label="Reset"
-                size="sm"
-                variant="ghost"
-                onPress={() => {
-                  setQuery('');
-                  setRegions([]);
-                  setCategories([]);
-                }}
+          {(wide || filtersOpen) && (
+            <View style={[styles.content, wide && styles.filters]}>
+              <View style={styles.heading}>
+                <AppText variant="h3">Filters</AppText>
+                <AppButton
+                  label="Reset"
+                  size="sm"
+                  variant="ghost"
+                  onPress={() => {
+                    setQuery('');
+                    setRegions([]);
+                    setCategories([]);
+                  }}
+                />
+              </View>
+              <FilterFieldGroup
+                label="Region"
+                options={['Global', 'East Europe', 'CIS']}
+                selected={regions}
+                onToggle={(value) => setRegions((items) => toggle(items, value))}
+              />
+              <FilterFieldGroup
+                label="Opportunity type"
+                options={['Infrastructure', 'Health', 'Technology', 'Workforce']}
+                selected={categories}
+                onToggle={(value) => setCategories((items) => toggle(items, value))}
               />
             </View>
-            <FilterFieldGroup
-              label="Region"
-              options={['Global', 'East Europe', 'CIS']}
-              selected={regions}
-              onToggle={(value) => setRegions((items) => toggle(items, value))}
-            />
-            <FilterFieldGroup
-              label="Opportunity type"
-              options={['Infrastructure', 'Health', 'Technology', 'Workforce']}
-              selected={categories}
-              onToggle={(value) => setCategories((items) => toggle(items, value))}
-            />
-            {grants.data && (
-              <StatusBadge label={grants.data.length + ' indexed matches'} variant="verified" />
-            )}
-          </View>
+          )}
           <View style={[styles.content, styles.results]}>
-            <AppInput
-              accessibilityLabel="Search the grant index"
-              placeholder="Search grants"
-              value={query}
-              onChangeText={setQuery}
-              returnKeyType="search"
-            />
             {grants.isPending || grants.isError ? (
               <EmptyStateLayout
                 title={grants.isError ? 'Instrument fault' : 'Calibrating instrument…'}
@@ -109,17 +130,17 @@ export default function DiscoveryScreen() {
               <View style={styles.content}>
                 <EmptyStateLayout
                   title="No grants match your exact criteria"
-                  description="Try broadening your parameters or submit a Grant Bounty to index a new opportunity."
+                  description="Try fewer filters, or suggest an opportunity for the catalog."
                 />
                 <AppInput
-                  accessibilityLabel="Bounty title"
-                  label="Bounty title"
+                  accessibilityLabel="Opportunity suggestion"
+                  label="Opportunity suggestion"
                   value={bountyTitle}
                   onChangeText={setBountyTitle}
                   maxLength={MAX_INPUT_CHARS}
                 />
                 <AppButton
-                  label="Submit a bounty"
+                  label="Submit suggestion"
                   variant="outline"
                   isLoading={bounty.isPending}
                   disabled={!bountyTitle.trim()}
@@ -129,7 +150,7 @@ export default function DiscoveryScreen() {
                   <StatusBadge
                     label={
                       ENV.DATA_SOURCE === 'mock'
-                        ? 'Preview bounty queued'
+                        ? 'Suggestion recorded for this preview'
                         : 'Bounty queued — we will index it'
                     }
                     variant="verified"
