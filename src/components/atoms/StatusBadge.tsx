@@ -55,7 +55,12 @@ export function StatusBadge({ label, variant = 'neutral' }: StatusBadgeProps) {
 
   return (
     <View style={[styles.badge, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-      <AppText variant="caption" style={{ color: colors.text }}>
+      <AppText
+        variant="caption"
+        numberOfLines={1}
+        accessibilityLabel={label}
+        style={{ color: colors.text }}
+      >
         {label}
       </AppText>
     </View>

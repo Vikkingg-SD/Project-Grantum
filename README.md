@@ -29,3 +29,7 @@ Verification is portable and does not require local agent software, Python, or a
 `app/` contains Expo Router routes. `src/screens/` contains work areas. `src/components/` contains the shared UI. `src/config/theme.ts` owns Obsidian and Quartz color and type tokens. `src/api/` contains TanStack Query hooks and the data-source interface; `src/mock/` provides sample records. Zustand holds per-grant session notes and narrative edits.
 
 See [API contracts](API_CONTRACTS.md) for backend integration. Agent configuration, task plans, review packs, and session records belong outside this application repository.
+
+### Expo Go connection
+
+Keep `pnpm start:lan` running and connect phone and computer to the same Wi-Fi. Scan the current QR code after restarting: LAN addresses can change. Allow Node through Windows Firewall on private networks. If router isolation blocks LAN, stop the server and use `pnpm start:tunnel` (Expo may request its tunnel dependency). The Cannot connect to Expo CLI warning concerns Metro/live reload, not the grant API.

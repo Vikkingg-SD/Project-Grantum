@@ -117,10 +117,6 @@ export default function DashboardScreen() {
         />
         <View style={styles.row}>
           <StatusBadge
-            label={ENV.DATA_SOURCE === 'mock' ? 'Sample opportunities' : 'Your opportunities'}
-            variant="brand"
-          />
-          <StatusBadge
             label={'Project profile ' + summary.data.profileCompletionPct + '% done'}
             variant="pending"
           />

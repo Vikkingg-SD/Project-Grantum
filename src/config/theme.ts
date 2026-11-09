@@ -72,23 +72,23 @@ export const SPACING = {
 
 export const TYPOGRAPHY = {
   display: { fontFamily: FONT.sans.bold, fontSize: 36, lineHeight: 44, letterSpacing: -0.64 },
-  h1: { fontFamily: FONT.sans.bold, fontSize: 32, lineHeight: 40, letterSpacing: -0.28 },
-  h2: { fontFamily: FONT.sans.semibold, fontSize: 24, lineHeight: 32, letterSpacing: 0 },
-  h3: { fontFamily: FONT.sans.semibold, fontSize: 22, lineHeight: 28, letterSpacing: 0 },
+  h1: { fontFamily: FONT.sans.bold, fontSize: 26, lineHeight: 32, letterSpacing: -0.28 },
+  h2: { fontFamily: FONT.sans.semibold, fontSize: 22, lineHeight: 28, letterSpacing: 0 },
+  h3: { fontFamily: FONT.sans.semibold, fontSize: 18, lineHeight: 24, letterSpacing: 0 },
   label: { fontFamily: FONT.sans.semibold, fontSize: 18, lineHeight: 24 },
-  body: { fontFamily: FONT.sans.regular, fontSize: 18, lineHeight: 28, letterSpacing: 0 },
-  caption: { fontFamily: FONT.sans.medium, fontSize: 16, lineHeight: 24, letterSpacing: 0 },
+  body: { fontFamily: FONT.sans.regular, fontSize: 16, lineHeight: 24, letterSpacing: 0 },
+  caption: { fontFamily: FONT.sans.medium, fontSize: 14, lineHeight: 20, letterSpacing: 0 },
   'metric-xl': { fontFamily: FONT.mono.bold, fontSize: 30, lineHeight: 36 },
   'metric-lg': { fontFamily: FONT.mono.bold, fontSize: 28, lineHeight: 32, letterSpacing: 0 },
   'metric-md': { fontFamily: FONT.mono.bold, fontSize: 18, lineHeight: 28 },
-  'metric-sm': { fontFamily: FONT.mono.medium, fontSize: 16, lineHeight: 24, letterSpacing: 0 },
+  'metric-sm': { fontFamily: FONT.mono.medium, fontSize: 14, lineHeight: 20, letterSpacing: 0 },
 } as const satisfies Record<string, TextStyle>;
 
 export const DESKTOP_TYPOGRAPHY: Partial<Record<keyof typeof TYPOGRAPHY, TextStyle>> = {
   display: { fontSize: 44, lineHeight: 52 },
   h1: { fontSize: 36, lineHeight: 44 },
   h2: { fontSize: 28, lineHeight: 36 },
-  h3: { fontSize: 24, lineHeight: 32 },
+  h3: { fontSize: 22, lineHeight: 28 },
   body: { fontSize: 20, lineHeight: 30 },
   caption: { fontSize: 18, lineHeight: 26 },
   'metric-sm': { fontSize: 18, lineHeight: 26 },

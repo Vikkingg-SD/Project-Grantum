@@ -18,7 +18,6 @@ import { RADIUS, SPACING } from '@/config/theme';
 import { AUDIT_COPY } from '@/config/copy';
 import { GrantContext } from '@/components/molecules/GrantContext';
 import { ENV } from '@/config/env';
-import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 
 export default function AuditScreen() {
   const grantId = useActiveGrantId();
@@ -35,7 +34,6 @@ function AuditSession({ grantId }: { grantId: string }) {
   const local = useDraftStore((state) => state.drafts[grantId] ?? EMPTY_DRAFT);
   const addNote = useDraftStore((state) => state.addAuditMessage);
   const [message, setMessage] = useState('');
-  const detail = useGrantDetail(grantId);
   if (!grantId || draft.isPending || draft.isError || !draft.data) {
     return (
       <ScreenContainer>
@@ -91,30 +89,51 @@ function AuditSession({ grantId }: { grantId: string }) {
         <GrantContext grantId={grantId} />
         <AppText color="muted">
           {ENV.DATA_SOURCE === 'mock'
-            ? 'This preview checks section presence only. It does not validate budget math, eligibility, or evidence.'
+            ? 'Preview - section presence only.'
             : 'Run an audit to request a review from your connected service.'}
         </AppText>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <AppText variant="h3">Section completeness</AppText>
-          <View style={styles.heading}>
-            {draft.data.requiredSections.map((section) => (
-              <StatusBadge
-                key={section}
-                label={`${section} - ${draft.data.completedSections.includes(section) ? 'Present' : 'Missing'}`}
-                variant={draft.data.completedSections.includes(section) ? 'neutral' : 'failure'}
-              />
+          <View style={{ flexDirection: 'row', gap: SPACING.sm }}>
+            {[true, false].map((complete) => (
+              <View
+                key={String(complete)}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  gap: SPACING.sm,
+                  padding: SPACING.sm,
+                  borderRadius: RADIUS.sm,
+                  backgroundColor: theme.subtle,
+                }}
+              >
+                <AppText variant="caption" color={complete ? 'verified' : 'failure'}>
+                  {complete ? 'Complete' : 'Incomplete'}
+                </AppText>
+                {draft.data.requiredSections
+                  .filter((section) => draft.data.completedSections.includes(section) === complete)
+                  .map((section) => (
+                    <AppText
+                      key={section}
+                      variant="caption"
+                      color={complete ? 'verified' : 'failure'}
+                    >
+                      {section}
+                    </AppText>
+                  ))}
+                {!draft.data.requiredSections.some(
+                  (section) => draft.data.completedSections.includes(section) === complete
+                ) && (
+                  <AppText variant="caption" color="muted">
+                    None
+                  </AppText>
+                )}
+              </View>
             ))}
           </View>
           <ConfidenceGaugeReadout
             score={draft.data.requiredSections.length ? draft.data.confidenceScore : 0}
           />
-          <AppText color="muted">
-            {!scan.data
-              ? 'Not scanned yet. Run a check to create a result.'
-              : running
-                ? 'Checking required sections...'
-                : 'Latest check result is recorded below.'}
-          </AppText>
           <AppButton
             variant="primary"
             label={running ? 'Scanning…' : 'Run audit'}
@@ -140,9 +159,13 @@ function AuditSession({ grantId }: { grantId: string }) {
           ))}
         </View>
         <AppText variant="caption" color="muted">
-          Session notes - Saved separately from check results.
+          Agent offline - messages stay in this session.
         </AppText>
-        <View style={styles.heading}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: SPACING.sm }}
+        >
           {AUDIT_COPY.chips.map((chip) => (
             <AppButton
               key={chip}
@@ -152,16 +175,7 @@ function AuditSession({ grantId }: { grantId: string }) {
               onPress={() => setMessage(chip)}
             />
           ))}
-        </View>
-        {detail.data && (
-          <View>
-            <ChatMessageBubble
-              text={AUDIT_COPY.welcome}
-              variant="assistant-auditor"
-              timestamp="now"
-            />
-          </View>
-        )}
+        </ScrollView>
         {local.auditMessages.map((item) => (
           <ChatMessageBubble key={item.id} {...item} />
         ))}
@@ -169,7 +183,7 @@ function AuditSession({ grantId }: { grantId: string }) {
       <ChatInputRow
         value={message}
         onChangeText={setMessage}
-        placeholder="Add an audit note…"
+        grantId={grantId}
         onSend={() => {
           if (!message.trim()) return;
           scrollAfterNote.current = true;

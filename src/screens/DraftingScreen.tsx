@@ -1,3 +1,6 @@
+import ArrowLeft from 'lucide-react-native/icons/arrow-left';
+import ArrowRight from 'lucide-react-native/icons/arrow-right';
+import { IconButton } from '@/components/atoms/IconButton';
 import React, { useRef, useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
@@ -16,9 +19,7 @@ import { RADIUS, SPACING } from '@/config/theme';
 import { DRAFTING_COPY } from '@/config/copy';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { GrantContext } from '@/components/molecules/GrantContext';
-import { LocalAttachments } from '@/components/molecules/LocalAttachments';
 import { ModalSheetLayout } from '@/components/templates/ModalSheetLayout';
-import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 
 export default function DraftingScreen() {
@@ -30,7 +31,6 @@ function DraftingSession({ grantId }: { grantId: string }) {
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
   const [promptsOpen, setPromptsOpen] = useState(false);
-  const navigation = useAppNavigation();
   const scrollRef = useRef<ScrollView>(null);
   const scrollAfterNote = useRef(false);
   const [sectionsOpen, setSectionsOpen] = useState(false);
@@ -96,15 +96,7 @@ function DraftingSession({ grantId }: { grantId: string }) {
           />
         </View>
         <GrantContext grantId={grantId} />
-        <AppText color="muted">
-          Notes stay in this session. Edit your application narrative in Export.
-        </AppText>
         <View style={styles.actions}>
-          <AppButton
-            label="Edit application narrative"
-            variant="primary"
-            onPress={() => navigation.navigateTo('export', grantId)}
-          />
           <AppButton
             label={`Required sections (${completedSections.length}/${requiredSections.length})`}
             variant="outline"
@@ -149,18 +141,18 @@ function DraftingSession({ grantId }: { grantId: string }) {
               </View>
             ))}
             <View style={styles.actions}>
-              <AppButton
+              <IconButton
                 label="Previous sections"
-                size="sm"
+                icon={<ArrowLeft size={20} color={theme.textMain} />}
                 disabled={currentPage === 0}
                 onPress={() => setPage(currentPage - 1)}
               />
               <AppText variant="caption">
                 {String(currentPage + 1).padStart(2, '0')} / {String(pageCount).padStart(2, '0')}
               </AppText>
-              <AppButton
+              <IconButton
                 label="Next sections"
-                size="sm"
+                icon={<ArrowRight size={20} color={theme.textMain} />}
                 disabled={currentPage === pageCount - 1}
                 onPress={() => setPage(currentPage + 1)}
               />
@@ -204,13 +196,10 @@ function DraftingSession({ grantId }: { grantId: string }) {
             )}
           </View>
         )}
-        <AppText variant="h3">Working notes</AppText>
+        <AppText variant="h3">Agent chat</AppText>
         {local.draftingMessages.length === 0 && detail.data && (
-          <AppText color="muted">
-            Start with a project idea or an evidence reference. Save a note using the field below.
-          </AppText>
+          <AppText color="muted">Agent offline - messages stay in this session.</AppText>
         )}
-        <LocalAttachments grantId={grantId} />
         {mobile && (
           <AppButton
             label="Writing prompts"
@@ -237,6 +226,7 @@ function DraftingSession({ grantId }: { grantId: string }) {
         ))}
       </ScrollView>
       <ChatInputRow
+        grantId={grantId}
         value={message}
         onChangeText={setMessage}
         onSend={() => {
@@ -285,7 +275,13 @@ const styles = StyleSheet.create({
   heading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.sm },
   flexible: { flexShrink: 1, minWidth: 0 },
   card: { padding: SPACING.md, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACING.md },
-  section: { gap: SPACING.sm },
+  section: {
+    gap: SPACING.sm,
+    padding: SPACING.md,
+    borderWidth: 1,
+    borderColor: '#737D88',
+    borderRadius: RADIUS.sm,
+  },
   actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.sm },
   input: { flexGrow: 1, flexShrink: 1, minWidth: '60%' },
 });
