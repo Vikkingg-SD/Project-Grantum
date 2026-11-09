@@ -8,7 +8,7 @@ import { IconButton } from '@/components/atoms/IconButton';
 import { useTheme } from '@/hooks/useTheme';
 import { HEADER_COPY } from '@/config/copy';
 import { LAYOUT } from '@/config/layout';
-import { SPACING } from '@/config/theme';
+import { SPACING, RADIUS } from '@/config/theme';
 import { useThemeStore } from '@/store/useThemeStore';
 
 export interface AppHeaderProps {
@@ -67,11 +67,16 @@ export function AppHeader({ title, canGoBack, onBack, onHome }: AppHeaderProps) 
         accessibilityRole="button"
         accessibilityLabel={HEADER_COPY.home}
         onPress={onHome}
-        style={({ pressed }) => [styles.titles, { opacity: pressed ? 0.7 : 1 }]}
+        style={({ pressed }) => [
+          styles.titles,
+          { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? 0.7 : 1 },
+        ]}
       >
-        <AppText variant="h3">{HEADER_COPY.brand}</AppText>
+        <AppText variant="h2" align="center">
+          {HEADER_COPY.brand}
+        </AppText>
         {title ? (
-          <AppText variant="caption" color="muted">
+          <AppText variant="caption" color="muted" align="center">
             {title}
           </AppText>
         ) : null}
@@ -105,5 +110,10 @@ const styles = StyleSheet.create({
     minWidth: LAYOUT.minTouchTarget,
     minHeight: LAYOUT.minTouchTarget,
     justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
   },
 });

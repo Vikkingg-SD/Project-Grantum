@@ -65,14 +65,14 @@ export default function DashboardScreen() {
       <View style={styles.content}>
         <View style={styles.row}>
           <View style={[styles.greeting, mobile ? styles.fullWidth : styles.grow]}>
-            <AppText variant={mobile ? 'h1' : 'display'} style={styles.flexible}>
-              {'Welcome back, ' + summary.data.greetingName + '.'}
-            </AppText>
             <IconButton
               label={DASHBOARD_COPY.notifications}
               onPress={() => setActivityOpen(true)}
               icon={<Bell size={SPACING.lg} color={theme.textMuted} />}
             />
+            <AppText variant={mobile ? 'h2' : 'display'} style={styles.flexible}>
+              {mobile ? 'Your workspace' : 'Welcome back, ' + summary.data.greetingName + '.'}
+            </AppText>
           </View>
           <AppButton
             label={DASHBOARD_COPY.newApplication}

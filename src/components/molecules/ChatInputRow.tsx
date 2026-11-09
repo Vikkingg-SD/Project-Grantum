@@ -3,7 +3,8 @@ import { Platform, View, TextInput, StyleSheet, type TextInputProps } from 'reac
 import Send from 'lucide-react-native/icons/send';
 import { IconButton } from '../atoms/IconButton';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE, RADIUS, SPACING, TYPOGRAPHY } from '@/config/theme';
+import { PALETTE, RADIUS, SPACING, TYPOGRAPHY, DESKTOP_TYPOGRAPHY } from '@/config/theme';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { LAYOUT } from '@/config/layout';
 import { MAX_INPUT_CHARS } from '@/config/constants';
 import { CHAT_COPY } from '@/config/copy';
@@ -26,6 +27,7 @@ export function ChatInputRow({
 }: ChatInputRowProps) {
   const mode = useThemeStore((state) => state.mode);
   const theme = PALETTE[mode];
+  const { desktop } = useLayoutMetrics();
   const canSend = canSendMessage(value, disabled);
 
   const send = () => {
@@ -58,6 +60,7 @@ export function ChatInputRow({
         onKeyPress={handleKeyPress}
         style={[
           styles.input,
+          desktop && DESKTOP_TYPOGRAPHY.body,
           {
             color: theme.textMain,
             backgroundColor: theme.subtle,

@@ -2,8 +2,8 @@ import React from 'react';
 import { View, TextInput, TextInputProps, StyleSheet } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE, RADIUS } from '@/config/theme';
-import { FONT } from '@/config/fonts';
+import { PALETTE, RADIUS, TYPOGRAPHY, DESKTOP_TYPOGRAPHY } from '@/config/theme';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 
 export interface AppTextAreaProps extends TextInputProps {
   label?: string;
@@ -13,6 +13,7 @@ export interface AppTextAreaProps extends TextInputProps {
 export function AppTextArea({ label, charLimit, value, style, ...props }: AppTextAreaProps) {
   const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
+  const { desktop } = useLayoutMetrics();
   const count = typeof value === 'string' ? value.length : 0;
   const isOver = charLimit !== undefined && count > charLimit;
   return (
@@ -39,7 +40,13 @@ export function AppTextArea({ label, charLimit, value, style, ...props }: AppTex
           placeholderTextColor={theme.textMuted}
           value={value}
           maxLength={charLimit}
-          style={[styles.textArea, { color: theme.textMain, fontFamily: FONT.sans.regular }, style]}
+          style={[
+            styles.textArea,
+            TYPOGRAPHY.body,
+            desktop && DESKTOP_TYPOGRAPHY.body,
+            { color: theme.textMain },
+            style,
+          ]}
           {...props}
         />
       </View>
@@ -72,7 +79,6 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   textArea: {
-    fontSize: 14,
     minHeight: 96,
   },
   counter: {

@@ -8,6 +8,7 @@ import { AppText } from '../atoms/AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, SPACING } from '@/config/theme';
 import { formatEventDate } from '@/utils/presentation';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 
 export interface AuditLogLineProps {
   agent: 'agent-1-narrative' | 'agent-2-deterministic' | 'system';
@@ -24,6 +25,7 @@ export const AuditLogLine = memo(function AuditLogLine({
 }: AuditLogLineProps) {
   const mode = useThemeStore((state) => state.mode);
   const theme = PALETTE[mode];
+  const { desktop } = useLayoutMetrics();
   const Icon =
     status === 'passed'
       ? Check
@@ -39,10 +41,12 @@ export const AuditLogLine = memo(function AuditLogLine({
       <View style={styles.iconWrap}>
         <Icon size={SPACING.lg} color={color} />
       </View>
-      <View style={styles.message}>
-        <AppText variant="body">{message}</AppText>
+      <View style={[styles.message, desktop && styles.inline]}>
+        <AppText variant="body" style={desktop && styles.message}>
+          {message}
+        </AppText>
         {timestamp && (
-          <AppText variant="caption" color="muted" style={styles.timestamp}>
+          <AppText variant="caption" color="muted" style={!desktop && styles.timestamp}>
             {formatEventDate(timestamp)}
           </AppText>
         )}
@@ -63,5 +67,6 @@ const styles = StyleSheet.create({
   },
   iconWrap: { flexShrink: 0, paddingTop: SPACING.xs },
   message: { flex: 1, minWidth: 0 },
+  inline: { flexDirection: 'row', alignItems: 'baseline', gap: SPACING.lg },
   timestamp: { marginTop: SPACING.xs },
 });

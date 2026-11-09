@@ -5,10 +5,9 @@ import { AppText } from '../atoms/AppText';
 import { AppButton } from '../atoms/AppButton';
 import { ProgressBar } from '../atoms/ProgressBar';
 import { useThemeStore } from '@/store/useThemeStore';
-import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
 import { HERO_CONTINUE_COPY } from '@/config/copy';
-import { platformShadow, platformTextGlow } from '@/utils/platformShadow';
 import { progressLabel } from '@/utils/presentation';
 
 export type HeroContinueCardProps =
@@ -26,7 +25,7 @@ export type HeroContinueCardProps =
 export function HeroContinueCard(props: HeroContinueCardProps) {
   const mode = useThemeStore((state) => state.mode);
   const theme = PALETTE[mode];
-  const wide = useBreakpoint() !== 'mobile';
+  const { desktop: wide } = useLayoutMetrics();
   const inactive = props.variant === 'no-session';
   const title =
     props.variant === 'no-session'
@@ -35,32 +34,32 @@ export function HeroContinueCard(props: HeroContinueCardProps) {
   const onPress = props.variant === 'no-session' ? props.onStartNew : props.onResume;
 
   return (
-    <View
-      style={[
-        styles.card,
-        wide && styles.cardWide,
-        platformShadow(mode),
-        { backgroundColor: theme.surface, borderColor: theme.border },
-      ]}
-    >
-      <View style={[styles.content, wide && styles.contentWide]}>
-        <AppText
-          variant="eyebrow"
-          color={inactive ? 'muted' : 'primary'}
-          style={inactive ? undefined : platformTextGlow(mode)}
-        >
-          {inactive ? HERO_CONTINUE_COPY.inactiveEyebrow : HERO_CONTINUE_COPY.activeEyebrow}
-        </AppText>
-        <AppText variant="h2" color="main" style={styles.title}>
-          {title}
-        </AppText>
-        {props.variant !== 'no-session' && (
-          <View style={styles.progress}>
-            <ProgressBar percent={props.completionPct} label={progressLabel(props.completionPct)} />
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <View style={[styles.heading, wide && styles.headingWide]}>
+        <View style={styles.content}>
+          <AppText variant="h2" color="main">
+            {title}
+          </AppText>
+          <AppText variant="caption" color="muted" style={styles.title}>
+            {inactive ? 'Create your first application' : 'Active application · section checklist'}
+          </AppText>
+        </View>
+        {wide && (
+          <View style={styles.action}>
+            <AppButton
+              label={inactive ? HERO_CONTINUE_COPY.start : HERO_CONTINUE_COPY.resume}
+              variant="primary"
+              onPress={onPress}
+              icon={<ArrowRight size={SPACING.lg} color={theme.primaryForeground} />}
+              iconPosition="right"
+            />
           </View>
         )}
       </View>
-      <View style={styles.action}>
+      {props.variant !== 'no-session' && (
+        <ProgressBar percent={props.completionPct} label={progressLabel(props.completionPct)} />
+      )}
+      {!wide && (
         <AppButton
           label={inactive ? HERO_CONTINUE_COPY.start : HERO_CONTINUE_COPY.resume}
           variant="primary"
@@ -68,7 +67,7 @@ export function HeroContinueCard(props: HeroContinueCardProps) {
           icon={<ArrowRight size={SPACING.lg} color={theme.primaryForeground} />}
           iconPosition="right"
         />
-      </View>
+      )}
     </View>
   );
 }
@@ -83,10 +82,9 @@ const styles = StyleSheet.create({
     gap: SPACING.xl,
     marginVertical: SPACING.sm,
   },
-  cardWide: { flexDirection: 'row', alignItems: 'center' },
-  content: { minWidth: 0, flexShrink: 1 },
-  contentWide: { flex: 1 },
+  heading: { gap: SPACING.lg },
+  headingWide: { flexDirection: 'row', alignItems: 'center' },
+  content: { minWidth: 0, flex: 1 },
   title: { marginTop: SPACING.sm },
-  progress: { marginTop: SPACING.lg },
-  action: { maxWidth: '100%', flexShrink: 1 },
+  action: { maxWidth: '100%', flexShrink: 1, marginRight: SPACING.xl },
 });

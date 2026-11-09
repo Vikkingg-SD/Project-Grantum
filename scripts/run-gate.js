@@ -33,6 +33,17 @@ if (full) {
     'app recovery:',
   ]);
   tasks.push(['scripts/verify-routes.mjs']);
+  tasks.push([
+    require.resolve('expo/bin/cli'),
+    'export',
+    '--platform',
+    'android',
+    '--max-workers',
+    String(runtime.workers),
+    '--no-minify',
+    '--output-dir',
+    '.expo/android-verification',
+  ]);
 }
 for (const args of tasks) {
   let result = spawnSync(process.execPath, args, {

@@ -41,9 +41,7 @@ export const ChatMessageBubble = memo(function ChatMessageBubble({
             {timestamp ?? CHAT_COPY.now}
           </AppText>
         </View>
-        <AppText variant={isAudit ? 'metric-sm' : 'body'} color={isAudit ? 'muted' : 'main'}>
-          {text}
-        </AppText>
+        <AppText>{text}</AppText>
         {status === 'error' && (
           <AppText variant="caption" color="failure" style={styles.error}>
             {CHAT_COPY.failed}
