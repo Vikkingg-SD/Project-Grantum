@@ -51,12 +51,17 @@ export default function DiscoveryScreen() {
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <AppText variant="h1">Find your next opportunity</AppText>
-        <AppText color="muted">
-          {ENV.DATA_SOURCE === 'mock'
-            ? 'Explore sample grants and try the application workspace.'
-            : 'Search grants by mission, funder, and region.'}
-        </AppText>
+        <View style={styles.heading}>
+          <AppText variant="h1" style={styles.title}>
+            Find your next opportunity
+          </AppText>
+          {summary.data && (
+            <StatusBadge
+              label={`Profile ${summary.data.profileCompletionPct}% complete`}
+              variant="neutral"
+            />
+          )}
+        </View>
         <AppInput
           accessibilityLabel="Search the grant index"
           placeholder="Search grants"
@@ -68,7 +73,7 @@ export default function DiscoveryScreen() {
           <AppText variant="caption" color="muted" accessibilityLiveRegion="polite">
             {grants.isFetching
               ? 'Updating opportunities...'
-              : `${grants.data?.length ?? 0} opportunities`}
+              : `${grants.data?.length ?? 0} ${ENV.DATA_SOURCE === 'mock' ? 'sample ' : ''}opportunities`}
           </AppText>
           {!wide && (
             <AppButton
@@ -79,21 +84,16 @@ export default function DiscoveryScreen() {
               onPress={() => setFiltersOpen(!filtersOpen)}
             />
           )}
-          {summary.data && (
-            <StatusBadge
-              label={`Profile ${summary.data.profileCompletionPct}% complete`}
-              variant="neutral"
-            />
-          )}
         </View>
         <View style={[styles.content, wide && styles.columns]}>
           {(wide || filtersOpen) && (
             <View style={[styles.content, wide && styles.filters]}>
               <View style={styles.heading}>
-                <AppText variant="h3">Filters</AppText>
+                <AppText variant="label" accessibilityRole="header">
+                  Filters
+                </AppText>
                 <AppButton
                   label="Reset"
-                  size="sm"
                   variant="ghost"
                   onPress={() => {
                     setQuery('');
@@ -184,6 +184,7 @@ export default function DiscoveryScreen() {
 }
 const styles = StyleSheet.create({
   content: { gap: SPACING.lg },
+  title: { flexGrow: 1, flexShrink: 1, minWidth: 0 },
   columns: { flexDirection: 'row', alignItems: 'flex-start' },
   heading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.sm },
   filters: { width: '30%' },
