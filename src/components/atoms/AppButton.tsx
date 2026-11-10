@@ -143,6 +143,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: RADIUS.sm,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   sm: {
     minHeight: 44,

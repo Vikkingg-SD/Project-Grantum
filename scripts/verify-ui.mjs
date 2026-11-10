@@ -196,14 +196,21 @@ try {
   await check(
     'Given paged navigation, when advancing and returning, then continuation is visible and routes work',
     async () => {
+      await expect(page.getByRole('tab', { name: 'Dashboard', exact: true })).toHaveText(
+        'Dashboard'
+      );
       await expect(page.getByRole('tab', { name: 'Discovery', exact: true })).toHaveText(
         'Discovery…'
       );
       await expect(page.getByRole('button', { name: 'Previous navigation tabs' })).toBeDisabled();
       await page.getByRole('button', { name: 'Next navigation tabs' }).click();
+      await expect(page.getByRole('tab', { name: 'Drafting', exact: true })).toHaveText('Drafting');
       await expect(page.getByRole('tab', { name: 'Audit', exact: true })).toHaveText('Audit…');
       await page.getByRole('button', { name: 'Next navigation tabs' }).click();
       await expect(page.getByRole('tab', { name: 'Export', exact: true })).toHaveText('…Export');
+      await expect(page.getByRole('tab', { name: 'Post-award', exact: true })).toHaveText(
+        'Post-award'
+      );
       await expect(page.getByRole('button', { name: 'Next navigation tabs' })).toBeDisabled();
       await page.getByRole('tab', { name: 'Post-award', exact: true }).click();
       await expect(page.getByRole('heading', { name: 'Reporting & activity' })).toBeVisible();
@@ -250,6 +257,41 @@ try {
       await expect(
         page.getByText('Review the implementation timeline', { exact: true })
       ).toBeVisible();
+      await page.getByRole('button', { name: 'File references', exact: true }).click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+      for (let index = 0; index < 5; index++) {
+        await page.locator('input[type=file]').setInputFiles({
+          name: `Reference-${index}-long-project-budget-and-delivery-evidence.pdf`,
+          mimeType: 'application/pdf',
+          buffer: Buffer.from('%PDF-1.4 test reference'),
+        });
+      }
+      await expect(
+        page.getByText('Remove a reference to add another.', { exact: true })
+      ).toBeVisible();
+      const removeLast = page.getByRole('button', {
+        name: 'Remove Reference-4-long-project-budget-and-delivery-evidence.pdf',
+        exact: true,
+      });
+      await removeLast.scrollIntoViewIfNeeded();
+      const overflowingButtons = await page
+        .getByRole('dialog')
+        .locator('[role="button"]')
+        .evaluateAll((els) =>
+          els
+            .filter((el) => {
+              const rect = el.getBoundingClientRect();
+              return rect.width > 0 && (rect.left < 0 || rect.right > innerWidth);
+            })
+            .map((el) => el.getAttribute('aria-label'))
+        );
+      assert.deepEqual(overflowingButtons, []);
+      await removeLast.click();
+      await expect(
+        page.getByText('Remove a reference to add another.', { exact: true })
+      ).toHaveCount(0);
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toHaveCount(0);
       await page.getByRole('tab', { name: 'Audit', exact: true }).click();
       await page.getByRole('button', { name: 'Run audit', exact: true }).click();
       await expect(page.getByText('Checklist check passed', { exact: true })).toBeVisible();

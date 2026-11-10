@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Platform, Pressable, StyleSheet, type ViewStyle } from 'react-native';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS } from '@/config/theme';
 import { LAYOUT } from '@/config/layout';
@@ -23,6 +24,7 @@ export function IconButton({
 }: IconButtonProps) {
   const mode = useThemeStore((state) => state.mode);
   const theme = PALETTE[mode];
+  const reduceMotion = useReduceMotion();
   return (
     <Pressable
       accessibilityRole="button"
@@ -33,6 +35,7 @@ export function IconButton({
       disabled={disabled}
       style={({ pressed }) => [
         styles.button,
+        Platform.OS === 'web' && !reduceMotion && webFeedback,
         {
           backgroundColor: active ? theme.subtle : 'transparent',
           borderColor: active ? theme.borderStrong : theme.border,
@@ -55,3 +58,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+
+const webFeedback = {
+  transitionProperty: 'opacity',
+  transitionDuration: '120ms',
+  transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)',
+} as ViewStyle;

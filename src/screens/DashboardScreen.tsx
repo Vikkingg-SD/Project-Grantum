@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Bell from 'lucide-react-native/icons/bell';
 import Filter from 'lucide-react-native/icons/funnel';
@@ -36,11 +36,21 @@ export default function DashboardScreen() {
   const summary = useDashboardSummary();
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
-  const openDraft = (grantId: string) => {
-    ensureDraft(grantId);
-    setSelectedGrant(null);
-    navigation.navigateTo('drafting', grantId);
-  };
+  const openDraft = useCallback(
+    (grantId: string) => {
+      ensureDraft(grantId);
+      setSelectedGrant(null);
+      navigation.navigateTo('drafting', grantId);
+    },
+    [ensureDraft, navigation]
+  );
+  const applyGrant = useCallback((grant: Grant) => openDraft(grant.id), [openDraft]);
+  const filtered = useMemo(() => {
+    const normalized = query.toLowerCase();
+    return (grants.data ?? []).filter((grant) =>
+      `${grant.title} ${grant.funder}`.toLowerCase().includes(normalized)
+    );
+  }, [grants.data, query]);
   if (summary.isPending || grants.isPending || summary.isError || grants.isError || !summary.data) {
     const error = summary.error ?? grants.error;
     return (
@@ -58,9 +68,6 @@ export default function DashboardScreen() {
     );
   }
   const active = summary.data.activeDraft;
-  const filtered = (grants.data ?? []).filter((grant) =>
-    `${grant.title} ${grant.funder}`.toLowerCase().includes(query.toLowerCase())
-  );
   return (
     <ScreenContainer>
       <View style={styles.content}>
@@ -123,23 +130,21 @@ export default function DashboardScreen() {
             onPress={() => navigation.navigateTo('discovery')}
           />
         </View>
-        <GrantDiscoveryGrid
-          grants={filtered}
-          onSelect={setSelectedGrant}
-          onApply={(grant) => openDraft(grant.id)}
-        />
+        <GrantDiscoveryGrid grants={filtered} onSelect={setSelectedGrant} onApply={applyGrant} />
       </View>
       <ModalSheetLayout
         visible={activityOpen}
         onClose={() => setActivityOpen(false)}
         accessibilityLabel="Workspace activity"
       >
-        <View style={styles.content}>
-          <AppText variant="h2">Workspace activity</AppText>
-          <AppText>
+        <View style={styles.modalBody}>
+          <AppText variant="h2" align="center">
+            Workspace activity
+          </AppText>
+          <AppText align="center">
             {active ? `Active application: ${active.title}` : 'No active application yet.'}
           </AppText>
-          <AppText color="muted">
+          <AppText color="muted" align="center">
             {ENV.DATA_SOURCE === 'mock'
               ? 'You are viewing sample data. Live notifications are not connected.'
               : 'Live notifications are not available in this workspace.'}
@@ -152,13 +157,14 @@ export default function DashboardScreen() {
         onClose={() => setSelectedGrant(null)}
         accessibilityLabel={selectedGrant?.title ?? ''}
       >
-        <GrantDetailModalSheet grant={selectedGrant} onApply={(grant) => openDraft(grant.id)} />
+        <GrantDetailModalSheet grant={selectedGrant} onApply={applyGrant} />
       </ModalSheetLayout>
     </ScreenContainer>
   );
 }
 const styles = StyleSheet.create({
   content: { gap: SPACING.lg },
+  modalBody: { padding: SPACING.lg, gap: SPACING.lg },
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',

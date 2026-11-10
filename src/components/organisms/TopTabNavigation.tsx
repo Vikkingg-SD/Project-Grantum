@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, Platform, StyleSheet, type ViewStyle } from 'react-native';
 import LayoutDashboard from 'lucide-react-native/icons/layout-dashboard';
 import Compass from 'lucide-react-native/icons/compass';
 import PenTool from 'lucide-react-native/icons/pen-tool';
@@ -12,6 +12,7 @@ import type { Href } from 'expo-router';
 import { VIEW_PATHS, type AppView } from '@/hooks/useActiveView';
 import { AppText } from '@/components/atoms/AppText';
 import { useTheme } from '@/hooks/useTheme';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { NAV_COPY } from '@/config/copy';
 import { SPACING } from '@/config/theme';
 import { IconButton } from '@/components/atoms/IconButton';
@@ -87,6 +88,7 @@ function PagedTabs({
   pageSize: number;
 }) {
   const theme = useTheme();
+  const reduceMotion = useReduceMotion();
   const selectedIndex = Math.max(
     0,
     items.findIndex((item) => item.name === selectedName)
@@ -129,9 +131,11 @@ function PagedTabs({
                 onPress={() => onSelect(item)}
                 style={({ pressed }) => [
                   styles.item,
+                  Platform.OS === 'web' && !reduceMotion && webFeedback,
                   {
                     backgroundColor: selected || pressed ? theme.subtle : theme.surface,
                     borderBottomColor: selected ? theme.primary : 'transparent',
+                    opacity: pressed ? 0.85 : 1,
                   },
                 ]}
               >
@@ -143,7 +147,9 @@ function PagedTabs({
                   color={selected ? 'main' : 'muted'}
                   style={styles.label}
                 >
-                  {mobile && currentPage > 0 && index === 0 ? '…' : ''}
+                  {mobile && pageCount > 1 && currentPage === pageCount - 1 && index === 0
+                    ? '…'
+                    : ''}
                   {item.label}
                   {mobile && currentPage < pageCount - 1 && index === visible.length - 1 ? '…' : ''}
                 </AppText>
@@ -198,3 +204,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
   },
 });
+
+const webFeedback = {
+  transitionProperty: 'opacity',
+  transitionDuration: '120ms',
+  transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)',
+} as ViewStyle;

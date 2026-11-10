@@ -13,8 +13,8 @@ import type { Grant } from '@/types/grant';
 
 export interface GrantCardProps {
   grant: Grant;
-  onSelect: () => void;
-  onApply: () => void;
+  onSelect: (grant: Grant) => void;
+  onApply: (grant: Grant) => void;
 }
 
 export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: GrantCardProps) {
@@ -71,8 +71,18 @@ export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: G
           {grant.region}
         </AppText>
         <View style={styles.actions}>
-          <AppButton label={GRANT_CARD_COPY.details} variant="ghost" size="sm" onPress={onSelect} />
-          <AppButton label={GRANT_CARD_COPY.apply} variant="primary" size="sm" onPress={onApply} />
+          <AppButton
+            label={GRANT_CARD_COPY.details}
+            variant="ghost"
+            size="sm"
+            onPress={() => onSelect(grant)}
+          />
+          <AppButton
+            label={GRANT_CARD_COPY.apply}
+            variant="primary"
+            size="sm"
+            onPress={() => onApply(grant)}
+          />
         </View>
       </View>
     </View>

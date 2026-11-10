@@ -11,7 +11,7 @@ export function ConfidenceGaugeReadout({ score }: ConfidenceGaugeReadoutProps) {
   return (
     <View style={styles.container}>
       <ProgressBar percent={score} label="Required sections present" />
-      <AppText variant="caption" color="muted">
+      <AppText variant="caption" color="muted" align="center">
         Completeness measures your checklist, not an audit verdict.
       </AppText>
     </View>

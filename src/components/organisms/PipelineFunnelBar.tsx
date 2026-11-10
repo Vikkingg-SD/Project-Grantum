@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { AppText } from '../atoms/AppText';
 import { useThemeStore } from '@/store/useThemeStore';
@@ -14,7 +14,9 @@ export interface PipelineFunnelBarProps {
   stages: FunnelStage[];
 }
 
-export function PipelineFunnelBar({ stages }: PipelineFunnelBarProps) {
+export const PipelineFunnelBar = memo(function PipelineFunnelBar({
+  stages,
+}: PipelineFunnelBarProps) {
   const mode = useThemeStore((state) => state.mode);
   const { effectiveWidth } = useLayoutMetrics();
   const columns = effectiveWidth >= 900 ? 6 : effectiveWidth >= 320 ? 3 : 2;
@@ -50,7 +52,7 @@ export function PipelineFunnelBar({ stages }: PipelineFunnelBarProps) {
       })}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -SPACING.xs },

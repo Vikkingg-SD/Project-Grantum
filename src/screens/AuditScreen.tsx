@@ -161,13 +161,13 @@ function AuditSession({ grantId }: { grantId: string }) {
             <AuditLogLine key={event.id} {...event} />
           ))}
         </View>
-        <AppText variant="caption" color="muted">
+        <AppText variant="caption" color="muted" align="center">
           Agent offline - messages stay in this session.
         </AppText>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: SPACING.sm }}
+          contentContainerStyle={styles.chipsRow}
         >
           {AUDIT_COPY.chips.map((chip) => (
             <AppButton
@@ -202,4 +202,5 @@ const styles = StyleSheet.create({
   heading: { alignItems: 'center', gap: SPACING.sm },
   centerBadge: { alignSelf: 'center' },
   card: { padding: SPACING.md, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACING.md },
+  chipsRow: { gap: SPACING.sm, flexGrow: 1, justifyContent: 'center' },
 });

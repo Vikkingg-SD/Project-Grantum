@@ -109,12 +109,14 @@ function DraftingSession({ grantId }: { grantId: string }) {
           <View
             style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
           >
-            <AppText variant="h3">Section checklist</AppText>
-            <AppText variant="caption" color="muted">
+            <AppText variant="h3" align="center">
+              Section checklist
+            </AppText>
+            <AppText variant="caption" color="muted" align="center">
               Mark presence only. This checklist does not review section content.
             </AppText>
             {requiredSections.length === 0 && (
-              <AppText>No sections yet. Add a requirement below.</AppText>
+              <AppText align="center">No sections yet. Add a requirement below.</AppText>
             )}
             {requiredSections.slice(currentPage * 3, currentPage * 3 + 3).map((section) => (
               <View key={section} style={[styles.section, { borderColor: theme.border }]}>
@@ -141,7 +143,7 @@ function DraftingSession({ grantId }: { grantId: string }) {
                 </View>
               </View>
             ))}
-            <View style={styles.actions}>
+            <View style={styles.centeredActions}>
               <IconButton
                 label="Previous sections"
                 icon={<ArrowLeft size={20} color={theme.textMain} />}
@@ -214,7 +216,7 @@ function DraftingSession({ grantId }: { grantId: string }) {
           />
         )}
         {(!mobile || promptsOpen) && (
-          <View style={styles.actions}>
+          <View style={styles.centeredActions}>
             {DRAFTING_COPY.chips.map((chip) => (
               <AppButton
                 key={chip}
@@ -247,13 +249,15 @@ function DraftingSession({ grantId }: { grantId: string }) {
         accessibilityLabel="Delete required section"
       >
         <View style={styles.content}>
-          <AppText variant="h2">Delete {deleteSection}?</AppText>
-          <AppText>
+          <AppText variant="h2" align="center">
+            Delete {deleteSection}?
+          </AppText>
+          <AppText align="center">
             This removes the requirement from your checklist and changes its completeness score.
             Your notes and narrative will stay.
           </AppText>
           {mutation.isError && (
-            <AppText color="failure" accessibilityRole="alert">
+            <AppText color="failure" align="center" accessibilityRole="alert">
               {mutation.error.message}
             </AppText>
           )}
@@ -288,5 +292,12 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm,
   },
   actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.sm },
+  centeredActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+  },
   input: { flexGrow: 1, flexShrink: 1, minWidth: '60%' },
 });

@@ -35,7 +35,7 @@ export function AppHeader({ canGoBack, onBack, onHome }: AppHeaderProps) {
       )
         return;
       // RN Web's Modal owns Escape on keyup and traps/restores focus itself.
-      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      if (document.querySelector('[role="dialog"], [aria-modal="true"]')) return;
       const focused = document.activeElement;
       if (
         focused instanceof HTMLInputElement ||

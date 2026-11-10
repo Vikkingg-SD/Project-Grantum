@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Grant } from '@/types/grant';
 import { GrantCard } from '../molecules/GrantCard';
@@ -12,12 +12,16 @@ export interface GrantDiscoveryGridProps {
   onApply: (grant: Grant) => void;
 }
 
-export function GrantDiscoveryGrid({ grants, onSelect, onApply }: GrantDiscoveryGridProps) {
+export const GrantDiscoveryGrid = memo(function GrantDiscoveryGrid({
+  grants,
+  onSelect,
+  onApply,
+}: GrantDiscoveryGridProps) {
   const { desktop } = useLayoutMetrics();
   if (!grants.length) {
     return (
       <View style={styles.empty}>
-        <AppText variant="h3" color="muted">
+        <AppText variant="h3" color="muted" align="center">
           No matching grant opportunities
         </AppText>
         <AppText variant="body" color="muted" align="center" style={styles.emptySub}>
@@ -31,17 +35,12 @@ export function GrantDiscoveryGrid({ grants, onSelect, onApply }: GrantDiscovery
     <View style={[styles.container, desktop && styles.columns]}>
       {grants.map((grant) => (
         <View key={grant.id} style={desktop ? styles.column : styles.fullWidth}>
-          <GrantCard
-            key={grant.id}
-            grant={grant}
-            onSelect={() => onSelect(grant)}
-            onApply={() => onApply(grant)}
-          />
+          <GrantCard grant={grant} onSelect={onSelect} onApply={onApply} />
         </View>
       ))}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

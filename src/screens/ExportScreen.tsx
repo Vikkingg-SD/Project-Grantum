@@ -164,9 +164,13 @@ function ExportSession({ grantId }: { grantId: string }) {
             )}
             {result && (
               <View style={styles.content}>
-                <AppText color="verified">Bundle ready</AppText>
-                <AppText variant="caption">Checksum supplied by document service</AppText>
-                <AppText variant="metric-sm" selectable>
+                <AppText color="verified" align="center">
+                  Bundle ready
+                </AppText>
+                <AppText variant="caption" align="center">
+                  Checksum supplied by document service
+                </AppText>
+                <AppText variant="metric-sm" align="center" selectable>
                   {result.checksum}
                 </AppText>
                 <AppButton
@@ -182,7 +186,7 @@ function ExportSession({ grantId }: { grantId: string }) {
               </View>
             )}
             {downloadError ? (
-              <AppText color="failure" accessibilityRole="alert">
+              <AppText color="failure" align="center" accessibilityRole="alert">
                 {downloadError}
               </AppText>
             ) : null}
@@ -194,7 +198,7 @@ function ExportSession({ grantId }: { grantId: string }) {
 }
 const styles = StyleSheet.create({
   content: { gap: SPACING.md },
-  formats: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+  formats: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: SPACING.sm },
   format: {
     flexGrow: 1,
     flexShrink: 1,

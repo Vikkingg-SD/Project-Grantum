@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { View, StyleSheet } from 'react-native';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
@@ -27,6 +27,11 @@ import { useDraftStore } from '@/store/useDraftStore';
 import { SPACING } from '@/config/theme';
 import type { Grant } from '@/types/grant';
 
+const REGION_OPTIONS = ['Global', 'East Europe', 'CIS'];
+const CATEGORY_OPTIONS = ['Infrastructure', 'Health', 'Technology', 'Workforce'];
+const toggle = (items: string[], value: string) =>
+  items.includes(value) ? items.filter((item) => item !== value) : [...items, value];
+
 export default function DiscoveryScreen() {
   const navigation = useAppNavigation();
   const { mobile, effectiveWidth } = useLayoutMetrics();
@@ -47,13 +52,22 @@ export default function DiscoveryScreen() {
   const grants = useGrants({ q: query, region: regions, category: categories });
   const summary = useDashboardSummary();
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
-  const toggle = (items: string[], value: string) =>
-    items.includes(value) ? items.filter((item) => item !== value) : [...items, value];
-  const openDraft = (grant: Grant) => {
-    ensureDraft(grant.id);
-    setSelectedGrant(null);
-    navigation.navigateTo('drafting', grant.id);
-  };
+  const toggleRegion = useCallback(
+    (value: string) => setRegions((items) => toggle(items, value)),
+    []
+  );
+  const toggleCategory = useCallback(
+    (value: string) => setCategories((items) => toggle(items, value)),
+    []
+  );
+  const openDraft = useCallback(
+    (grant: Grant) => {
+      ensureDraft(grant.id);
+      setSelectedGrant(null);
+      navigation.navigateTo('drafting', grant.id);
+    },
+    [ensureDraft, navigation]
+  );
   return (
     <ScreenContainer>
       <View style={styles.content}>
@@ -119,15 +133,15 @@ export default function DiscoveryScreen() {
               </View>
               <FilterFieldGroup
                 label="Region"
-                options={['Global', 'East Europe', 'CIS']}
+                options={REGION_OPTIONS}
                 selected={regions}
-                onToggle={(value) => setRegions((items) => toggle(items, value))}
+                onToggle={toggleRegion}
               />
               <FilterFieldGroup
                 label="Opportunity type"
-                options={['Infrastructure', 'Health', 'Technology', 'Workforce']}
+                options={CATEGORY_OPTIONS}
                 selected={categories}
-                onToggle={(value) => setCategories((items) => toggle(items, value))}
+                onToggle={toggleCategory}
               />
             </View>
           )}
