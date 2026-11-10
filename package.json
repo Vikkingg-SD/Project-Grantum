@@ -4,6 +4,8 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
+    "start:lan": "expo start --lan --max-workers 1",
+    "start:tunnel": "expo start --tunnel --max-workers 1",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
@@ -26,7 +28,8 @@
     "verify:recovery:harness": "playwright test --config scripts/recovery.playwright.config.ts --grep \"preliminary harness:\"",
     "verify:recovery": "playwright test --config scripts/recovery.playwright.config.ts --grep \"app recovery:\"",
     "verify:routes": "node scripts/verify-routes.mjs",
-    "verify:presentation": "tsx scripts/verify-presentation.ts"
+    "verify:presentation": "tsx scripts/verify-presentation.ts",
+    "verify:ui": "node scripts/verify-ui.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.2.3",

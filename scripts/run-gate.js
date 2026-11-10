@@ -24,6 +24,7 @@ const tasks = [
   ['scripts/verify-routes.mjs', '--static'],
 ];
 if (full) {
+  tasks.push(['scripts/verify-ui.mjs']);
   tasks.push([
     require.resolve('@playwright/test/cli'),
     'test',

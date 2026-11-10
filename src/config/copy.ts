@@ -14,8 +14,8 @@ export const HERO_CONTINUE_COPY = {
 } as const;
 
 export const CHAT_COPY = {
-  placeholder: 'Add a working note…',
-  send: 'Save note',
+  placeholder: 'Chat with agent',
+  send: 'Send message',
   now: 'now',
   failed: 'Message failed to send.',
 } as const;
@@ -65,10 +65,8 @@ export const MODAL_COPY = {
 export const DASHBOARD_COPY = {
   notifications: 'Notifications',
   filter: 'Filter grants',
-  newApplication: 'New application',
   recommended: 'Recommended opportunities',
   search: 'Search grants',
-  liveMatching: 'Sample opportunities',
   showAll: 'Show all',
 } as const;
 
@@ -78,7 +76,7 @@ export const DRAFTING_COPY = {
 } as const;
 export const AUDIT_COPY = {
   title: 'Application check',
-  chips: ['Verify budget math', 'Check eligibility window', 'Confirm evidence references'],
+  chips: ['Budget', 'Eligibility', 'Evidence'],
   welcome:
     'Run a check to find missing sections. This preview checks section presence; it does not validate budget math, eligibility, or evidence. Notes stay in this session.',
 } as const;

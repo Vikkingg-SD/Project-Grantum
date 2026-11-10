@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Pressable, StyleSheet, Platform } from 'react-native';
 import ArrowLeft from 'lucide-react-native/icons/arrow-left';
+import House from 'lucide-react-native/icons/house';
 import Sun from 'lucide-react-native/icons/sun';
 import Moon from 'lucide-react-native/icons/moon';
 import { AppText } from '@/components/atoms/AppText';
@@ -18,7 +19,7 @@ export interface AppHeaderProps {
   onHome: () => void;
 }
 
-export function AppHeader({ title, canGoBack, onBack, onHome }: AppHeaderProps) {
+export function AppHeader({ canGoBack, onBack, onHome }: AppHeaderProps) {
   const theme = useTheme();
   const mode = useThemeStore((state) => state.mode);
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
@@ -34,7 +35,7 @@ export function AppHeader({ title, canGoBack, onBack, onHome }: AppHeaderProps) 
       )
         return;
       // RN Web's Modal owns Escape on keyup and traps/restores focus itself.
-      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      if (document.querySelector('[role="dialog"], [aria-modal="true"]')) return;
       const focused = document.activeElement;
       if (
         focused instanceof HTMLInputElement ||
@@ -72,14 +73,10 @@ export function AppHeader({ title, canGoBack, onBack, onHome }: AppHeaderProps) 
           { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? 0.7 : 1 },
         ]}
       >
-        <AppText variant="h2" align="center">
+        <AppText variant="h2" color="primary" align="center">
           {HEADER_COPY.brand}
         </AppText>
-        {title ? (
-          <AppText variant="caption" color="muted" align="center">
-            {title}
-          </AppText>
-        ) : null}
+        <House size={20} color={theme.primaryText} />
       </Pressable>
       <IconButton
         label={mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
@@ -106,6 +103,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   titles: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
     flex: 1,
     minWidth: LAYOUT.minTouchTarget,
     minHeight: LAYOUT.minTouchTarget,

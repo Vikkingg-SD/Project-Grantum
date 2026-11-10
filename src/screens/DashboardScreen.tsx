@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Bell from 'lucide-react-native/icons/bell';
 import Filter from 'lucide-react-native/icons/funnel';
@@ -11,6 +11,7 @@ import { AppButton } from '@/components/atoms/AppButton';
 import { AppInput } from '@/components/atoms/AppInput';
 import { IconButton } from '@/components/atoms/IconButton';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
+import { CenteredHeading } from '@/components/molecules/CenteredHeading';
 import { HeroContinueCard } from '@/components/molecules/HeroContinueCard';
 import { PipelineFunnelBar } from '@/components/organisms/PipelineFunnelBar';
 import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
@@ -35,11 +36,21 @@ export default function DashboardScreen() {
   const summary = useDashboardSummary();
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
-  const openDraft = (grantId: string) => {
-    ensureDraft(grantId);
-    setSelectedGrant(null);
-    navigation.navigateTo('drafting', grantId);
-  };
+  const openDraft = useCallback(
+    (grantId: string) => {
+      ensureDraft(grantId);
+      setSelectedGrant(null);
+      navigation.navigateTo('drafting', grantId);
+    },
+    [ensureDraft, navigation]
+  );
+  const applyGrant = useCallback((grant: Grant) => openDraft(grant.id), [openDraft]);
+  const filtered = useMemo(() => {
+    const normalized = query.toLowerCase();
+    return (grants.data ?? []).filter((grant) =>
+      `${grant.title} ${grant.funder}`.toLowerCase().includes(normalized)
+    );
+  }, [grants.data, query]);
   if (summary.isPending || grants.isPending || summary.isError || grants.isError || !summary.data) {
     const error = summary.error ?? grants.error;
     return (
@@ -57,29 +68,20 @@ export default function DashboardScreen() {
     );
   }
   const active = summary.data.activeDraft;
-  const filtered = (grants.data ?? []).filter((grant) =>
-    `${grant.title} ${grant.funder}`.toLowerCase().includes(query.toLowerCase())
-  );
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <View style={styles.row}>
-          <View style={[styles.greeting, mobile ? styles.fullWidth : styles.grow]}>
+        <CenteredHeading
+          title={mobile ? 'Your workspace' : 'Welcome back, ' + summary.data.greetingName + '.'}
+          variant={mobile ? 'h2' : 'display'}
+          leading={
             <IconButton
               label={DASHBOARD_COPY.notifications}
               onPress={() => setActivityOpen(true)}
               icon={<Bell size={SPACING.lg} color={theme.textMuted} />}
             />
-            <AppText variant={mobile ? 'h2' : 'display'} style={styles.flexible}>
-              {mobile ? 'Your workspace' : 'Welcome back, ' + summary.data.greetingName + '.'}
-            </AppText>
-          </View>
-          <AppButton
-            label={DASHBOARD_COPY.newApplication}
-            variant="primary"
-            onPress={() => navigation.navigateTo('discovery')}
-          />
-        </View>
+          }
+        />
         {active ? (
           <HeroContinueCard
             projectTitle={active.title}
@@ -92,22 +94,23 @@ export default function DashboardScreen() {
             onStartNew={() => navigation.navigateTo('discovery')}
           />
         )}
-        <AppText variant="caption" color="muted">
+        <AppText variant="caption" color="muted" align="center">
           {ENV.DATA_SOURCE === 'mock'
             ? 'Sample portfolio · Pipeline overview'
             : 'Portfolio overview'}
         </AppText>
         <PipelineFunnelBar stages={summary.data.pipeline} />
-        <View style={styles.row}>
-          <IconButton
-            label={DASHBOARD_COPY.filter}
-            onPress={() => navigation.navigateTo('discovery')}
-            icon={<Filter size={SPACING.lg} color={theme.textMuted} />}
-          />
-          <AppText variant="h2" style={styles.flexible}>
-            {DASHBOARD_COPY.recommended}
-          </AppText>
-        </View>
+        <CenteredHeading
+          title={DASHBOARD_COPY.recommended}
+          variant="h2"
+          leading={
+            <IconButton
+              label={DASHBOARD_COPY.filter}
+              onPress={() => navigation.navigateTo('discovery')}
+              icon={<Filter size={SPACING.lg} color={theme.textMuted} />}
+            />
+          }
+        />
         <AppInput
           accessibilityLabel={DASHBOARD_COPY.search}
           placeholder={DASHBOARD_COPY.search}
@@ -115,13 +118,10 @@ export default function DashboardScreen() {
           onChangeText={setQuery}
           returnKeyType="search"
         />
-        <View style={styles.row}>
+        <View style={styles.summaryRow}>
           <StatusBadge
-            label={ENV.DATA_SOURCE === 'mock' ? 'Sample opportunities' : 'Your opportunities'}
-            variant="brand"
-          />
-          <StatusBadge
-            label={'Project profile ' + summary.data.profileCompletionPct + '% done'}
+            label={'Profile ' + summary.data.profileCompletionPct + '% done'}
+            style={styles.profile}
             variant="pending"
           />
           <AppButton
@@ -130,23 +130,21 @@ export default function DashboardScreen() {
             onPress={() => navigation.navigateTo('discovery')}
           />
         </View>
-        <GrantDiscoveryGrid
-          grants={filtered}
-          onSelect={setSelectedGrant}
-          onApply={(grant) => openDraft(grant.id)}
-        />
+        <GrantDiscoveryGrid grants={filtered} onSelect={setSelectedGrant} onApply={applyGrant} />
       </View>
       <ModalSheetLayout
         visible={activityOpen}
         onClose={() => setActivityOpen(false)}
         accessibilityLabel="Workspace activity"
       >
-        <View style={styles.content}>
-          <AppText variant="h2">Workspace activity</AppText>
-          <AppText>
+        <View style={styles.modalBody}>
+          <AppText variant="h2" align="center">
+            Workspace activity
+          </AppText>
+          <AppText align="center">
             {active ? `Active application: ${active.title}` : 'No active application yet.'}
           </AppText>
-          <AppText color="muted">
+          <AppText color="muted" align="center">
             {ENV.DATA_SOURCE === 'mock'
               ? 'You are viewing sample data. Live notifications are not connected.'
               : 'Live notifications are not available in this workspace.'}
@@ -159,16 +157,19 @@ export default function DashboardScreen() {
         onClose={() => setSelectedGrant(null)}
         accessibilityLabel={selectedGrant?.title ?? ''}
       >
-        <GrantDetailModalSheet grant={selectedGrant} onApply={(grant) => openDraft(grant.id)} />
+        <GrantDetailModalSheet grant={selectedGrant} onApply={applyGrant} />
       </ModalSheetLayout>
     </ScreenContainer>
   );
 }
 const styles = StyleSheet.create({
   content: { gap: SPACING.lg },
-  greeting: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, minWidth: 0 },
-  fullWidth: { width: '100%' },
-  grow: { flex: 1 },
-  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.sm },
-  flexible: { flexGrow: 1, flexShrink: 1, minWidth: 0 },
+  modalBody: { padding: SPACING.lg, gap: SPACING.lg },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.sm,
+  },
+  profile: { alignSelf: 'center', flexShrink: 1 },
 });

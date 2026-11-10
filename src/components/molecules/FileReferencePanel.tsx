@@ -1,5 +1,7 @@
+import { ModalSheetLayout } from '../templates/ModalSheetLayout';
+import { IconButton } from '../atoms/IconButton';
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import Paperclip from 'lucide-react-native/icons/paperclip';
 import { AppButton } from '../atoms/AppButton';
 import { AppText } from '../atoms/AppText';
@@ -25,21 +27,29 @@ export function FileReferencePanel({
   const setFiles = useDraftStore((s) => s.setAttachments);
   return (
     <View style={styles.group}>
-      <AppButton
-        label={`File references${files.length ? ` (${files.length})` : ''}`}
-        size="sm"
-        variant="outline"
-        expanded={open}
+      <IconButton
+        label="File references"
         onPress={() => setOpen(!open)}
         icon={<Paperclip size={20} color={theme.textMuted} />}
       />
-      {open && (
-        <View style={styles.group}>
-          <AppText variant="caption" color="muted">
+      <ModalSheetLayout
+        visible={open}
+        onClose={() => setOpen(false)}
+        accessibilityLabel="File references"
+      >
+        <ScrollView
+          horizontal={false}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.sheetContent}
+        >
+          <AppText variant="h2" align="center">
+            File references
+          </AppText>
+          <AppText variant="caption" color="muted" align="center">
             Keep up to 5 file references for this session. Only names, types, and sizes are kept;
             files are not uploaded, read, or included in exports.
           </AppText>
-          <View style={styles.row}>
+          <View style={styles.centeredRow}>
             {(Object.keys(ATTACHMENT_ACCEPT) as (keyof typeof ATTACHMENT_ACCEPT)[]).map(
               (category) => (
                 <AppButton
@@ -52,14 +62,18 @@ export function FileReferencePanel({
               )
             )}
           </View>
-          {busy && <AppText accessibilityLiveRegion="polite">Waiting for file selection…</AppText>}
+          {busy && (
+            <AppText align="center" accessibilityLiveRegion="polite">
+              Waiting for file selection…
+            </AppText>
+          )}
           {files.length >= 5 && (
-            <AppText variant="caption" color="muted">
+            <AppText variant="caption" color="muted" align="center">
               Remove a reference to add another.
             </AppText>
           )}
           {files.map((file) => (
-            <View key={file.id} style={styles.row}>
+            <View key={file.id} style={[styles.fileItem, { borderColor: theme.border }]}>
               <AppText style={styles.name}>
                 {file.name} · {Math.ceil(file.size / 1024)} KB
               </AppText>
@@ -67,6 +81,7 @@ export function FileReferencePanel({
                 label={`Remove ${file.name}`}
                 size="sm"
                 variant="ghost"
+                style={styles.removeButton}
                 onPress={() =>
                   setFiles(
                     grantId,
@@ -77,17 +92,32 @@ export function FileReferencePanel({
             </View>
           ))}
           {Boolean(error) && (
-            <AppText color="failure" accessibilityRole="alert">
+            <AppText color="failure" align="center" accessibilityRole="alert">
               {error}
             </AppText>
           )}
-        </View>
-      )}
+        </ScrollView>
+      </ModalSheetLayout>
     </View>
   );
 }
 const styles = StyleSheet.create({
   group: { gap: SPACING.sm },
-  row: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: SPACING.sm },
-  name: { flex: 1, minWidth: 0 },
+  sheetContent: { width: '100%', padding: SPACING.lg, gap: SPACING.md },
+  centeredRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+  },
+  fileItem: {
+    width: '100%',
+    gap: SPACING.xs,
+    padding: SPACING.sm,
+    borderWidth: 1,
+    borderRadius: SPACING.sm,
+  },
+  name: { width: '100%', minWidth: 0 },
+  removeButton: { alignSelf: 'flex-start', maxWidth: '100%' },
 });

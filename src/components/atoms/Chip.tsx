@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Platform, Pressable, StyleSheet, type ViewStyle } from 'react-native';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
@@ -15,6 +16,7 @@ export interface ChipProps {
 export function Chip({ label, selected = false, onToggle, disabled = false }: ChipProps) {
   const mode = useThemeStore((state) => state.mode);
   const theme = PALETTE[mode];
+  const reduceMotion = useReduceMotion();
   const isDisabled = disabled || !onToggle;
   return (
     <Pressable
@@ -24,12 +26,13 @@ export function Chip({ label, selected = false, onToggle, disabled = false }: Ch
       aria-checked={selected}
       onPress={onToggle}
       disabled={isDisabled}
-      style={[
+      style={({ pressed }) => [
         styles.chip,
+        Platform.OS === 'web' && !reduceMotion && webFeedback,
         {
           backgroundColor: selected ? theme.primary : theme.surface,
           borderColor: selected ? theme.primary : theme.border,
-          opacity: isDisabled ? 0.4 : 1,
+          opacity: isDisabled ? 0.4 : pressed ? 0.75 : 1,
         },
       ]}
     >
@@ -44,6 +47,8 @@ const styles = StyleSheet.create({
   chip: {
     minWidth: LAYOUT.minTouchTarget,
     minHeight: LAYOUT.minTouchTarget,
+    maxWidth: '100%',
+    flexShrink: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACING.md,
@@ -52,3 +57,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
 });
+
+const webFeedback = {
+  transitionProperty: 'opacity',
+  transitionDuration: '120ms',
+  transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)',
+} as ViewStyle;

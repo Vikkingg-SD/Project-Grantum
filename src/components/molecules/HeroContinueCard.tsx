@@ -36,12 +36,17 @@ export function HeroContinueCard(props: HeroContinueCardProps) {
   return (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <View style={[styles.heading, wide && styles.headingWide]}>
-        <View style={styles.content}>
-          <AppText variant="h2" color="main">
+        <View
+          style={[
+            styles.content,
+            { backgroundColor: theme.subtle, borderRadius: RADIUS.sm, padding: SPACING.md },
+          ]}
+        >
+          <AppText variant="h2" color="main" align="center">
             {title}
           </AppText>
-          <AppText variant="caption" color="muted" style={styles.title}>
-            {inactive ? 'Create your first application' : 'Active application · section checklist'}
+          <AppText variant="caption" color="muted" align="center" style={styles.title}>
+            {inactive ? 'Create your first application' : 'Active application'}
           </AppText>
         </View>
         {wide && (
@@ -57,7 +62,11 @@ export function HeroContinueCard(props: HeroContinueCardProps) {
         )}
       </View>
       {props.variant !== 'no-session' && (
-        <ProgressBar percent={props.completionPct} label={progressLabel(props.completionPct)} />
+        <View
+          style={{ backgroundColor: theme.subtle, padding: SPACING.md, borderRadius: RADIUS.sm }}
+        >
+          <ProgressBar percent={props.completionPct} label={progressLabel(props.completionPct)} />
+        </View>
       )}
       {!wide && (
         <AppButton
@@ -79,7 +88,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     borderWidth: 1,
     padding: SPACING.xl,
-    gap: SPACING.xl,
+    gap: SPACING.md,
     marginVertical: SPACING.sm,
   },
   heading: { gap: SPACING.lg },

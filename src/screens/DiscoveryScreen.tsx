@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { View, StyleSheet } from 'react-native';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
@@ -8,6 +8,11 @@ import { ModalSheetLayout } from '@/components/templates/ModalSheetLayout';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppInput } from '@/components/atoms/AppInput';
+import Filter from 'lucide-react-native/icons/funnel';
+import { IconButton } from '@/components/atoms/IconButton';
+import { CenteredHeading } from '@/components/molecules/CenteredHeading';
+import { useTheme } from '@/hooks/useTheme';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { FilterFieldGroup } from '@/components/molecules/FilterFieldGroup';
 import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
@@ -19,13 +24,19 @@ import { MAX_INPUT_CHARS } from '@/config/constants';
 import type { BountyInput } from '@/types/api';
 import { useDashboardSummary } from '@/api/hooks/useDashboardSummary';
 import { useDraftStore } from '@/store/useDraftStore';
-import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { SPACING } from '@/config/theme';
 import type { Grant } from '@/types/grant';
 
+const REGION_OPTIONS = ['Global', 'East Europe', 'CIS'];
+const CATEGORY_OPTIONS = ['Infrastructure', 'Health', 'Technology', 'Workforce'];
+const toggle = (items: string[], value: string) =>
+  items.includes(value) ? items.filter((item) => item !== value) : [...items, value];
+
 export default function DiscoveryScreen() {
   const navigation = useAppNavigation();
-  const wide = useBreakpoint() !== 'mobile';
+  const { mobile, effectiveWidth } = useLayoutMetrics();
+  const wide = !mobile;
+  const theme = useTheme();
   const [query, setQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [regions, setRegions] = useState<string[]>([]);
@@ -41,23 +52,37 @@ export default function DiscoveryScreen() {
   const grants = useGrants({ q: query, region: regions, category: categories });
   const summary = useDashboardSummary();
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
-  const toggle = (items: string[], value: string) =>
-    items.includes(value) ? items.filter((item) => item !== value) : [...items, value];
-  const openDraft = (grant: Grant) => {
-    ensureDraft(grant.id);
-    setSelectedGrant(null);
-    navigation.navigateTo('drafting', grant.id);
-  };
+  const toggleRegion = useCallback(
+    (value: string) => setRegions((items) => toggle(items, value)),
+    []
+  );
+  const toggleCategory = useCallback(
+    (value: string) => setCategories((items) => toggle(items, value)),
+    []
+  );
+  const openDraft = useCallback(
+    (grant: Grant) => {
+      ensureDraft(grant.id);
+      setSelectedGrant(null);
+      navigation.navigateTo('drafting', grant.id);
+    },
+    [ensureDraft, navigation]
+  );
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <View style={styles.heading}>
-          <AppText variant="h1" style={styles.title}>
+        <View style={styles.pageHeading}>
+          <AppText
+            variant={mobile ? 'h3' : 'h1'}
+            align="center"
+            style={[styles.title, effectiveWidth < 360 && styles.compactTitle]}
+          >
             Find your next opportunity
           </AppText>
           {summary.data && (
             <StatusBadge
-              label={`Profile ${summary.data.profileCompletionPct}% complete`}
+              label={`Profile ${summary.data.profileCompletionPct}% done`}
+              style={styles.centerBadge}
               variant="neutral"
             />
           )}
@@ -69,22 +94,26 @@ export default function DiscoveryScreen() {
           onChangeText={setQuery}
           returnKeyType="search"
         />
-        <View style={styles.heading}>
-          <AppText variant="caption" color="muted" accessibilityLiveRegion="polite">
-            {grants.isFetching
+        <CenteredHeading
+          title={
+            grants.isFetching
               ? 'Updating opportunities...'
-              : `${grants.data?.length ?? 0} ${ENV.DATA_SOURCE === 'mock' ? 'sample ' : ''}opportunities`}
-          </AppText>
-          {!wide && (
-            <AppButton
-              label={`Filters${regions.length + categories.length ? ` (${regions.length + categories.length})` : ''}`}
-              size="sm"
-              variant="outline"
-              expanded={filtersOpen}
-              onPress={() => setFiltersOpen(!filtersOpen)}
-            />
-          )}
-        </View>
+              : `${grants.data?.length ?? 0} ${ENV.DATA_SOURCE === 'mock' ? 'sample ' : ''}opportunities`
+          }
+          variant="caption"
+          color="muted"
+          leading={
+            !wide ? (
+              <IconButton
+                label={`Filter grants${regions.length + categories.length ? ` (${regions.length + categories.length} active)` : ''}`}
+                expanded={filtersOpen}
+                active={filtersOpen || regions.length + categories.length > 0}
+                onPress={() => setFiltersOpen(!filtersOpen)}
+                icon={<Filter size={SPACING.lg} color={theme.textMuted} />}
+              />
+            ) : undefined
+          }
+        />
         <View style={[styles.content, wide && styles.columns]}>
           {(wide || filtersOpen) && (
             <View style={[styles.content, wide && styles.filters]}>
@@ -104,15 +133,15 @@ export default function DiscoveryScreen() {
               </View>
               <FilterFieldGroup
                 label="Region"
-                options={['Global', 'East Europe', 'CIS']}
+                options={REGION_OPTIONS}
                 selected={regions}
-                onToggle={(value) => setRegions((items) => toggle(items, value))}
+                onToggle={toggleRegion}
               />
               <FilterFieldGroup
                 label="Opportunity type"
-                options={['Infrastructure', 'Health', 'Technology', 'Workforce']}
+                options={CATEGORY_OPTIONS}
                 selected={categories}
-                onToggle={(value) => setCategories((items) => toggle(items, value))}
+                onToggle={toggleCategory}
               />
             </View>
           )}
@@ -184,7 +213,10 @@ export default function DiscoveryScreen() {
 }
 const styles = StyleSheet.create({
   content: { gap: SPACING.lg },
-  title: { flexGrow: 1, flexShrink: 1, minWidth: 0 },
+  title: { width: '100%' },
+  compactTitle: { fontSize: 17, lineHeight: 24 },
+  pageHeading: { alignItems: 'center', gap: SPACING.sm },
+  centerBadge: { alignSelf: 'center' },
   columns: { flexDirection: 'row', alignItems: 'flex-start' },
   heading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.sm },
   filters: { width: '30%' },

@@ -68,6 +68,15 @@ function loadPolicy(env = environment) {
       throw new Error(`Invalid runtime budget: ${key}`);
     budgets[`${key}Ms`] = value * selected.scale;
   }
+  const desktop =
+    env.HW_PROFILE !== 'LAPTOP_4GB_HDD' && require('node:os').totalmem() > 6 * 1024 ** 3;
+  const maximumHeap = desktop ? 4096 : 1228;
+  const inheritedHeap = Number(env.NODE_OPTIONS?.match(/--max-old-space-size=(\d+)/)?.[1]);
+  const heapMiB = inheritedHeap >= 128 ? Math.min(maximumHeap, inheritedHeap) : maximumHeap;
+  const workers = Math.max(
+    1,
+    Math.min(desktop ? 4 : 1, Number(env.BRAIN_WORKERS) || (desktop ? 4 : 1))
+  );
   const setupMs = budgets.exportMs + budgets.readyMs + budgets.cleanupMs;
   const managedBatch = Number(env.BRAIN_LINT_BATCH || selected.lintBatch);
   if (!Number.isInteger(managedBatch) || managedBatch < 1 || managedBatch > 8)
@@ -76,8 +85,8 @@ function loadPolicy(env = environment) {
     ...budgets,
     profile,
     scale: selected.scale,
-    workers: 1,
-    heapMiB: source.heapMiB,
+    workers,
+    heapMiB,
     lintBatch: Math.min(selected.lintBatch, managedBatch),
     mcpResponseBytes: Math.min(source.mcpResponseBytes * selected.scale, 8 * 1024 * 1024),
     setupMs,

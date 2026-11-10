@@ -1,3 +1,4 @@
+import { LocalAttachments } from './LocalAttachments';
 import React from 'react';
 import { Platform, View, TextInput, StyleSheet, type TextInputProps } from 'react-native';
 import Send from 'lucide-react-native/icons/send';
@@ -11,6 +12,7 @@ import { CHAT_COPY } from '@/config/copy';
 import { canSendMessage, composerKeyAction } from '@/utils/composer';
 
 export interface ChatInputRowProps {
+  grantId?: string;
   value: string;
   onChangeText: (text: string) => void;
   onSend: () => void;
@@ -19,6 +21,7 @@ export interface ChatInputRowProps {
 }
 
 export function ChatInputRow({
+  grantId,
   value,
   onChangeText,
   onSend,
@@ -46,6 +49,7 @@ export function ChatInputRow({
     <View
       style={[styles.container, { backgroundColor: theme.surface, borderTopColor: theme.border }]}
     >
+      {grantId && <LocalAttachments grantId={grantId} />}
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -82,7 +86,7 @@ export function ChatInputRow({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     padding: SPACING.md,
     borderTopWidth: 1,
     gap: SPACING.sm,
@@ -92,6 +96,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     minHeight: LAYOUT.minTouchTarget,
+    height: 48,
     maxHeight: SPACING['4xl'] * 4,
     borderRadius: RADIUS.sm,
     borderWidth: 1,

@@ -13,8 +13,8 @@ import type { Grant } from '@/types/grant';
 
 export interface GrantCardProps {
   grant: Grant;
-  onSelect: () => void;
-  onApply: () => void;
+  onSelect: (grant: Grant) => void;
+  onApply: (grant: Grant) => void;
 }
 
 export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: GrantCardProps) {
@@ -25,7 +25,15 @@ export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: G
   return (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <View style={styles.header}>
-        <StatusBadge label={grant.funder} variant="neutral" />
+        <AppText
+          variant="caption"
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          style={{ flex: 1, minWidth: 0 }}
+          color="muted"
+        >
+          {grant.funder}
+        </AppText>
         <StatusBadge
           label={GRANT_CARD_COPY.matchLabel(grant.matchPct)}
           variant={matchTier(grant.matchPct)}
@@ -35,7 +43,7 @@ export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: G
         {grant.title}
       </AppText>
       <View style={styles.metricsGrid}>
-        <View style={styles.metricColumn}>
+        <View style={[styles.metricColumn, { backgroundColor: theme.subtle }]}>
           <AppText variant="caption" color="muted">
             {GRANT_CARD_COPY.funding}
           </AppText>
@@ -43,7 +51,7 @@ export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: G
             {grant.amount}
           </AppText>
         </View>
-        <View style={styles.metricColumn}>
+        <View style={[styles.metricColumn, { backgroundColor: theme.subtle }]}>
           <AppText variant="caption" color="muted">
             {GRANT_CARD_COPY.deadline}
           </AppText>
@@ -63,8 +71,18 @@ export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: G
           {grant.region}
         </AppText>
         <View style={styles.actions}>
-          <AppButton label={GRANT_CARD_COPY.details} variant="ghost" size="sm" onPress={onSelect} />
-          <AppButton label={GRANT_CARD_COPY.apply} variant="primary" size="sm" onPress={onApply} />
+          <AppButton
+            label={GRANT_CARD_COPY.details}
+            variant="ghost"
+            size="sm"
+            onPress={() => onSelect(grant)}
+          />
+          <AppButton
+            label={GRANT_CARD_COPY.apply}
+            variant="primary"
+            size="sm"
+            onPress={() => onApply(grant)}
+          />
         </View>
       </View>
     </View>
@@ -82,19 +100,24 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: SPACING.sm,
     marginBottom: SPACING.md,
   },
-  title: { marginBottom: SPACING.md, flexShrink: 1 },
+  title: { textAlign: 'center', marginBottom: SPACING.md, flexShrink: 1 },
   metricsGrid: {
     flexDirection: 'row',
     gap: SPACING.md,
     marginBottom: SPACING.md,
   },
-  metricColumn: { flex: 1, minWidth: 0 },
+  metricColumn: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    padding: SPACING.sm,
+    borderRadius: RADIUS.sm,
+  },
   footer: {
     flexDirection: 'row',
     flexWrap: 'wrap',

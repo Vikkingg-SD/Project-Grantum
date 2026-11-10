@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { AppText } from '../atoms/AppText';
 import { useThemeStore } from '@/store/useThemeStore';
@@ -14,7 +14,9 @@ export interface PipelineFunnelBarProps {
   stages: FunnelStage[];
 }
 
-export function PipelineFunnelBar({ stages }: PipelineFunnelBarProps) {
+export const PipelineFunnelBar = memo(function PipelineFunnelBar({
+  stages,
+}: PipelineFunnelBarProps) {
   const mode = useThemeStore((state) => state.mode);
   const { effectiveWidth } = useLayoutMetrics();
   const columns = effectiveWidth >= 900 ? 6 : effectiveWidth >= 320 ? 3 : 2;
@@ -32,7 +34,13 @@ export function PipelineFunnelBar({ stages }: PipelineFunnelBarProps) {
             <View
               style={[styles.tile, { backgroundColor: theme.surface, borderColor: theme.border }]}
             >
-              <AppText variant="caption" style={[styles.label, { color: labelColor }]}>
+              <AppText
+                variant="caption"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+                style={[styles.label, { color: labelColor }]}
+              >
                 {stage.label}
               </AppText>
               <AppText variant="metric-lg" style={{ color: valueColor }}>
@@ -44,11 +52,20 @@ export function PipelineFunnelBar({ stages }: PipelineFunnelBarProps) {
       })}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -SPACING.xs },
   stage: { padding: SPACING.xs },
-  tile: { flex: 1, borderWidth: 1, borderRadius: RADIUS.md, padding: SPACING.md, gap: SPACING.sm },
-  label: { textAlign: 'left' },
+  tile: {
+    minHeight: 96,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  label: { textAlign: 'center' },
 });

@@ -70,22 +70,23 @@ function ExportSession({ grantId }: { grantId: string }) {
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <AppText variant="h1">Review & export</AppText>
-        <GrantContext grantId={grantId} />
-        <AppText color="muted">
-          Review your application narrative, then choose a format. Edits are kept for this session
-          only.
+        <AppText variant="h1" align="center">
+          Review & export
         </AppText>
+        <GrantContext grantId={grantId} />
         {!serviceAvailable && (
           <View style={[styles.notice, { backgroundColor: theme.subtle }]}>
-            <AppText variant="label">Document service not connected</AppText>
-            <AppText color="muted">
-              You can edit this sample document. Downloads and AI rewriting are unavailable in this
-              preview.
+            <AppText variant="label" align="center">
+              Downloads unavailable
+            </AppText>
+            <AppText color="muted" align="center">
+              Preview - edits stay in this session.
             </AppText>
           </View>
         )}
-        <AppText variant="h3">Document format</AppText>
+        <AppText variant="h3" align="center">
+          Document format
+        </AppText>
         <View
           style={styles.formats}
           accessibilityRole="radiogroup"
@@ -105,17 +106,18 @@ function ExportSession({ grantId }: { grantId: string }) {
               style={[
                 styles.format,
                 {
-                  flexBasis: effectiveWidth < 360 ? '100%' : effectiveWidth >= 1024 ? '22%' : '45%',
+                  flexBasis: effectiveWidth >= 1024 ? '22%' : '45%',
                   backgroundColor: format === item.id ? theme.subtle : theme.surface,
                   borderColor: format === item.id ? theme.primary : theme.border,
                 },
               ]}
             >
-              <AppText variant="label" color={format === item.id ? 'primary' : 'main'}>
-                {item.label}
-              </AppText>
-              <AppText variant="caption" color="muted">
-                {item.blurb}
+              <AppText
+                variant="caption"
+                numberOfLines={1}
+                color={format === item.id ? 'primary' : 'main'}
+              >
+                {item.label.split(' (')[0]}
               </AppText>
             </Pressable>
           ))}
@@ -133,7 +135,7 @@ function ExportSession({ grantId }: { grantId: string }) {
                 label={
                   unlocked
                     ? `Checklist ready - ${draft.data.confidenceScore}% complete`
-                    : `Needs ${TIERS.confidence.pass}% completeness ? currently ${draft.data.confidenceScore}%`
+                    : `Needs ${TIERS.confidence.pass}% completeness · currently ${draft.data.confidenceScore}%`
                 }
                 variant={unlocked ? 'verified' : 'pending'}
               />
@@ -162,9 +164,13 @@ function ExportSession({ grantId }: { grantId: string }) {
             )}
             {result && (
               <View style={styles.content}>
-                <AppText color="verified">Bundle ready</AppText>
-                <AppText variant="caption">Checksum supplied by document service</AppText>
-                <AppText variant="metric-sm" selectable>
+                <AppText color="verified" align="center">
+                  Bundle ready
+                </AppText>
+                <AppText variant="caption" align="center">
+                  Checksum supplied by document service
+                </AppText>
+                <AppText variant="metric-sm" align="center" selectable>
                   {result.checksum}
                 </AppText>
                 <AppButton
@@ -180,29 +186,26 @@ function ExportSession({ grantId }: { grantId: string }) {
               </View>
             )}
             {downloadError ? (
-              <AppText color="failure" accessibilityRole="alert">
+              <AppText color="failure" align="center" accessibilityRole="alert">
                 {downloadError}
               </AppText>
             ) : null}
           </View>
-        ) : (
-          <EmptyStateLayout
-            title="Choose an export format"
-            description="Your narrative is ready to edit above. Select a format when you are ready to export."
-          />
-        )}
+        ) : null}
       </View>
     </ScreenContainer>
   );
 }
 const styles = StyleSheet.create({
   content: { gap: SPACING.md },
-  formats: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+  formats: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: SPACING.sm },
   format: {
     flexGrow: 1,
     flexShrink: 1,
     minWidth: 0,
-    minHeight: 96,
+    minHeight: 64,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
     borderRadius: RADIUS.md,
     padding: SPACING.md,

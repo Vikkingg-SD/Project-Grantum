@@ -1,15 +1,16 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, withAlpha } from '@/config/theme';
 
 export interface StatusBadgeProps {
   label: string;
+  style?: StyleProp<ViewStyle>;
   variant?: 'verified' | 'pending' | 'failure' | 'neutral' | 'brand' | 'gold';
 }
 
-export function StatusBadge({ label, variant = 'neutral' }: StatusBadgeProps) {
+export function StatusBadge({ label, variant = 'neutral', style }: StatusBadgeProps) {
   const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
 
@@ -54,8 +55,12 @@ export function StatusBadge({ label, variant = 'neutral' }: StatusBadgeProps) {
   const colors = getColors();
 
   return (
-    <View style={[styles.badge, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-      <AppText variant="caption" style={{ color: colors.text }}>
+    <View style={[styles.badge, { backgroundColor: colors.bg, borderColor: colors.border }, style]}>
+      <AppText
+        variant="caption"
+        accessibilityLabel={label}
+        style={{ color: colors.text, textAlign: 'center' }}
+      >
         {label}
       </AppText>
     </View>

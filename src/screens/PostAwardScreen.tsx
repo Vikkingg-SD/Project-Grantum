@@ -62,23 +62,29 @@ export default function PostAwardScreen() {
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <AppText variant="h1">Reporting & activity</AppText>
-        <AppText color="muted">
+        <AppText variant="h1" align="center">
+          Reporting & activity
+        </AppText>
+        <AppText color="muted" align="center">
           {ENV.DATA_SOURCE === 'mock'
             ? 'Sample award record. Confirm reporting dates and submission status with your funder.'
             : 'Review your next reporting date and application history.'}
         </AppText>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <AppText variant="h2">Next reporting date</AppText>
-          <AppText variant="h3">{formatCalendarDate(award.nextReportAt, true)}</AppText>
-          <StatusBadge label={urgency.label} variant={urgency.variant} />
-          <AppText variant="caption" color="muted">
+          <AppText variant="h2" align="center">
+            Next reporting date
+          </AppText>
+          <AppText variant="h3" align="center">
+            {formatCalendarDate(award.nextReportAt, true)}
+          </AppText>
+          <StatusBadge label={urgency.label} variant={urgency.variant} style={styles.centerBadge} />
+          <AppText variant="caption" color="muted" align="center">
             Report submission status is not available. Check your funder's records before taking
             action.
           </AppText>
         </View>
         <View style={styles.heading}>
-          <AppText variant="h1" style={{ flexShrink: 1 }}>
+          <AppText variant="h2" align="center" style={{ flexShrink: 1 }}>
             Submission status
           </AppText>
           <StatusBadge
@@ -93,16 +99,20 @@ export default function PostAwardScreen() {
           />
         </View>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <AppText variant="h2">{detail.data.title}</AppText>
-          <AppText variant="caption" color="muted">
+          <AppText variant="h2" align="center">
+            {detail.data.title}
+          </AppText>
+          <AppText variant="caption" color="muted" align="center">
             {detail.data.funder +
               ' · Submitted ' +
               new Date(award.submittedAt).toLocaleDateString()}
           </AppText>
-          <AppText variant="caption" color="muted">
+          <AppText variant="caption" color="muted" align="center">
             Opportunity funding range
           </AppText>
-          <AppText variant="metric-lg">{detail.data.amount}</AppText>
+          <AppText variant="metric-lg" align="center">
+            {detail.data.amount}
+          </AppText>
           <View style={[styles.metrics, mobile && styles.stacked]}>
             {metrics.map((metric) => (
               <View
@@ -113,10 +123,12 @@ export default function PostAwardScreen() {
                   { backgroundColor: theme.subtle },
                 ]}
               >
-                <AppText variant="caption" color="muted">
+                <AppText variant="caption" color="muted" align="center">
                   {metric.label}
                 </AppText>
-                <AppText variant="metric-sm">{metric.value}</AppText>
+                <AppText variant="metric-sm" align="center">
+                  {metric.value}
+                </AppText>
               </View>
             ))}
           </View>
@@ -135,19 +147,23 @@ export default function PostAwardScreen() {
             ))}
           </View>
           {tab === 'Notifications' ? (
-            <AppText>
+            <AppText align="center">
               No live notifications connected. The reporting date above comes from this award
               record.
             </AppText>
           ) : tab === 'Recommendations' ? (
-            <AppText>No recommendations available for this application.</AppText>
+            <AppText align="center">No recommendations available for this application.</AppText>
           ) : (
             <View style={styles.content}>
-              <AppText variant="h3">Activity history</AppText>
+              <AppText variant="h3" align="center">
+                Activity history
+              </AppText>
               {award.events.length ? (
                 award.events.map((event) => <AuditLogLine key={event.id} {...event} />)
               ) : (
-                <AppText color="muted">No activity recorded.</AppText>
+                <AppText color="muted" align="center">
+                  No activity recorded.
+                </AppText>
               )}
             </View>
           )}
@@ -158,7 +174,14 @@ export default function PostAwardScreen() {
 }
 const styles = StyleSheet.create({
   content: { gap: SPACING.lg },
-  heading: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, alignItems: 'center' },
+  centerBadge: { alignSelf: 'center' },
+  heading: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   card: { borderRadius: RADIUS.md, borderWidth: 1, padding: SPACING.lg, gap: SPACING.md },
   metrics: { flexDirection: 'row', gap: SPACING.sm },
   stacked: { flexDirection: 'column' },
@@ -166,6 +189,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexBasis: 0,
     minWidth: 0,
+    alignItems: 'center',
     borderRadius: RADIUS.sm,
     padding: SPACING.md,
     gap: SPACING.sm,

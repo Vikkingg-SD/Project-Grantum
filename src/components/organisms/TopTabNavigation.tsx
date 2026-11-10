@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, Platform, StyleSheet, type ViewStyle } from 'react-native';
 import LayoutDashboard from 'lucide-react-native/icons/layout-dashboard';
 import Compass from 'lucide-react-native/icons/compass';
 import PenTool from 'lucide-react-native/icons/pen-tool';
@@ -12,6 +12,7 @@ import type { Href } from 'expo-router';
 import { VIEW_PATHS, type AppView } from '@/hooks/useActiveView';
 import { AppText } from '@/components/atoms/AppText';
 import { useTheme } from '@/hooks/useTheme';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { NAV_COPY } from '@/config/copy';
 import { SPACING } from '@/config/theme';
 import { IconButton } from '@/components/atoms/IconButton';
@@ -87,6 +88,7 @@ function PagedTabs({
   pageSize: number;
 }) {
   const theme = useTheme();
+  const reduceMotion = useReduceMotion();
   const selectedIndex = Math.max(
     0,
     items.findIndex((item) => item.name === selectedName)
@@ -97,56 +99,84 @@ function PagedTabs({
   const visible = items.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
   return (
     <View
-      style={[styles.shell, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}
+      style={{
+        backgroundColor: theme.surface,
+        borderBottomColor: theme.border,
+        borderBottomWidth: 1,
+      }}
     >
-      {mobile && (
-        <IconButton
-          label="Previous navigation tabs"
-          disabled={currentPage === 0}
-          onPress={() => setPage(currentPage - 1)}
-          icon={<ChevronLeft size={20} color={theme.textMain} />}
-        />
-      )}
-      <View accessibilityRole="tablist" accessibilityLabel={NAV_COPY.primary} style={styles.list}>
-        {visible.map((item) => {
-          const selected = item.name === selectedName;
-          const Icon = item.icon;
-          return (
-            <Pressable
-              key={item.name}
-              accessibilityRole="tab"
-              accessibilityLabel={item.label}
-              accessibilityState={{ selected, disabled: item.disabled ?? false }}
-              aria-selected={selected}
-              disabled={item.disabled}
-              onPress={() => onSelect(item)}
-              style={({ pressed }) => [
-                styles.item,
-                {
-                  backgroundColor: selected || pressed ? theme.subtle : theme.surface,
-                  borderBottomColor: selected ? theme.primary : 'transparent',
-                },
-              ]}
-            >
-              {!mobile && <Icon size={18} color={selected ? theme.primaryText : theme.textMuted} />}
-              <AppText
-                variant={mobile ? 'caption' : 'label'}
-                color={selected ? 'main' : 'muted'}
-                style={styles.label}
+      <View
+        style={[styles.shell, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}
+      >
+        {mobile && (
+          <IconButton
+            label="Previous navigation tabs"
+            disabled={currentPage === 0}
+            onPress={() => setPage(currentPage - 1)}
+            icon={<ChevronLeft size={20} color={theme.textMain} />}
+          />
+        )}
+        <View accessibilityRole="tablist" accessibilityLabel={NAV_COPY.primary} style={styles.list}>
+          {visible.map((item, index) => {
+            const selected = item.name === selectedName;
+            const Icon = item.icon;
+            return (
+              <Pressable
+                key={item.name}
+                accessibilityRole="tab"
+                accessibilityLabel={item.label}
+                accessibilityState={{ selected, disabled: item.disabled ?? false }}
+                aria-selected={selected}
+                disabled={item.disabled}
+                onPress={() => onSelect(item)}
+                style={({ pressed }) => [
+                  styles.item,
+                  Platform.OS === 'web' && !reduceMotion && webFeedback,
+                  {
+                    backgroundColor: selected || pressed ? theme.subtle : theme.surface,
+                    borderBottomColor: selected ? theme.primary : 'transparent',
+                    opacity: pressed ? 0.85 : 1,
+                  },
+                ]}
               >
-                {item.label}
-              </AppText>
-            </Pressable>
-          );
-        })}
+                {!mobile && (
+                  <Icon size={18} color={selected ? theme.primaryText : theme.textMuted} />
+                )}
+                <AppText
+                  variant={mobile ? 'caption' : 'label'}
+                  color={selected ? 'main' : 'muted'}
+                  style={styles.label}
+                >
+                  {mobile && pageCount > 1 && currentPage === pageCount - 1 && index === 0
+                    ? '…'
+                    : ''}
+                  {item.label}
+                  {mobile && currentPage < pageCount - 1 && index === visible.length - 1 ? '…' : ''}
+                </AppText>
+              </Pressable>
+            );
+          })}
+        </View>
+        {mobile && (
+          <IconButton
+            label="Next navigation tabs"
+            disabled={currentPage >= pageCount - 1}
+            onPress={() => setPage(currentPage + 1)}
+            icon={<ChevronRight size={20} color={theme.textMain} />}
+          />
+        )}
       </View>
-      {mobile && (
-        <IconButton
-          label="Next navigation tabs"
-          disabled={currentPage >= pageCount - 1}
-          onPress={() => setPage(currentPage + 1)}
-          icon={<ChevronRight size={20} color={theme.textMain} />}
-        />
+      {mobile && pageCount > 1 && (
+        <AppText
+          variant="caption"
+          color="muted"
+          align="center"
+          accessibilityLiveRegion="polite"
+          accessibilityLabel={`Navigation group ${currentPage + 1} of ${pageCount}: ${visible.map((item) => item.label).join(', ')}`}
+          style={styles.pageIndicator}
+        >
+          {currentPage + 1} of {pageCount}
+        </AppText>
       )}
     </View>
   );
@@ -157,7 +187,8 @@ export function MobileTabNavigation(props: TopTabNavigationProps) {
 }
 
 const styles = StyleSheet.create({
-  shell: { flexDirection: 'row', alignItems: 'center', flexShrink: 0, borderBottomWidth: 1 },
+  shell: { flexDirection: 'row', alignItems: 'center', flexShrink: 0 },
+  pageIndicator: { paddingBottom: SPACING.xs },
   list: { flex: 1, minWidth: 0, flexDirection: 'row' },
   label: { textAlign: 'center', flexShrink: 1 },
   item: {
@@ -173,3 +204,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
   },
 });
+
+const webFeedback = {
+  transitionProperty: 'opacity',
+  transitionDuration: '120ms',
+  transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)',
+} as ViewStyle;
