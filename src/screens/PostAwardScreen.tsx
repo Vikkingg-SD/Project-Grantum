@@ -9,6 +9,7 @@ import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { reportUrgency, formatCalendarDate } from '@/utils/presentation';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { AuditLogLine } from '@/components/molecules/AuditLogLine';
+import { InfoCard } from '@/components/molecules/InfoCard';
 import { useAward } from '@/api/hooks/useAward';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 import { ApiError } from '@/api/client';
@@ -65,23 +66,29 @@ export default function PostAwardScreen() {
         <AppText variant="h1" align="center">
           Reporting & activity
         </AppText>
-        <AppText color="muted" align="center">
-          {ENV.DATA_SOURCE === 'mock'
-            ? 'Sample award record. Confirm reporting dates and submission status with your funder.'
-            : 'Review your next reporting date and application history.'}
-        </AppText>
+        <InfoCard tone="surface">
+          <AppText color="muted" align="center">
+            {ENV.DATA_SOURCE === 'mock'
+              ? 'Sample award record. Confirm reporting dates and submission status with your funder.'
+              : 'Review your next reporting date and application history.'}
+          </AppText>
+        </InfoCard>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <AppText variant="h2" align="center">
             Next reporting date
           </AppText>
-          <AppText variant="h3" align="center">
-            {formatCalendarDate(award.nextReportAt, true)}
-          </AppText>
+          <InfoCard>
+            <AppText variant="h3" align="center">
+              {formatCalendarDate(award.nextReportAt, true)}
+            </AppText>
+          </InfoCard>
           <StatusBadge label={urgency.label} variant={urgency.variant} style={styles.centerBadge} />
-          <AppText variant="caption" color="muted" align="center">
-            Report submission status is not available. Check your funder's records before taking
-            action.
-          </AppText>
+          <InfoCard>
+            <AppText variant="caption" color="muted" align="center">
+              Report submission status is not available. Check your funder's records before taking
+              action.
+            </AppText>
+          </InfoCard>
         </View>
         <View style={styles.heading}>
           <AppText variant="h2" align="center" style={{ flexShrink: 1 }}>
@@ -102,17 +109,21 @@ export default function PostAwardScreen() {
           <AppText variant="h2" align="center">
             {detail.data.title}
           </AppText>
-          <AppText variant="caption" color="muted" align="center">
-            {detail.data.funder +
-              ' · Submitted ' +
-              new Date(award.submittedAt).toLocaleDateString()}
-          </AppText>
-          <AppText variant="caption" color="muted" align="center">
-            Opportunity funding range
-          </AppText>
-          <AppText variant="metric-lg" align="center">
-            {detail.data.amount}
-          </AppText>
+          <InfoCard>
+            <AppText variant="caption" color="muted" align="center">
+              {detail.data.funder +
+                ' · Submitted ' +
+                new Date(award.submittedAt).toLocaleDateString()}
+            </AppText>
+          </InfoCard>
+          <InfoCard>
+            <AppText variant="caption" color="muted" align="center">
+              Opportunity funding range
+            </AppText>
+            <AppText variant="metric-lg" align="center">
+              {detail.data.amount}
+            </AppText>
+          </InfoCard>
           <View style={[styles.metrics, mobile && styles.stacked]}>
             {metrics.map((metric) => (
               <View
@@ -147,12 +158,16 @@ export default function PostAwardScreen() {
             ))}
           </View>
           {tab === 'Notifications' ? (
-            <AppText align="center">
-              No live notifications connected. The reporting date above comes from this award
-              record.
-            </AppText>
+            <InfoCard>
+              <AppText align="center">
+                No live notifications connected. The reporting date above comes from this award
+                record.
+              </AppText>
+            </InfoCard>
           ) : tab === 'Recommendations' ? (
-            <AppText align="center">No recommendations available for this application.</AppText>
+            <InfoCard>
+              <AppText align="center">No recommendations available for this application.</AppText>
+            </InfoCard>
           ) : (
             <View style={styles.content}>
               <AppText variant="h3" align="center">
@@ -161,9 +176,11 @@ export default function PostAwardScreen() {
               {award.events.length ? (
                 award.events.map((event) => <AuditLogLine key={event.id} {...event} />)
               ) : (
-                <AppText color="muted" align="center">
-                  No activity recorded.
-                </AppText>
+                <InfoCard>
+                  <AppText color="muted" align="center">
+                    No activity recorded.
+                  </AppText>
+                </InfoCard>
               )}
             </View>
           )}

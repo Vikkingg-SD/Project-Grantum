@@ -136,9 +136,29 @@ try {
                   .map((el) => el.textContent)
               );
             assert.deepEqual(outside, []);
-            if (route === 'discovery-studio' && width <= 390) {
-              const lh = await target.evaluate((el) => parseFloat(getComputedStyle(el).lineHeight));
-              assert.ok(bounds.height <= lh + 1, `title wraps: ${bounds.height} > ${lh}`);
+            if (route === 'discovery-studio') {
+              await expect(
+                page.getByText('Project Profile 51% Done', { exact: true })
+              ).toBeVisible();
+              const applyButton = await page
+                .getByRole('button', { name: 'Help me apply', exact: true })
+                .first()
+                .boundingBox();
+              const detailsButton = await page
+                .getByRole('button', { name: 'View details', exact: true })
+                .first()
+                .boundingBox();
+              assert.ok(
+                applyButton.x > detailsButton.x + detailsButton.width,
+                `Help me apply must be to the right of View details: ${JSON.stringify({ detailsButton, applyButton })}`
+              );
+              if (width <= 390) {
+                const expectedRight = width - 16 - 1 - 16;
+                assert.ok(
+                  Math.abs(applyButton.x + applyButton.width - expectedRight) <= 4,
+                  `Help me apply right edge (${applyButton.x + applyButton.width}) must align with card inner right (${expectedRight})`
+                );
+              }
             }
             if (route === 'dashboard') {
               await expect(
@@ -259,6 +279,22 @@ try {
       ).toBeVisible();
       await page.getByRole('button', { name: 'File references', exact: true }).click();
       await expect(page.getByRole('dialog')).toBeVisible();
+      const docBtn = await page
+        .getByRole('button', { name: 'Choose document', exact: true })
+        .boundingBox();
+      const sheetBtn = await page
+        .getByRole('button', { name: 'Choose spreadsheet', exact: true })
+        .boundingBox();
+      const mediaBtn = await page
+        .getByRole('button', { name: 'Choose photos & videos', exact: true })
+        .boundingBox();
+      assert.ok(
+        Math.abs(docBtn.y - sheetBtn.y) <= 2 &&
+          Math.abs(docBtn.width - sheetBtn.width) <= 2 &&
+          Math.abs(docBtn.width - mediaBtn.width) <= 2 &&
+          Math.abs(docBtn.x - mediaBtn.x) <= 2,
+        `Attachment option grid must form a rigid 2-column grid: ${JSON.stringify({ docBtn, sheetBtn, mediaBtn })}`
+      );
       for (let index = 0; index < 5; index++) {
         await page.locator('input[type=file]').setInputFiles({
           name: `Reference-${index}-long-project-budget-and-delivery-evidence.pdf`,
@@ -293,6 +329,8 @@ try {
       await page.keyboard.press('Escape');
       await expect(page.getByRole('dialog')).toHaveCount(0);
       await page.getByRole('tab', { name: 'Audit', exact: true }).click();
+      await page.getByRole('button', { name: 'Audit prompts', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Budget', exact: true })).toBeVisible();
       await page.getByRole('button', { name: 'Run audit', exact: true }).click();
       await expect(page.getByText('Checklist check passed', { exact: true })).toBeVisible();
     }
@@ -324,6 +362,22 @@ try {
       await expect(trigger).toBeFocused();
     }
   );
+  await check(
+    'Given missing required section, when viewing Audit, then Action required badge uses failure color',
+    async () => {
+      await page.goto(`${origin}/grants/1/drafting`);
+      await page.getByRole('button', { name: 'Required sections (6/6)', exact: true }).click();
+      await page.getByRole('button', { name: 'Mark missing', exact: true }).first().click();
+      await expect(
+        page.getByRole('button', { name: 'Required sections (5/6)', exact: true })
+      ).toBeVisible();
+      await page.getByRole('tab', { name: 'Audit', exact: true }).click();
+      const actionBadge = page.getByText('Action required', { exact: true });
+      await expect(actionBadge).toBeVisible();
+      const badgeColor = await actionBadge.evaluate((el) => getComputedStyle(el).color);
+      assert.equal(badgeColor, 'rgb(255, 90, 95)');
+    }
+  );
   await context.close();
 } finally {
   await browser.close();
@@ -343,6 +397,10 @@ try {
             'src/screens/AuditScreen.tsx',
             'src/screens/ExportScreen.tsx',
             'src/screens/PostAwardScreen.tsx',
+            'src/components/molecules/GrantCard.tsx',
+            'src/components/molecules/InfoCard.tsx',
+            'src/components/molecules/AttachmentOptionGrid.tsx',
+            'src/components/molecules/FileReferencePanel.tsx',
             'src/components/organisms/TopTabNavigation.tsx',
             'src/hooks/useAppReady.ts',
             'src/hooks/useReduceMotion.ts',

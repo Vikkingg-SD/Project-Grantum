@@ -7,6 +7,7 @@ import { AppButton } from '@/components/atoms/AppButton';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { ConfidenceGaugeReadout } from '@/components/molecules/ConfidenceGaugeReadout';
 import { AuditLogLine } from '@/components/molecules/AuditLogLine';
+import { InfoCard } from '@/components/molecules/InfoCard';
 import { ChatMessageBubble } from '@/components/molecules/ChatMessageBubble';
 import { ChatInputRow } from '@/components/molecules/ChatInputRow';
 import { useProposalDraft } from '@/api/hooks/useProposalDraft';
@@ -16,6 +17,7 @@ import { useActiveGrantId } from '@/hooks/useActiveGrantId';
 import { useTheme } from '@/hooks/useTheme';
 import { RADIUS, SPACING } from '@/config/theme';
 import { AUDIT_COPY } from '@/config/copy';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { GrantContext } from '@/components/molecules/GrantContext';
 import { ENV } from '@/config/env';
 
@@ -26,6 +28,8 @@ export default function AuditScreen() {
 
 function AuditSession({ grantId }: { grantId: string }) {
   const theme = useTheme();
+  const { mobile } = useLayoutMetrics();
+  const [promptsOpen, setPromptsOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const scrollAfterNote = useRef(false);
   const draft = useProposalDraft(grantId);
@@ -55,6 +59,11 @@ function AuditSession({ grantId }: { grantId: string }) {
     );
   }
   const running = trigger.isPending || scan.data?.status === 'running';
+  const missingRequirement = draft.data.requiredSections.some(
+    (section) => !draft.data.completedSections.includes(section)
+  );
+  const failed = scan.data?.status === 'failed' || missingRequirement;
+  const passed = !failed && scan.data?.status === 'passed';
   const error = trigger.error ?? scan.error;
   return (
     <ScreenContainer scrollable={false}>
@@ -77,22 +86,24 @@ function AuditSession({ grantId }: { grantId: string }) {
             label={
               running
                 ? 'Scanning…'
-                : scan.data?.status === 'passed'
+                : passed
                   ? 'Checklist check passed'
-                  : scan.data?.status === 'failed'
+                  : failed
                     ? 'Action required'
                     : 'Not scanned'
             }
-            variant={running ? 'pending' : scan.data?.status === 'passed' ? 'verified' : 'neutral'}
+            variant={running ? 'pending' : passed ? 'verified' : failed ? 'failure' : 'neutral'}
             style={styles.centerBadge}
           />
         </View>
         <GrantContext grantId={grantId} />
-        <AppText color="muted" align="center">
-          {ENV.DATA_SOURCE === 'mock'
-            ? 'Preview - section presence only.'
-            : 'Run an audit to request a review from your connected service.'}
-        </AppText>
+        <InfoCard tone="surface">
+          <AppText color="muted" align="center">
+            {ENV.DATA_SOURCE === 'mock'
+              ? 'Preview - section presence only.'
+              : 'Run an audit to request a review from your connected service.'}
+          </AppText>
+        </InfoCard>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <AppText variant="h3" align="center">
             Section completeness
@@ -161,27 +172,40 @@ function AuditSession({ grantId }: { grantId: string }) {
             <AuditLogLine key={event.id} {...event} />
           ))}
         </View>
-        <AppText variant="caption" color="muted" align="center">
-          Agent offline - messages stay in this session.
-        </AppText>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipsRow}
-        >
-          {AUDIT_COPY.chips.map((chip) => (
+        <View style={styles.chat}>
+          <AppText variant="h3" align="center">
+            Agent chat
+          </AppText>
+          {local.auditMessages.length === 0 && (
+            <AppText color="muted" align="center">
+              Agent offline - messages stay in this session.
+            </AppText>
+          )}
+          {mobile && (
             <AppButton
-              key={chip}
-              label={chip}
+              label="Audit prompts"
               size="sm"
-              variant="outline"
-              onPress={() => setMessage(chip)}
+              expanded={promptsOpen}
+              onPress={() => setPromptsOpen(!promptsOpen)}
             />
+          )}
+          {(!mobile || promptsOpen) && (
+            <View style={styles.chipsRow}>
+              {AUDIT_COPY.chips.map((chip) => (
+                <AppButton
+                  key={chip}
+                  label={chip}
+                  size="sm"
+                  style={styles.flexible}
+                  onPress={() => setMessage(chip)}
+                />
+              ))}
+            </View>
+          )}
+          {local.auditMessages.map((item) => (
+            <ChatMessageBubble key={item.id} {...item} />
           ))}
-        </ScrollView>
-        {local.auditMessages.map((item) => (
-          <ChatMessageBubble key={item.id} {...item} />
-        ))}
+        </View>
       </ScrollView>
       <ChatInputRow
         value={message}
@@ -202,5 +226,13 @@ const styles = StyleSheet.create({
   heading: { alignItems: 'center', gap: SPACING.sm },
   centerBadge: { alignSelf: 'center' },
   card: { padding: SPACING.md, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACING.md },
-  chipsRow: { gap: SPACING.sm, flexGrow: 1, justifyContent: 'center' },
+  chat: { gap: SPACING.lg, minHeight: 320 },
+  flexible: { flexShrink: 1, minWidth: 0 },
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+  },
 });

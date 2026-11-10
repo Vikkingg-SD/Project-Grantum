@@ -73,7 +73,7 @@ export default function DashboardScreen() {
       <View style={styles.content}>
         <CenteredHeading
           title={mobile ? 'Your workspace' : 'Welcome back, ' + summary.data.greetingName + '.'}
-          variant={mobile ? 'h2' : 'display'}
+          variant={mobile ? 'h1' : 'display'}
           leading={
             <IconButton
               label={DASHBOARD_COPY.notifications}
