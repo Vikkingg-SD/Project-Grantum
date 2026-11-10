@@ -1,12 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import {
-  useFonts,
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-} from '@expo-google-fonts/inter';
-import { JetBrainsMono_500Medium, JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono';
+import { useFonts } from 'expo-font';
 import { useThemeStore } from '@/store/useThemeStore';
 
 function subscribeToHydration(notify: () => void) {
@@ -22,12 +15,12 @@ const serverHydrationSnapshot = () => false;
 
 export function useAppReady(): boolean {
   const [fontsLoaded] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-    JetBrainsMono_500Medium,
-    JetBrainsMono_700Bold,
+    Inter_400Regular: require('@expo-google-fonts/inter/Inter_400Regular.ttf'),
+    Inter_500Medium: require('@expo-google-fonts/inter/Inter_500Medium.ttf'),
+    Inter_600SemiBold: require('@expo-google-fonts/inter/Inter_600SemiBold.ttf'),
+    Inter_700Bold: require('@expo-google-fonts/inter/Inter_700Bold.ttf'),
+    JetBrainsMono_500Medium: require('@expo-google-fonts/jetbrains-mono/JetBrainsMono_500Medium.ttf'),
+    JetBrainsMono_700Bold: require('@expo-google-fonts/jetbrains-mono/JetBrainsMono_700Bold.ttf'),
   });
 
   // React rechecks the snapshot when subscribing, including hydration that

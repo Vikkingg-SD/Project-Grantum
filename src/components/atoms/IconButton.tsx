@@ -9,6 +9,7 @@ export interface IconButtonProps {
   onPress: () => void;
   label: string;
   active?: boolean;
+  expanded?: boolean;
   disabled?: boolean;
 }
 
@@ -17,6 +18,7 @@ export function IconButton({
   onPress,
   label,
   active = false,
+  expanded,
   disabled = false,
 }: IconButtonProps) {
   const mode = useThemeStore((state) => state.mode);
@@ -24,8 +26,9 @@ export function IconButton({
   return (
     <Pressable
       accessibilityRole="button"
+      aria-expanded={expanded}
       accessibilityLabel={label}
-      accessibilityState={{ disabled }}
+      accessibilityState={{ disabled, expanded }}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [

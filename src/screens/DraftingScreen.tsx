@@ -87,16 +87,17 @@ function DraftingSession({ grantId }: { grantId: string }) {
         }}
       >
         <View style={styles.heading}>
-          <AppText variant="h1" style={styles.flexible}>
+          <AppText variant="h1" align="center" style={styles.fullWidth}>
             {DRAFTING_COPY.title}
           </AppText>
           <StatusBadge
             label={completedSections.length + '/' + requiredSections.length + ' sections present'}
             variant={verified ? 'verified' : 'pending'}
+            style={styles.fullWidth}
           />
         </View>
         <GrantContext grantId={grantId} />
-        <View style={styles.actions}>
+        <View>
           <AppButton
             label={`Required sections (${completedSections.length}/${requiredSections.length})`}
             variant="outline"
@@ -116,7 +117,7 @@ function DraftingSession({ grantId }: { grantId: string }) {
               <AppText>No sections yet. Add a requirement below.</AppText>
             )}
             {requiredSections.slice(currentPage * 3, currentPage * 3 + 3).map((section) => (
-              <View key={section} style={styles.section}>
+              <View key={section} style={[styles.section, { borderColor: theme.border }]}>
                 <AppText variant="body" style={styles.flexible}>
                   {section}
                 </AppText>
@@ -196,9 +197,13 @@ function DraftingSession({ grantId }: { grantId: string }) {
             )}
           </View>
         )}
-        <AppText variant="h3">Agent chat</AppText>
+        <AppText variant="h3" align="center">
+          Agent chat
+        </AppText>
         {local.draftingMessages.length === 0 && detail.data && (
-          <AppText color="muted">Agent offline - messages stay in this session.</AppText>
+          <AppText color="muted" align="center">
+            Agent offline - messages stay in this session.
+          </AppText>
         )}
         {mobile && (
           <AppButton
@@ -272,14 +277,14 @@ function DraftingSession({ grantId }: { grantId: string }) {
 }
 const styles = StyleSheet.create({
   content: { padding: SPACING.lg, gap: SPACING.lg },
-  heading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.sm },
+  heading: { alignItems: 'center', gap: SPACING.sm },
+  fullWidth: { width: '100%' },
   flexible: { flexShrink: 1, minWidth: 0 },
   card: { padding: SPACING.md, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACING.md },
   section: {
     gap: SPACING.sm,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: '#737D88',
     borderRadius: RADIUS.sm,
   },
   actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.sm },

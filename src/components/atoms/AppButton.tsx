@@ -7,6 +7,7 @@ import {
   ViewStyle,
   StyleProp,
 } from 'react-native';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
@@ -40,6 +41,7 @@ export function AppButton({
 }: AppButtonProps) {
   const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
+  const reduceMotion = useReduceMotion();
 
   const getVariantStyle = (pressed: boolean): ViewStyle => {
     switch (variant) {
@@ -86,6 +88,7 @@ export function AppButton({
   return (
     <Pressable
       accessibilityRole="button"
+      aria-expanded={expanded}
       accessibilityLabel={label}
       accessibilityState={{ disabled: disabled || isLoading, busy: isLoading, expanded, selected }}
       aria-busy={isLoading}
@@ -94,6 +97,7 @@ export function AppButton({
       disabled={disabled || isLoading}
       style={({ pressed }) => [
         styles.base,
+        Platform.OS === 'web' && !reduceMotion && webFeedback,
         styles[size],
         getVariantStyle(pressed),
         (disabled || isLoading) && styles.disabled,
@@ -165,3 +169,10 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
 });
+
+// Web compositing feedback; native press feedback remains immediate.
+const webFeedback = {
+  transitionProperty: 'opacity',
+  transitionDuration: '120ms',
+  transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)',
+} as ViewStyle;

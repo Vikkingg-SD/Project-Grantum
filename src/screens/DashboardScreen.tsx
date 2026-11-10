@@ -11,6 +11,7 @@ import { AppButton } from '@/components/atoms/AppButton';
 import { AppInput } from '@/components/atoms/AppInput';
 import { IconButton } from '@/components/atoms/IconButton';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
+import { CenteredHeading } from '@/components/molecules/CenteredHeading';
 import { HeroContinueCard } from '@/components/molecules/HeroContinueCard';
 import { PipelineFunnelBar } from '@/components/organisms/PipelineFunnelBar';
 import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
@@ -63,23 +64,17 @@ export default function DashboardScreen() {
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <View style={styles.row}>
-          <View style={[styles.greeting, mobile ? styles.fullWidth : styles.grow]}>
+        <CenteredHeading
+          title={mobile ? 'Your workspace' : 'Welcome back, ' + summary.data.greetingName + '.'}
+          variant={mobile ? 'h2' : 'display'}
+          leading={
             <IconButton
               label={DASHBOARD_COPY.notifications}
               onPress={() => setActivityOpen(true)}
               icon={<Bell size={SPACING.lg} color={theme.textMuted} />}
             />
-            <AppText variant={mobile ? 'h2' : 'display'} style={styles.flexible}>
-              {mobile ? 'Your workspace' : 'Welcome back, ' + summary.data.greetingName + '.'}
-            </AppText>
-          </View>
-          <AppButton
-            label={DASHBOARD_COPY.newApplication}
-            variant="primary"
-            onPress={() => navigation.navigateTo('discovery')}
-          />
-        </View>
+          }
+        />
         {active ? (
           <HeroContinueCard
             projectTitle={active.title}
@@ -92,22 +87,23 @@ export default function DashboardScreen() {
             onStartNew={() => navigation.navigateTo('discovery')}
           />
         )}
-        <AppText variant="caption" color="muted">
+        <AppText variant="caption" color="muted" align="center">
           {ENV.DATA_SOURCE === 'mock'
             ? 'Sample portfolio · Pipeline overview'
             : 'Portfolio overview'}
         </AppText>
         <PipelineFunnelBar stages={summary.data.pipeline} />
-        <View style={styles.row}>
-          <IconButton
-            label={DASHBOARD_COPY.filter}
-            onPress={() => navigation.navigateTo('discovery')}
-            icon={<Filter size={SPACING.lg} color={theme.textMuted} />}
-          />
-          <AppText variant="h2" style={styles.flexible}>
-            {DASHBOARD_COPY.recommended}
-          </AppText>
-        </View>
+        <CenteredHeading
+          title={DASHBOARD_COPY.recommended}
+          variant="h2"
+          leading={
+            <IconButton
+              label={DASHBOARD_COPY.filter}
+              onPress={() => navigation.navigateTo('discovery')}
+              icon={<Filter size={SPACING.lg} color={theme.textMuted} />}
+            />
+          }
+        />
         <AppInput
           accessibilityLabel={DASHBOARD_COPY.search}
           placeholder={DASHBOARD_COPY.search}
@@ -115,9 +111,10 @@ export default function DashboardScreen() {
           onChangeText={setQuery}
           returnKeyType="search"
         />
-        <View style={styles.row}>
+        <View style={styles.summaryRow}>
           <StatusBadge
-            label={'Project profile ' + summary.data.profileCompletionPct + '% done'}
+            label={'Profile ' + summary.data.profileCompletionPct + '% done'}
+            style={styles.profile}
             variant="pending"
           />
           <AppButton
@@ -162,9 +159,11 @@ export default function DashboardScreen() {
 }
 const styles = StyleSheet.create({
   content: { gap: SPACING.lg },
-  greeting: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, minWidth: 0 },
-  fullWidth: { width: '100%' },
-  grow: { flex: 1 },
-  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.sm },
-  flexible: { flexGrow: 1, flexShrink: 1, minWidth: 0 },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.sm,
+  },
+  profile: { alignSelf: 'center', flexShrink: 1 },
 });

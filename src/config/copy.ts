@@ -65,10 +65,8 @@ export const MODAL_COPY = {
 export const DASHBOARD_COPY = {
   notifications: 'Notifications',
   filter: 'Filter grants',
-  newApplication: 'New application',
   recommended: 'Recommended opportunities',
   search: 'Search grants',
-  liveMatching: 'Sample opportunities',
   showAll: 'Show all',
 } as const;
 

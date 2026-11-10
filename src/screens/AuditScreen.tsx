@@ -70,7 +70,7 @@ function AuditSession({ grantId }: { grantId: string }) {
         }}
       >
         <View style={styles.heading}>
-          <AppText variant="h1" style={{ flexShrink: 1 }}>
+          <AppText variant="h1" align="center">
             {AUDIT_COPY.title}
           </AppText>
           <StatusBadge
@@ -84,16 +84,19 @@ function AuditSession({ grantId }: { grantId: string }) {
                     : 'Not scanned'
             }
             variant={running ? 'pending' : scan.data?.status === 'passed' ? 'verified' : 'neutral'}
+            style={styles.centerBadge}
           />
         </View>
         <GrantContext grantId={grantId} />
-        <AppText color="muted">
+        <AppText color="muted" align="center">
           {ENV.DATA_SOURCE === 'mock'
             ? 'Preview - section presence only.'
             : 'Run an audit to request a review from your connected service.'}
         </AppText>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <AppText variant="h3">Section completeness</AppText>
+          <AppText variant="h3" align="center">
+            Section completeness
+          </AppText>
           <View style={{ flexDirection: 'row', gap: SPACING.sm }}>
             {[true, false].map((complete) => (
               <View
@@ -196,6 +199,7 @@ function AuditSession({ grantId }: { grantId: string }) {
 }
 const styles = StyleSheet.create({
   content: { padding: SPACING.lg, gap: SPACING.lg },
-  heading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.sm },
+  heading: { alignItems: 'center', gap: SPACING.sm },
+  centerBadge: { alignSelf: 'center' },
   card: { padding: SPACING.md, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACING.md },
 });

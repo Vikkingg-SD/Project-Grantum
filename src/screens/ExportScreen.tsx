@@ -70,15 +70,23 @@ function ExportSession({ grantId }: { grantId: string }) {
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <AppText variant="h1">Review & export</AppText>
+        <AppText variant="h1" align="center">
+          Review & export
+        </AppText>
         <GrantContext grantId={grantId} />
         {!serviceAvailable && (
           <View style={[styles.notice, { backgroundColor: theme.subtle }]}>
-            <AppText variant="label">Downloads unavailable</AppText>
-            <AppText color="muted">Preview - edits stay in this session.</AppText>
+            <AppText variant="label" align="center">
+              Downloads unavailable
+            </AppText>
+            <AppText color="muted" align="center">
+              Preview - edits stay in this session.
+            </AppText>
           </View>
         )}
-        <AppText variant="h3">Document format</AppText>
+        <AppText variant="h3" align="center">
+          Document format
+        </AppText>
         <View
           style={styles.formats}
           accessibilityRole="radiogroup"
@@ -127,7 +135,7 @@ function ExportSession({ grantId }: { grantId: string }) {
                 label={
                   unlocked
                     ? `Checklist ready - ${draft.data.confidenceScore}% complete`
-                    : `Needs ${TIERS.confidence.pass}% completeness ? currently ${draft.data.confidenceScore}%`
+                    : `Needs ${TIERS.confidence.pass}% completeness · currently ${draft.data.confidenceScore}%`
                 }
                 variant={unlocked ? 'verified' : 'pending'}
               />
@@ -192,6 +200,8 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     minWidth: 0,
     minHeight: 64,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
     borderRadius: RADIUS.md,
     padding: SPACING.md,

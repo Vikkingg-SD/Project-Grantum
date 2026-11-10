@@ -1,7 +1,7 @@
 import { ModalSheetLayout } from '../templates/ModalSheetLayout';
 import { IconButton } from '../atoms/IconButton';
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import Paperclip from 'lucide-react-native/icons/paperclip';
 import { AppButton } from '../atoms/AppButton';
 import { AppText } from '../atoms/AppText';
@@ -37,7 +37,7 @@ export function FileReferencePanel({
         onClose={() => setOpen(false)}
         accessibilityLabel="File references"
       >
-        <View style={styles.group}>
+        <ScrollView contentContainerStyle={styles.sheetContent}>
           <AppText variant="caption" color="muted">
             Keep up to 5 file references for this session. Only names, types, and sizes are kept;
             files are not uploaded, read, or included in exports.
@@ -84,13 +84,14 @@ export function FileReferencePanel({
               {error}
             </AppText>
           )}
-        </View>
+        </ScrollView>
       </ModalSheetLayout>
     </View>
   );
 }
 const styles = StyleSheet.create({
   group: { gap: SPACING.sm },
+  sheetContent: { padding: SPACING.lg, gap: SPACING.md },
   row: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: SPACING.sm },
   name: { flex: 1, minWidth: 0 },
 });
