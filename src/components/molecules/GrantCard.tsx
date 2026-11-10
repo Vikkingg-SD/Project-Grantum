@@ -70,7 +70,7 @@ export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: G
         <AppText variant="caption" color="muted" style={styles.region}>
           {grant.region}
         </AppText>
-        <View style={styles.actions}>
+        <View style={[styles.actions, width < BREAKPOINTS.sm && styles.actionsStacked]}>
           <AppButton
             label={GRANT_CARD_COPY.details}
             variant="ghost"
@@ -128,5 +128,14 @@ const styles = StyleSheet.create({
   },
   footerStacked: { flexDirection: 'column', alignItems: 'stretch' },
   region: { flexGrow: 1, flexShrink: 1, minWidth: 0 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+  // Actions own the right edge in both layouts: auto margin on a wrapped row, an explicit full
+  // width with flex-end when stacked. No flexWrap, so the two buttons always stay one aligned row.
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginLeft: 'auto',
+    gap: SPACING.sm,
+  },
+  actionsStacked: { alignSelf: 'stretch', width: '100%', marginLeft: 0 },
 });

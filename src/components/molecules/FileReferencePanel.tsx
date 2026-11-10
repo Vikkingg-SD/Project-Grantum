@@ -5,6 +5,7 @@ import { View, ScrollView, StyleSheet } from 'react-native';
 import Paperclip from 'lucide-react-native/icons/paperclip';
 import { AppButton } from '../atoms/AppButton';
 import { AppText } from '../atoms/AppText';
+import { AttachmentOptionGrid } from './AttachmentOptionGrid';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { ATTACHMENT_ACCEPT } from '@/utils/attachments';
 import { useTheme } from '@/hooks/useTheme';
@@ -49,19 +50,7 @@ export function FileReferencePanel({
             Keep up to 5 file references for this session. Only names, types, and sizes are kept;
             files are not uploaded, read, or included in exports.
           </AppText>
-          <View style={styles.centeredRow}>
-            {(Object.keys(ATTACHMENT_ACCEPT) as (keyof typeof ATTACHMENT_ACCEPT)[]).map(
-              (category) => (
-                <AppButton
-                  key={category}
-                  label={`Choose ${category.toLowerCase()}`}
-                  size="sm"
-                  disabled={busy || files.length >= 5}
-                  onPress={() => onChoose(category)}
-                />
-              )
-            )}
-          </View>
+          <AttachmentOptionGrid onChoose={onChoose} disabled={busy || files.length >= 5} />
           {busy && (
             <AppText align="center" accessibilityLiveRegion="polite">
               Waiting for file selection…
@@ -104,13 +93,6 @@ export function FileReferencePanel({
 const styles = StyleSheet.create({
   group: { gap: SPACING.sm },
   sheetContent: { width: '100%', padding: SPACING.lg, gap: SPACING.md },
-  centeredRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    gap: SPACING.sm,
-  },
   fileItem: {
     width: '100%',
     gap: SPACING.xs,

@@ -34,7 +34,7 @@ const toggle = (items: string[], value: string) =>
 
 export default function DiscoveryScreen() {
   const navigation = useAppNavigation();
-  const { mobile, effectiveWidth } = useLayoutMetrics();
+  const { mobile } = useLayoutMetrics();
   const wide = !mobile;
   const theme = useTheme();
   const [query, setQuery] = useState('');
@@ -72,18 +72,14 @@ export default function DiscoveryScreen() {
     <ScreenContainer>
       <View style={styles.content}>
         <View style={styles.pageHeading}>
-          <AppText
-            variant={mobile ? 'h3' : 'h1'}
-            align="center"
-            style={[styles.title, effectiveWidth < 360 && styles.compactTitle]}
-          >
+          <AppText variant="h1" align="center" style={styles.title}>
             Find your next opportunity
           </AppText>
           {summary.data && (
             <StatusBadge
-              label={`Profile ${summary.data.profileCompletionPct}% done`}
+              label={`Project Profile ${summary.data.profileCompletionPct}% Done`}
               style={styles.centerBadge}
-              variant="neutral"
+              variant="pending"
             />
           )}
         </View>
@@ -214,7 +210,6 @@ export default function DiscoveryScreen() {
 const styles = StyleSheet.create({
   content: { gap: SPACING.lg },
   title: { width: '100%' },
-  compactTitle: { fontSize: 17, lineHeight: 24 },
   pageHeading: { alignItems: 'center', gap: SPACING.sm },
   centerBadge: { alignSelf: 'center' },
   columns: { flexDirection: 'row', alignItems: 'flex-start' },
