@@ -6,10 +6,14 @@ import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppTextArea } from '@/components/atoms/AppTextArea';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioModals';
 import { useProposalDraft } from '@/api/hooks/useProposalDraft';
 import { useExportBundle } from '@/api/hooks/useExportBundle';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
+import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
+import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { MAX_INPUT_CHARS, TIERS } from '@/config/constants';
 import { EXPORT_FORMATS } from '@/config/exportFormats';
 import { GrantContext } from '@/components/molecules/GrantContext';
@@ -18,6 +22,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { RADIUS, SPACING } from '@/config/theme';
 import { isExportUnlocked } from '@/utils/scoring';
+import { fullArtifactBundleText } from '@/utils/drafting';
+import { canRolePerform, workSlotKey } from '@/utils/workspace';
 import type { ExportFormat } from '@/types/api';
 
 export default function ExportScreen() {
@@ -26,16 +32,31 @@ export default function ExportScreen() {
 }
 
 function ExportSession({ grantId }: { grantId: string }) {
+  const navigation = useAppNavigation();
   const theme = useTheme();
   const { effectiveWidth } = useLayoutMetrics();
   const serviceAvailable = ENV.DATA_SOURCE !== 'mock';
   const local = useDraftStore((state) => state.drafts[grantId] ?? EMPTY_DRAFT);
   const setDocument = useDraftStore((state) => state.setExportDocument);
+  const workspace = useWorkspaceStore((state) => state.workspace);
+  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const activeRole = useWorkspaceStore((state) => state.activeRole);
+  const slotKey = workSlotKey(activeProjectId, grantId);
+  const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
   const draft = useProposalDraft(grantId);
   const mutation = useExportBundle(grantId);
   const [format, setFormat] = useState<ExportFormat | null>(null);
   const [downloadError, setDownloadError] = useState('');
+  const [bundleNotice, setBundleNotice] = useState('');
   const [requestedGrantId, setRequestedGrantId] = useState<string | null>(null);
+
+  const activeProject =
+    workspace.projects.find((p) => p.id === activeProjectId) ?? workspace.projects[0];
+  const activeApp = workspace.applications.find(
+    (app) => app.projectId === activeProjectId && app.grantId === grantId
+  );
+  const canEdit = canRolePerform(activeRole, 'edit');
+
   if (!grantId || draft.isPending || draft.isError || !draft.data) {
     return (
       <ScreenContainer>
@@ -74,6 +95,9 @@ function ExportSession({ grantId }: { grantId: string }) {
           Review & export
         </AppText>
         <GrantContext grantId={grantId} />
+        <WorkspaceStudioBar
+          onOpenGrantDraft={(targetGrantId) => navigation.navigateTo('drafting', targetGrantId)}
+        />
         {!serviceAvailable && (
           <View style={[styles.notice, { backgroundColor: theme.subtle }]}>
             <AppText variant="label" align="center">
@@ -84,6 +108,35 @@ function ExportSession({ grantId }: { grantId: string }) {
             </AppText>
           </View>
         )}
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={styles.rowBetween}>
+            <AppText variant="h3">Work Slot Multi-Artifact Bundle Composer</AppText>
+            <StatusBadge label={`Outputs: ${work.outputs.join(', ')}`} variant="neutral" />
+          </View>
+          <AppText variant="caption" color="muted">
+            Active Project: {activeProject?.name ?? activeProjectId} · Pinned Profile:{' '}
+            {activeApp?.profileRevisionId ?? activeProject?.currentRevisionId} · Studio Sections:{' '}
+            {work.sections.length}
+          </AppText>
+          {bundleNotice ? <AppText color="verified">{bundleNotice}</AppText> : null}
+          <AppButton
+            size="sm"
+            variant="outline"
+            label="Load Active Work Slot Bundle into Export"
+            disabled={!canEdit}
+            onPress={() => {
+              const serialized = fullArtifactBundleText(
+                work,
+                activeProject?.name ?? activeProjectId,
+                activeApp?.profileRevisionId ?? activeProject?.currentRevisionId ?? 'latest'
+              );
+              setDocument(grantId, serialized);
+              setBundleNotice(
+                'Loaded Narrative, Pitch Deck Slide Outline, and Requirement Compliance Annex into Export.'
+              );
+            }}
+          />
+        </View>
         <AppText variant="h3" align="center">
           Document format
         </AppText>
@@ -125,7 +178,10 @@ function ExportSession({ grantId }: { grantId: string }) {
         <AppTextArea
           label="Application narrative"
           value={documentBody}
-          onChangeText={(text) => setDocument(grantId, text)}
+          onChangeText={(text) => {
+            if (!canEdit) return;
+            setDocument(grantId, text);
+          }}
           charLimit={MAX_INPUT_CHARS}
         />
         {selectedFormat ? (
@@ -198,6 +254,14 @@ function ExportSession({ grantId }: { grantId: string }) {
 }
 const styles = StyleSheet.create({
   content: { gap: SPACING.md },
+  card: { padding: SPACING.md, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACING.sm },
+  rowBetween: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.sm,
+  },
   formats: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: SPACING.sm },
   format: {
     flexGrow: 1,
