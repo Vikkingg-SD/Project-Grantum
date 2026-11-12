@@ -226,17 +226,11 @@ export function ProjectProfileModal({
     canRolePerform(activeRole, 'manage-project') || canRolePerform(activeRole, 'edit');
 
   return (
-    <ModalSheetLayout
-      visible={visible}
-      onClose={onClose}
-      accessibilityLabel="Project Profile Dossier and LLM Readiness"
-    >
+    <ModalSheetLayout visible={visible} onClose={onClose} accessibilityLabel="Project Profile">
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.modalContent}>
-        <AppText variant="h2">Project Profile Dossier & LLM Readiness</AppText>
+        <AppText variant="h2">Project Profile</AppText>
         <AppText color="muted">
-          Reusable Project Profile Slots power grant matching and multi-application drafting. Every
-          save creates a versioned Git-style revision so linked applications can review and pull
-          updates safely.
+          Keep project details together and choose when to share updates with linked applications.
         </AppText>
 
         {!canEdit && (
@@ -253,7 +247,7 @@ export function ProjectProfileModal({
         {notice ? <AppText color="verified">{notice}</AppText> : null}
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <AppText variant="h3">1. Select or Create Project Profile Slot</AppText>
+          <AppText variant="h3">Your projects</AppText>
           <View style={styles.rowWrap}>
             {workspace.projects.map((proj) => (
               <AppButton
@@ -267,7 +261,7 @@ export function ProjectProfileModal({
             <AppButton
               size="sm"
               variant="outline"
-              label="+ New Project Slot"
+              label="New project"
               disabled={!canEdit}
               onPress={startNewSlot}
             />
@@ -276,15 +270,15 @@ export function ProjectProfileModal({
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.rowBetween}>
-            <AppText variant="h3">2. LLM Readiness Breakdown</AppText>
+            <AppText variant="h3">Profile checklist</AppText>
             <StatusBadge
               label={`${previewReadiness.score}% done`}
               variant={previewReadiness.score >= 75 ? 'verified' : 'pending'}
             />
           </View>
           <AppText variant="caption" color="muted">
-            {previewReadiness.summaryText} (Deterministic dossier readiness preview; live LLM
-            semantic scoring connects via backend API.)
+            {previewReadiness.checklist.filter((item) => item.filled).length} of{' '}
+            {previewReadiness.checklist.length} profile fields complete.
           </AppText>
           <View style={styles.checklistGrid}>
             {previewReadiness.checklist.map((item) => (
@@ -292,7 +286,7 @@ export function ProjectProfileModal({
                 <View style={styles.rowBetween}>
                   <AppText variant="body">{item.label}</AppText>
                   <StatusBadge
-                    label={item.filled ? 'Grounded' : `${item.impact.toUpperCase()} impact gap`}
+                    label={item.filled ? 'Complete' : `${item.impact.toUpperCase()} impact gap`}
                     variant={item.filled ? 'verified' : 'pending'}
                   />
                 </View>
@@ -307,7 +301,7 @@ export function ProjectProfileModal({
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <AppText variant="h3">3. Dossier Fields & Template Category</AppText>
+          <AppText variant="h3">Project details</AppText>
           <AppInput
             label="Project / Venture Name"
             value={name}
@@ -349,20 +343,17 @@ export function ProjectProfileModal({
           )}
 
           <AppInput
-            label="Revision commit summary (Git-style changelog message)"
+            label="Change summary"
             placeholder="e.g., Added utility co-funding letter and updated problem metrics"
             value={summary}
             editable={canEdit}
             onChangeText={setSummary}
           />
           <View style={[styles.checkItem, { borderColor: theme.border }]}>
-            <AppText variant="label">
-              Reusable Reference Document Vault (NotebookLM Context Sources)
-            </AppText>
+            <AppText variant="label">Reference documents</AppText>
             <AppText variant="caption" color="muted">
-              Attach reusable dossier files (budgets, audited financials, letters of support, patent
-              specs) to this Project Profile Slot so every linked application in My Works inherits
-              them:
+              Choose sample references for linked applications. This preview saves document names;
+              it does not upload files.
             </AppText>
             <View style={styles.rowWrap}>
               {[
@@ -394,7 +385,7 @@ export function ProjectProfileModal({
           </View>
           <View style={styles.rowWrap}>
             <AppButton
-              label="Commit Profile Revision"
+              label="Save profile"
               variant="primary"
               disabled={!canEdit}
               onPress={() => {
@@ -408,9 +399,7 @@ export function ProjectProfileModal({
                   });
                   setSummary('');
                   setError('');
-                  setNotice(
-                    'Saved new ProfileRevision. Linked applications in My Works can now pull this commit.'
-                  );
+                  setNotice('Profile saved. Linked applications can now review these updates.');
                 } catch (e) {
                   setError(e instanceof Error ? e.message : 'Unable to save project profile');
                 }
@@ -433,7 +422,7 @@ export function ProjectProfileModal({
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <AppText variant="h3">4. Git-Style Profile Revision History</AppText>
+          <AppText variant="h3">Version history</AppText>
           {projectRevisions.length === 0 ? (
             <AppText color="muted">No saved revisions for this slot yet.</AppText>
           ) : (
@@ -507,17 +496,11 @@ export function MyWorksModal({
   }, [filter, grants, query, workspace]);
 
   return (
-    <ModalSheetLayout
-      visible={visible}
-      onClose={onClose}
-      accessibilityLabel="My Works Library Studio"
-    >
+    <ModalSheetLayout visible={visible} onClose={onClose} accessibilityLabel="My Works">
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.modalContent}>
-        <AppText variant="h2">My Works — Multi-Slot Studio Library</AppText>
+        <AppText variant="h2">My Works</AppText>
         <AppText color="muted">
-          Inspired by HackMD + NotebookLM: manage reusable Project Profile Slots alongside
-          independent Application Work Slots (Narrative, Pitch Deck, and Grounded Documents). Two
-          projects can apply to the same grant simultaneously without overwriting each other.
+          Find your projects, resume applications and review profile updates.
         </AppText>
 
         {error ? (
@@ -528,7 +511,7 @@ export function MyWorksModal({
         {notice ? <AppText color="verified">{notice}</AppText> : null}
 
         <AppInput
-          label="Search projects, grants, or work slots"
+          label="Search your work"
           placeholder="Filter by project name, grant title, or status..."
           value={query}
           onChangeText={setQuery}
@@ -555,12 +538,12 @@ export function MyWorksModal({
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.rowBetween}>
-            <AppText variant="h3">Project Profile Slots ({visibleProjects.length})</AppText>
+            <AppText variant="h3">Projects ({visibleProjects.length})</AppText>
             {onOpenProfile && (
               <AppButton
                 size="sm"
                 variant="outline"
-                label="Edit Dossier / New Slot"
+                label="Manage projects"
                 onPress={onOpenProfile}
               />
             )}
@@ -727,14 +710,13 @@ export function AccountAdminModal({ visible, onClose }: { visible: boolean; onCl
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.modalContent}>
         <AppText variant="h2">Co-Work Roles, Account & Staff Admin Console</AppText>
         <AppText color="muted">
-          GitHub + Grants.gov 4-role collaboration matrix alongside personal account settings and
-          the exception-driven Staff Admin Needs-Attention queue.
+          Review access, update your preferences and manage pending requests.
         </AppText>
 
         {notice ? <AppText color="verified">{notice}</AppText> : null}
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <AppText variant="h3">1. Active Co-Work Role Switcher</AppText>
+          <AppText variant="h3">Access preview</AppText>
           <AppText variant="caption" color="muted">
             Switch your active session role to test role-gated permissions across the Project
             Profile Dossier and Drafting Studio.
@@ -753,24 +735,19 @@ export function AccountAdminModal({ visible, onClose }: { visible: boolean; onCl
               />
             ))}
           </View>
-          <View style={[styles.checkItem, { borderColor: theme.border }]}>
-            <AppText variant="body">Capabilities for {activeRole.toUpperCase()}:</AppText>
-            <AppText variant="caption" color="muted">
-              • View drafts & match reports: {canRolePerform(activeRole, 'view') ? 'YES' : 'NO'}
-              {'\n'}• Edit sections, pitch deck & requirements:{' '}
-              {canRolePerform(activeRole, 'edit') ? 'YES' : 'NO (Read-only)'}
-              {'\n'}• Review & approve compliance clauses:{' '}
-              {canRolePerform(activeRole, 'review') ? 'YES' : 'NO'}
-              {'\n'}• Record official submission snapshot:{' '}
-              {canRolePerform(activeRole, 'submit') ? 'YES' : 'NO'}
-              {'\n'}• Manage & archive project slots:{' '}
-              {canRolePerform(activeRole, 'manage-project') ? 'YES' : 'NO'}
-            </AppText>
-          </View>
+          <AppText variant="caption" color="muted">
+            {activeRole === 'owner'
+              ? 'Can manage projects, edit applications, review changes and record submissions.'
+              : activeRole === 'editor'
+                ? 'Can edit application content and project details, and review changes.'
+                : activeRole === 'reviewer'
+                  ? 'Can view applications and review compliance changes.'
+                  : 'Can view applications and match reports.'}
+          </AppText>
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <AppText variant="h3">2. Personal Account Settings</AppText>
+          <AppText variant="h3">Personal settings</AppText>
           <View style={styles.rowBetween}>
             <AppText variant="body">User ID: {userId}</AppText>
             <AppButton
@@ -783,11 +760,7 @@ export function AccountAdminModal({ visible, onClose }: { visible: boolean; onCl
               }}
             />
           </View>
-          <AppInput
-            label="Display Nickname (used in Git revision commits)"
-            value={draftName}
-            onChangeText={setDraftName}
-          />
+          <AppInput label="Display name" value={draftName} onChangeText={setDraftName} />
           <View style={styles.rowWrap}>
             <AppButton
               size="sm"
@@ -808,13 +781,14 @@ export function AccountAdminModal({ visible, onClose }: { visible: boolean; onCl
             />
           </View>
           <AppText variant="caption" color="muted">
-            Storage persistence: {persistenceStatus} · Live OAuth / password rotation connects via
-            backend auth service.
+            {persistenceStatus === 'device-saved'
+              ? 'Settings saved on this device.'
+              : 'Settings are available for this session only.'}
           </AppText>
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <AppText variant="h3">3. Platform Staff Admin Console — Needs Attention</AppText>
+          <AppText variant="h3">Needs attention</AppText>
           <AppText variant="caption" color="muted">
             Exception-driven operational triage for failed export jobs, stale catalog deadlines, and
             user-submitted grant bounties. Every action is recorded in the audit log below.
@@ -872,7 +846,7 @@ export function AccountAdminModal({ visible, onClose }: { visible: boolean; onCl
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <AppText variant="h3">4. Admin Audit Log</AppText>
+          <AppText variant="h3">Activity log</AppText>
           {adminAuditLog.map((entry) => (
             <View key={entry.id} style={[styles.checkItem, { borderColor: theme.border }]}>
               <AppText variant="body">
@@ -905,9 +879,8 @@ const styles = StyleSheet.create({
     gap: SPACING.lg,
   },
   card: {
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
+    paddingVertical: SPACING.md,
+    borderTopWidth: 1,
     gap: SPACING.md,
   },
   rowWrap: {
@@ -927,15 +900,13 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   checkItem: {
-    padding: SPACING.sm,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
+    paddingVertical: SPACING.sm,
+    borderBottomWidth: 1,
     gap: SPACING.xs,
   },
   syncAlert: {
-    padding: SPACING.sm,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
+    paddingVertical: SPACING.sm,
+    borderBottomWidth: 1,
     gap: SPACING.sm,
   },
 });

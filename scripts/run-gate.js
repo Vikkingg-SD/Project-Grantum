@@ -33,6 +33,7 @@ const tasks = [
 ];
 if (full) {
   tasks.push(['scripts/verify-ui.mjs']);
+  tasks.push(['scripts/verify-workspace-ui.mjs', '.expo/ui-verification']);
   tasks.push([
     require.resolve('@playwright/test/cli'),
     'test',
