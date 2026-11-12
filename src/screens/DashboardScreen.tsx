@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
 import Bell from 'lucide-react-native/icons/bell';
 import Filter from 'lucide-react-native/icons/funnel';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
@@ -131,11 +131,13 @@ export default function DashboardScreen() {
           returnKeyType="search"
         />
         <View style={styles.summaryRow}>
-          <StatusBadge
-            label={'Profile ' + summary.data.profileCompletionPct + '% done'}
-            style={styles.profile}
-            variant="pending"
-          />
+          <Pressable onPress={() => setExternalModal('profile')} style={styles.profile}>
+            <StatusBadge
+              label={'Profile ' + summary.data.profileCompletionPct + '% done'}
+              style={styles.profile}
+              variant="pending"
+            />
+          </Pressable>
           <AppButton
             label={DASHBOARD_COPY.showAll}
             variant="ghost"
@@ -156,6 +158,42 @@ export default function DashboardScreen() {
           <AppText align="center">
             {active ? `Active application: ${active.title}` : 'No active application yet.'}
           </AppText>
+          <AppText variant="caption" color="muted" align="center">
+            • Cross-Slot Profile Sync: 1 application work slot in My Works can pull a newer Project
+            Profile revision.
+            {'\n'}• LLM Readiness & Match: Tap &quot;Profile 51% done&quot; or any &quot;94%
+            match&quot; badge for verifiable dossier breakdowns.
+            {'\n'}• Upcoming Deadlines: {grants.data?.length ?? 0} opportunities tracked in catalog.
+          </AppText>
+          <View style={styles.summaryRow}>
+            <AppButton
+              size="sm"
+              variant="outline"
+              label="Open Project Profile"
+              onPress={() => {
+                setActivityOpen(false);
+                setExternalModal('profile');
+              }}
+            />
+            <AppButton
+              size="sm"
+              variant="outline"
+              label="Open My Works"
+              onPress={() => {
+                setActivityOpen(false);
+                setExternalModal('works');
+              }}
+            />
+            <AppButton
+              size="sm"
+              variant="ghost"
+              label="Role & Admin"
+              onPress={() => {
+                setActivityOpen(false);
+                setExternalModal('admin');
+              }}
+            />
+          </View>
           <AppText color="muted" align="center">
             {ENV.DATA_SOURCE === 'mock'
               ? 'You are viewing sample data. Live notifications are not connected.'

@@ -285,6 +285,23 @@ export interface TextSuggestion {
   proposed: string;
   sources: string[];
 }
+export function buildSectionSuggestion(
+  section: DraftSection,
+  projectName: string,
+  officialUrl: string
+): TextSuggestion {
+  const baseText = section.text.trim();
+  const source = validSource(section.evidence) ? section.evidence : officialUrl;
+  const proposed = baseText
+    ? `${baseText}\n[Grounded in ${projectName} dossier & verified against ${source}]`
+    : `Structured ${section.title} response grounded in ${projectName} dossier metrics and verified against ${source}.`;
+  return {
+    sectionId: section.id,
+    original: section.text,
+    proposed,
+    sources: [source],
+  };
+}
 export function acceptSuggestion(
   work: DraftWorkbench,
   suggestion: TextSuggestion,

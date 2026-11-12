@@ -6,9 +6,11 @@ import {
   computeProfileReadiness,
   emptyWorkspace,
   getProfileSyncLag,
+  parseVaultDocs,
   pullProfileRevision,
   saveProject,
   searchProjects,
+  toggleVaultDoc,
   workSlotKey,
 } from '../src/utils/workspace';
 import type { ApplicationBundle } from '../src/types/workspace';
@@ -139,8 +141,11 @@ assert.equal(canRolePerform('viewer', 'edit'), false);
 assert.equal(canRolePerform('reviewer', 'review'), true);
 assert.equal(canRolePerform('editor', 'edit'), true);
 assert.equal(canRolePerform('owner', 'submit'), true);
+const vaultRaw = toggleVaultDoc('Audited_Financials.pdf', 'Utility_MoU.pdf');
+assert.equal(parseVaultDocs(vaultRaw).length, 2);
+assert.equal(parseVaultDocs(toggleVaultDoc(vaultRaw, 'Audited_Financials.pdf')).length, 1);
 console.info(
-  'PASS Given profile readiness, verifiable match, and co-work roles When evaluated Then capabilities and gates are deterministic'
+  'PASS Given profile readiness, verifiable match, vault docs, and co-work roles When evaluated Then capabilities and gates are deterministic'
 );
 workspace = archiveProject(workspace, 'p1', input.createdAt);
 assert.equal(searchProjects(workspace, 'learning').length, 0);

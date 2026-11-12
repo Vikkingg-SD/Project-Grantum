@@ -386,3 +386,21 @@ const ROLE_CAPABILITIES: Record<CoWorkRole, readonly CoWorkAction[]> = {
 export function canRolePerform(role: CoWorkRole, action: CoWorkAction): boolean {
   return ROLE_CAPABILITIES[role].includes(action);
 }
+
+export function parseVaultDocs(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split('|')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function toggleVaultDoc(raw: string | undefined, docName: string): string {
+  const clean = docName.trim();
+  if (!clean) return raw ?? '';
+  const current = parseVaultDocs(raw);
+  const next = current.includes(clean)
+    ? current.filter((item) => item !== clean)
+    : [...current, clean];
+  return next.join(' | ');
+}
