@@ -1,10 +1,12 @@
 import {
   acceptSuggestion,
   applyTemplate,
+  computeLineDiff,
   emptyWorkbench,
   recordSubmission,
   restoreVersion,
   saveVersion,
+  syncGrantRequirements,
 } from '../src/utils/drafting';
 const check = (name: string, value: boolean) => {
   if (!value) throw new Error(name);
@@ -44,6 +46,27 @@ work = applyTemplate(work, 'social', ['application', 'pitch-deck']);
 check(
   'Given existing sections When applying the same template Then text is preserved without duplicates',
   work.sections.length === count && work.sections[0].text === 'Later edit'
+);
+work = syncGrantRequirements(
+  work,
+  ['Matching Co-Funding Annex', 'Environmental Permit'],
+  'https://example.org/grant-track'
+);
+const syncedCount = work.sections.length;
+work = syncGrantRequirements(
+  work,
+  ['Matching Co-Funding Annex'],
+  'https://example.org/grant-track'
+);
+check(
+  'Given official grant track requirements When synced repeatedly Then sections and requirement mappings avoid duplicates',
+  work.sections.length === syncedCount && (work.requirementMappings?.length ?? 0) === 2
+);
+const diff = computeLineDiff('Line A\nLine B', 'Line A\nLine C');
+check(
+  'Given saved and current section text When computing line diff Then added and removed lines are classified',
+  diff.some((d) => d.type === 'removed' && d.line === 'Line B') &&
+    diff.some((d) => d.type === 'added' && d.line === 'Line C')
 );
 let rejected = false;
 try {

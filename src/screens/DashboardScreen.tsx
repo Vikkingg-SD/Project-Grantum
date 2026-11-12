@@ -16,9 +16,11 @@ import { HeroContinueCard } from '@/components/molecules/HeroContinueCard';
 import { PipelineFunnelBar } from '@/components/organisms/PipelineFunnelBar';
 import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
 import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSheet';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioModals';
 import { useGrants } from '@/api/hooks/useGrants';
 import { useDashboardSummary } from '@/api/hooks/useDashboardSummary';
 import { useDraftStore } from '@/store/useDraftStore';
+import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useTheme } from '@/hooks/useTheme';
 import { SPACING } from '@/config/theme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
@@ -32,17 +34,21 @@ export default function DashboardScreen() {
   const { mobile } = useLayoutMetrics();
   const [query, setQuery] = useState('');
   const [activityOpen, setActivityOpen] = useState(false);
+  const [externalModal, setExternalModal] = useState<'profile' | 'works' | 'admin' | null>(null);
   const grants = useGrants();
   const summary = useDashboardSummary();
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
+  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
   const openDraft = useCallback(
-    (grantId: string) => {
+    (grantId: string, projectId = activeProjectId) => {
       ensureDraft(grantId);
+      ensureWorkSlot(projectId, grantId);
       setSelectedGrant(null);
       navigation.navigateTo('drafting', grantId);
     },
-    [ensureDraft, navigation]
+    [activeProjectId, ensureDraft, ensureWorkSlot, navigation]
   );
   const applyGrant = useCallback((grant: Grant) => openDraft(grant.id), [openDraft]);
   const filtered = useMemo(() => {
@@ -100,6 +106,12 @@ export default function DashboardScreen() {
             : 'Portfolio overview'}
         </AppText>
         <PipelineFunnelBar stages={summary.data.pipeline} />
+        <WorkspaceStudioBar
+          grants={grants.data ?? []}
+          onOpenGrantDraft={(grantId, projectId) => openDraft(grantId, projectId)}
+          externalModal={externalModal}
+          onCloseExternalModal={() => setExternalModal(null)}
+        />
         <CenteredHeading
           title={DASHBOARD_COPY.recommended}
           variant="h2"
@@ -157,7 +169,14 @@ export default function DashboardScreen() {
         onClose={() => setSelectedGrant(null)}
         accessibilityLabel={selectedGrant?.title ?? ''}
       >
-        <GrantDetailModalSheet grant={selectedGrant} onApply={applyGrant} />
+        <GrantDetailModalSheet
+          grant={selectedGrant}
+          onApply={applyGrant}
+          onOpenProfile={() => {
+            setSelectedGrant(null);
+            setExternalModal('profile');
+          }}
+        />
       </ModalSheetLayout>
     </ScreenContainer>
   );

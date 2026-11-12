@@ -1,4 +1,4 @@
-import type { OutputKind, ProjectKind } from '../types/workspace';
+import type { OutputKind, PitchSlide, ProjectKind, RequirementMapping } from '../types/workspace';
 
 export interface DraftSection {
   id: string;
@@ -18,6 +18,8 @@ export interface DraftWorkbench {
   kind: ProjectKind;
   outputs: OutputKind[];
   sections: DraftSection[];
+  pitchSlides?: PitchSlide[];
+  requirementMappings?: RequirementMapping[];
   versions: DraftVersion[];
   submissions: {
     id: string;
@@ -34,10 +36,17 @@ export const templates: Record<ProjectKind, readonly string[]> = {
   invention: ['Problem', 'Novelty', 'Technical approach', 'Validation'],
   other: ['Overview', 'Goals', 'Plan', 'Resources'],
 };
+export const DEFAULT_PITCH_SLIDES: readonly PitchSlide[] = [
+  { id: 'slide-1', title: '1. Mission & Urgency', bulletPoints: '' },
+  { id: 'slide-2', title: '2. Solution & Technical Edge', bulletPoints: '' },
+  { id: 'slide-3', title: '3. Measurable Impact & Budget', bulletPoints: '' },
+];
 export const emptyWorkbench = (): DraftWorkbench => ({
   kind: 'grant',
   outputs: ['application'],
   sections: [],
+  pitchSlides: DEFAULT_PITCH_SLIDES.map((s) => ({ ...s })),
+  requirementMappings: [],
   versions: [],
   submissions: [],
 });
@@ -55,10 +64,14 @@ export function applyTemplate(
   const additions = titles.filter(
     (title) => !work.sections.some((s) => s.title.toLowerCase() === title.toLowerCase())
   );
+  const existingSlides = work.pitchSlides?.length
+    ? work.pitchSlides
+    : DEFAULT_PITCH_SLIDES.map((s) => ({ ...s }));
   return {
     ...work,
     kind,
     outputs: [...outputs],
+    pitchSlides: existingSlides,
     sections: [
       ...work.sections,
       ...additions.map((title) => ({ id: `template:${title}`, title, text: '', evidence: '' })),
@@ -73,11 +86,70 @@ export function validSource(value: string) {
     return false;
   }
 }
+export function syncGrantRequirements(
+  work: DraftWorkbench,
+  requirements: readonly string[],
+  sourceUrl: string
+): DraftWorkbench {
+  if (!validSource(sourceUrl)) throw new Error('Official source URL must use http or https');
+  const cleanReqs = requirements.map((r) => r.trim()).filter(Boolean);
+  const newSections = [...work.sections];
+  const newMappings = [...(work.requirementMappings ?? [])];
+
+  for (const req of cleanReqs) {
+    let section = newSections.find((s) => s.title.toLowerCase() === req.toLowerCase());
+    if (!section) {
+      section = {
+        id: `track:${req.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+        title: req,
+        text: '',
+        evidence: sourceUrl,
+      };
+      newSections.push(section);
+    }
+    if (!newMappings.some((m) => m.requirement.toLowerCase() === req.toLowerCase())) {
+      newMappings.push({
+        id: `map:${section.id}`,
+        requirement: req,
+        sourceUrl,
+        sectionId: section.id,
+        evidenceUrl: section.evidence || sourceUrl,
+        owner: 'Lead Author',
+        reviewStatus: 'drafting',
+      });
+    }
+  }
+
+  return {
+    ...work,
+    sections: newSections,
+    requirementMappings: newMappings,
+  };
+}
+export function computeLineDiff(
+  savedText: string,
+  currentText: string
+): { type: 'same' | 'added' | 'removed'; line: string }[] {
+  const oldLines = savedText ? savedText.split('\n') : [];
+  const newLines = currentText ? currentText.split('\n') : [];
+  const result: { type: 'same' | 'added' | 'removed'; line: string }[] = [];
+  const oldSet = new Set(oldLines);
+  const newSet = new Set(newLines);
+  for (const line of oldLines) {
+    if (!newSet.has(line)) result.push({ type: 'removed', line });
+  }
+  for (const line of newLines) {
+    if (oldSet.has(line)) result.push({ type: 'same', line });
+    else result.push({ type: 'added', line });
+  }
+  return result;
+}
 export function saveVersion(
   work: DraftWorkbench,
   id: string,
   createdAt: string,
-  summary: string
+  summary: string,
+  author = 'You (this session)'
 ): DraftWorkbench {
   if (!summary.trim()) throw new Error('Describe the change');
   if (work.versions.some((version) => version.id === id)) throw new Error('Version already exists');
@@ -87,7 +159,7 @@ export function saveVersion(
     id,
     createdAt,
     summary: summary.trim(),
-    author: 'You (this session)',
+    author,
     sections: work.sections.map((s) => ({ ...s })),
     outputs: [...work.outputs],
   };

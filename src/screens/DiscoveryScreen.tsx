@@ -17,6 +17,7 @@ import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { FilterFieldGroup } from '@/components/molecules/FilterFieldGroup';
 import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
 import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSheet';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioModals';
 import { useGrants } from '@/api/hooks/useGrants';
 import { getDataSource } from '@/api/dataSource';
 import { ENV } from '@/config/env';
@@ -24,6 +25,7 @@ import { MAX_INPUT_CHARS } from '@/config/constants';
 import type { BountyInput } from '@/types/api';
 import { useDashboardSummary } from '@/api/hooks/useDashboardSummary';
 import { useDraftStore } from '@/store/useDraftStore';
+import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { SPACING } from '@/config/theme';
 import type { Grant } from '@/types/grant';
 
@@ -42,6 +44,7 @@ export default function DiscoveryScreen() {
   const [regions, setRegions] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
+  const [externalModal, setExternalModal] = useState<'profile' | 'works' | 'admin' | null>(null);
   const [bountyTitle, setBountyTitle] = useState('');
   const bounty = useMutation({
     mutationFn: (input: BountyInput) => getDataSource().submitBounty(input),
@@ -52,6 +55,8 @@ export default function DiscoveryScreen() {
   const grants = useGrants({ q: query, region: regions, category: categories });
   const summary = useDashboardSummary();
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
+  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
   const toggleRegion = useCallback(
     (value: string) => setRegions((items) => toggle(items, value)),
     []
@@ -60,14 +65,16 @@ export default function DiscoveryScreen() {
     (value: string) => setCategories((items) => toggle(items, value)),
     []
   );
-  const openDraft = useCallback(
-    (grant: Grant) => {
-      ensureDraft(grant.id);
+  const openDraftById = useCallback(
+    (grantId: string, projectId = activeProjectId) => {
+      ensureDraft(grantId);
+      ensureWorkSlot(projectId, grantId);
       setSelectedGrant(null);
-      navigation.navigateTo('drafting', grant.id);
+      navigation.navigateTo('drafting', grantId);
     },
-    [ensureDraft, navigation]
+    [activeProjectId, ensureDraft, ensureWorkSlot, navigation]
   );
+  const openDraft = useCallback((grant: Grant) => openDraftById(grant.id), [openDraftById]);
   return (
     <ScreenContainer>
       <View style={styles.content}>
@@ -83,6 +90,12 @@ export default function DiscoveryScreen() {
             />
           )}
         </View>
+        <WorkspaceStudioBar
+          grants={grants.data ?? []}
+          onOpenGrantDraft={(grantId, projectId) => openDraftById(grantId, projectId)}
+          externalModal={externalModal}
+          onCloseExternalModal={() => setExternalModal(null)}
+        />
         <AppInput
           accessibilityLabel="Search the grant index"
           placeholder="Search grants"
@@ -202,7 +215,14 @@ export default function DiscoveryScreen() {
         onClose={() => setSelectedGrant(null)}
         accessibilityLabel={selectedGrant?.title ?? ''}
       >
-        <GrantDetailModalSheet grant={selectedGrant} onApply={openDraft} />
+        <GrantDetailModalSheet
+          grant={selectedGrant}
+          onApply={openDraft}
+          onOpenProfile={() => {
+            setSelectedGrant(null);
+            setExternalModal('profile');
+          }}
+        />
       </ModalSheetLayout>
     </ScreenContainer>
   );

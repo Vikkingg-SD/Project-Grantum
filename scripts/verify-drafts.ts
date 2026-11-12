@@ -1,4 +1,6 @@
 import { useDraftStore, EMPTY_DRAFT } from '../src/store/useDraftStore';
+import './verify-workspace';
+import './verify-drafting-history';
 const getState = () => useDraftStore.getState();
 let failed = 0;
 const assert = (name: string, condition: boolean) => {
