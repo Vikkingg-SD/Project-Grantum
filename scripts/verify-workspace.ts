@@ -1,9 +1,15 @@
 import {
   addApplication,
   archiveProject,
+  buildVerifiableMatch,
+  canRolePerform,
+  computeProfileReadiness,
   emptyWorkspace,
+  getProfileSyncLag,
+  pullProfileRevision,
   saveProject,
   searchProjects,
+  workSlotKey,
 } from '../src/utils/workspace';
 import type { ApplicationBundle } from '../src/types/workspace';
 const assert = {
@@ -65,6 +71,7 @@ workspace = addApplication(workspace, {
 });
 assert.equal(workspace.applications.length, 2);
 assert.notEqual(workspace.applications[0].projectId, workspace.applications[1].projectId);
+assert.notEqual(workSlotKey('p1', 'same-grant'), workSlotKey('p2', 'same-grant'));
 assert.throws(
   () => addApplication(workspace, { ...application, id: 'a3', projectId: 'p2' }),
   /revision/
@@ -74,12 +81,66 @@ console.info(
 );
 workspace = saveProject(workspace, { ...input, revisionId: 'r3', summary: 'Edit profile' });
 assert.equal(workspace.applications[0].profileRevisionId, 'r1');
+assert.equal(getProfileSyncLag(workspace, 'a1'), 1);
 assert.equal(workspace.revisions[2].parentRevisionId, 'r1');
 assert.equal(workspace.revisions[0].fields.mission, 'Teach');
 assert.throws(() => saveProject(workspace, input), /already exists/);
 assert.throws(() => saveProject(workspace, { ...input, revisionId: 'r4', name: ' ' }), /required/);
 console.info(
   'PASS Given a pinned application When project context changes Then prior revisions and application pins are preserved'
+);
+workspace = pullProfileRevision(workspace, 'a1', '2026-11-12T01:00:00Z');
+assert.equal(workspace.applications[0].profileRevisionId, 'r3');
+assert.equal(getProfileSyncLag(workspace, 'a1'), 0);
+const lockedWorkspace = {
+  ...workspace,
+  applications: workspace.applications.map((item) =>
+    item.id === 'a1'
+      ? {
+          ...item,
+          status: 'submitted' as const,
+          submittedSnapshot: {
+            profileRevisionId: 'r3',
+            artifactRevisionIds: [],
+            submittedAt: '2026-11-12T02:00:00Z',
+            receiptReference: 'REC-1',
+          },
+        }
+      : item
+  ),
+};
+assert.throws(
+  () => pullProfileRevision(lockedWorkspace, 'a1', '2026-11-12T03:00:00Z'),
+  /locked to their snapshot/
+);
+console.info(
+  'PASS Given cross-slot profile commits When pulling into a work slot Then drafts update and submitted snapshots stay locked'
+);
+const readiness = computeProfileReadiness(workspace.projects[0], workspace.revisions[2]);
+assert.equal(typeof readiness.score, 'number');
+const matchReport = buildVerifiableMatch(
+  {
+    id: 'g1',
+    title: 'Clean Water Fund',
+    funder: 'EU Water',
+    deadline: '30 days',
+    amount: '$200,000',
+    matchPct: 94,
+    region: 'Global',
+    summary: 'Water telemetry grant',
+  },
+  workspace.projects[0],
+  workspace.revisions[2],
+  ['Telemetry validation']
+);
+assert.equal(matchReport.score, 94);
+assert.equal(matchReport.eligibilityGates.length, 4);
+assert.equal(canRolePerform('viewer', 'edit'), false);
+assert.equal(canRolePerform('reviewer', 'review'), true);
+assert.equal(canRolePerform('editor', 'edit'), true);
+assert.equal(canRolePerform('owner', 'submit'), true);
+console.info(
+  'PASS Given profile readiness, verifiable match, and co-work roles When evaluated Then capabilities and gates are deterministic'
 );
 workspace = archiveProject(workspace, 'p1', input.createdAt);
 assert.equal(searchProjects(workspace, 'learning').length, 0);

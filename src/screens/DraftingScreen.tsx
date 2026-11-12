@@ -1,4 +1,5 @@
 import { DraftWorkbenchPanel } from '@/components/organisms/DraftWorkbenchPanel';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioModals';
 import ArrowLeft from 'lucide-react-native/icons/arrow-left';
 import ArrowRight from 'lucide-react-native/icons/arrow-right';
 import { IconButton } from '@/components/atoms/IconButton';
@@ -14,7 +15,10 @@ import { ChatMessageBubble } from '@/components/molecules/ChatMessageBubble';
 import { ChatInputRow } from '@/components/molecules/ChatInputRow';
 import { useProposalDraft, useMutateProposalSections } from '@/api/hooks/useProposalDraft';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
+import { useWorkbenchStore } from '@/store/useWorkbenchStore';
+import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useTheme } from '@/hooks/useTheme';
 import { RADIUS, SPACING } from '@/config/theme';
 import { DRAFTING_COPY } from '@/config/copy';
@@ -22,6 +26,8 @@ import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { GrantContext } from '@/components/molecules/GrantContext';
 import { ModalSheetLayout } from '@/components/templates/ModalSheetLayout';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
+import { syncGrantRequirements } from '@/utils/drafting';
+import { workSlotKey } from '@/utils/workspace';
 
 export default function DraftingScreen() {
   const grantId = useActiveGrantId();
@@ -29,9 +35,11 @@ export default function DraftingScreen() {
 }
 
 function DraftingSession({ grantId }: { grantId: string }) {
+  const navigation = useAppNavigation();
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [optionsTab, setOptionsTab] = useState<'templates' | 'prompts'>('templates');
   const [workbenchOpen, setWorkbenchOpen] = useState(false);
   const [promptsOpen, setPromptsOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -43,6 +51,8 @@ function DraftingSession({ grantId }: { grantId: string }) {
   const mutation = useMutateProposalSections(grantId);
   const local = useDraftStore((state) => state.drafts[grantId] ?? EMPTY_DRAFT);
   const addNote = useDraftStore((state) => state.addDraftingMessage);
+  const updateWorkbench = useWorkbenchStore((state) => state.update);
+  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const [message, setMessage] = useState('');
   const [sectionName, setSectionName] = useState('');
   const detail = useGrantDetail(grantId);
@@ -76,6 +86,7 @@ function DraftingSession({ grantId }: { grantId: string }) {
     requiredSections.every((section) => completedSections.includes(section));
   const pageCount = Math.max(1, Math.ceil(requiredSections.length / 3));
   const currentPage = Math.min(page, pageCount - 1);
+  const trackReqs = detail.data?.requirements ?? requiredSections;
   return (
     <ScreenContainer scrollable={false}>
       <ScrollView
@@ -100,6 +111,9 @@ function DraftingSession({ grantId }: { grantId: string }) {
           />
         </View>
         <GrantContext grantId={grantId} />
+        <WorkspaceStudioBar
+          onOpenGrantDraft={(targetGrantId) => navigation.navigateTo('drafting', targetGrantId)}
+        />
         <View>
           <AppButton
             label={`Required sections (${completedSections.length}/${requiredSections.length})`}
@@ -236,8 +250,9 @@ function DraftingSession({ grantId }: { grantId: string }) {
         ))}
       </ScrollView>
       <DraftWorkbenchPanel
-        key={grantId}
+        key={`${activeProjectId}:${grantId}`}
         grantId={grantId}
+        grantRequirements={trackReqs}
         visible={workbenchOpen}
         onClose={() => setWorkbenchOpen(false)}
       />
@@ -247,13 +262,85 @@ function DraftingSession({ grantId }: { grantId: string }) {
         accessibilityLabel="Drafting options"
       >
         <View style={styles.content}>
-          <AppButton
-            label="Form templates"
-            onPress={() => {
-              setOptionsOpen(false);
-              setWorkbenchOpen(true);
-            }}
-          />
+          <AppText variant="h2">Drafting Options & Studio Menu</AppText>
+          <View style={styles.actions}>
+            <AppButton
+              size="sm"
+              label="Tab 1: Form & Track Templates"
+              selected={optionsTab === 'templates'}
+              onPress={() => setOptionsTab('templates')}
+            />
+            <AppButton
+              size="sm"
+              label="Tab 2: Quick Convenience Prompts"
+              selected={optionsTab === 'prompts'}
+              onPress={() => setOptionsTab('prompts')}
+            />
+          </View>
+
+          {optionsTab === 'templates' ? (
+            <View style={{ gap: SPACING.md }}>
+              <AppText color="muted">
+                Launch the split-pane Drafting & History Studio or sync grant track requirements
+                into your active project work slot.
+              </AppText>
+              <AppButton
+                label="Form templates"
+                variant="primary"
+                onPress={() => {
+                  setOptionsOpen(false);
+                  setWorkbenchOpen(true);
+                }}
+              />
+              {trackReqs.length > 0 && (
+                <AppButton
+                  label={`Sync ${trackReqs.length} grant track requirements into Studio`}
+                  variant="outline"
+                  onPress={() => {
+                    const slot = workSlotKey(activeProjectId, grantId);
+                    updateWorkbench(slot, (current) =>
+                      syncGrantRequirements(
+                        current,
+                        trackReqs,
+                        `https://grants.example.org/opportunities/${encodeURIComponent(grantId)}`
+                      )
+                    );
+                    setOptionsOpen(false);
+                    setWorkbenchOpen(true);
+                  }}
+                />
+              )}
+            </View>
+          ) : (
+            <View style={{ gap: SPACING.sm }}>
+              <AppText color="muted">
+                Tap a convenience prompt to populate the chat composer without cluttering the
+                drafting canvas:
+              </AppText>
+              {DRAFTING_COPY.chips.map((chip) => (
+                <AppButton
+                  key={chip}
+                  label={chip}
+                  variant="outline"
+                  onPress={() => {
+                    setMessage(chip);
+                    setOptionsOpen(false);
+                  }}
+                />
+              ))}
+              {trackReqs.slice(0, 3).map((req) => (
+                <AppButton
+                  key={`prompt-${req}`}
+                  label={`Draft evidence-backed response for: ${req}`}
+                  variant="ghost"
+                  onPress={() => {
+                    setMessage(`Draft evidence-backed response for: ${req}`);
+                    setOptionsOpen(false);
+                  }}
+                />
+              ))}
+            </View>
+          )}
         </View>
       </ModalSheetLayout>
       <ChatInputRow

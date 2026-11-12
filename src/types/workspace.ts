@@ -1,6 +1,8 @@
 /** Frontend integration contracts. Legacy grant-keyed APIs are not migrated yet. */
 export type ProjectKind = 'grant' | 'startup' | 'social' | 'invention' | 'other';
 export type OutputKind = 'application' | 'pitch-deck' | 'document';
+export type CoWorkRole = 'owner' | 'editor' | 'reviewer' | 'viewer';
+export type CoWorkAction = 'view' | 'edit' | 'review' | 'submit' | 'manage-project';
 
 export interface EvidenceReference {
   id: string;
@@ -85,4 +87,70 @@ export interface ApplicationBundle {
     readonly submittedAt: string;
     readonly receiptReference: string | null;
   } | null;
+}
+
+export interface PitchSlide {
+  id: string;
+  title: string;
+  bulletPoints: string;
+}
+
+export interface RequirementMapping {
+  id: string;
+  requirement: string;
+  sourceUrl: string;
+  sectionId: string;
+  evidenceUrl: string;
+  owner: string;
+  reviewStatus: 'drafting' | 'in-review' | 'approved';
+}
+
+export interface ReadinessChecklistItem {
+  key: string;
+  label: string;
+  filled: boolean;
+  impact: 'high' | 'medium';
+  guidance: string;
+}
+
+export interface ProfileReadinessReport {
+  score: number;
+  profileRevisionId: string;
+  checklist: ReadinessChecklistItem[];
+  summaryText: string;
+}
+
+export interface MatchEligibilityItem {
+  rule: string;
+  status: 'pass' | 'review' | 'unknown';
+  detail: string;
+}
+
+export interface VerifiableMatchReport {
+  score: number;
+  profileRevisionId: string;
+  projectName: string;
+  officialUrl: string;
+  lastVerifiedAt: string;
+  verifiedAlignments: { clause: string; profileFact: string }[];
+  missingAreas: { gap: string; targetAction: string }[];
+  eligibilityGates: MatchEligibilityItem[];
+}
+
+export interface AdminQueueItem {
+  id: string;
+  category: 'failed-job' | 'stale-catalog' | 'bounty-suggestion';
+  title: string;
+  detail: string;
+  status: 'pending' | 'approved' | 'rejected' | 'retried';
+  updatedAt: string;
+  actor: string;
+}
+
+export interface AdminAuditEntry {
+  id: string;
+  timestamp: string;
+  actor: string;
+  action: string;
+  targetTitle: string;
 }
