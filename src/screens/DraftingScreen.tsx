@@ -1,3 +1,4 @@
+import { DraftWorkbenchPanel } from '@/components/organisms/DraftWorkbenchPanel';
 import ArrowLeft from 'lucide-react-native/icons/arrow-left';
 import ArrowRight from 'lucide-react-native/icons/arrow-right';
 import { IconButton } from '@/components/atoms/IconButton';
@@ -30,6 +31,8 @@ export default function DraftingScreen() {
 function DraftingSession({ grantId }: { grantId: string }) {
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [workbenchOpen, setWorkbenchOpen] = useState(false);
   const [promptsOpen, setPromptsOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const scrollAfterNote = useRef(false);
@@ -232,7 +235,29 @@ function DraftingSession({ grantId }: { grantId: string }) {
           <ChatMessageBubble key={item.id} {...item} />
         ))}
       </ScrollView>
+      <DraftWorkbenchPanel
+        key={grantId}
+        grantId={grantId}
+        visible={workbenchOpen}
+        onClose={() => setWorkbenchOpen(false)}
+      />
+      <ModalSheetLayout
+        visible={optionsOpen}
+        onClose={() => setOptionsOpen(false)}
+        accessibilityLabel="Drafting options"
+      >
+        <View style={styles.content}>
+          <AppButton
+            label="Form templates"
+            onPress={() => {
+              setOptionsOpen(false);
+              setWorkbenchOpen(true);
+            }}
+          />
+        </View>
+      </ModalSheetLayout>
       <ChatInputRow
+        onOptions={() => setOptionsOpen(true)}
         grantId={grantId}
         value={message}
         onChangeText={setMessage}

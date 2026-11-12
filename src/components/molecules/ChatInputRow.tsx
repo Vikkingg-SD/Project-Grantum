@@ -1,6 +1,7 @@
 import { LocalAttachments } from './LocalAttachments';
 import React from 'react';
 import { Platform, View, TextInput, StyleSheet, type TextInputProps } from 'react-native';
+import MoreHorizontal from 'lucide-react-native/icons/ellipsis';
 import Send from 'lucide-react-native/icons/send';
 import { IconButton } from '../atoms/IconButton';
 import { useThemeStore } from '@/store/useThemeStore';
@@ -13,6 +14,7 @@ import { canSendMessage, composerKeyAction } from '@/utils/composer';
 
 export interface ChatInputRowProps {
   grantId?: string;
+  onOptions?: () => void;
   value: string;
   onChangeText: (text: string) => void;
   onSend: () => void;
@@ -22,6 +24,7 @@ export interface ChatInputRowProps {
 
 export function ChatInputRow({
   grantId,
+  onOptions,
   value,
   onChangeText,
   onSend,
@@ -49,6 +52,13 @@ export function ChatInputRow({
     <View
       style={[styles.container, { backgroundColor: theme.surface, borderTopColor: theme.border }]}
     >
+      {onOptions && (
+        <IconButton
+          label="Drafting options"
+          icon={<MoreHorizontal size={20} color={theme.textMain} />}
+          onPress={onOptions}
+        />
+      )}
       {grantId && <LocalAttachments grantId={grantId} />}
       <TextInput
         value={value}

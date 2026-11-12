@@ -18,9 +18,17 @@ const tasks = [
     '--check',
     '.',
   ],
-  ...['scoring', 'drafts', 'theme', 'composer', 'tokens', 'contract', 'presentation'].map(
-    (name) => [tsx, `scripts/verify-${name}.ts`]
-  ),
+  ...[
+    'scoring',
+    'drafts',
+    'theme',
+    'composer',
+    'tokens',
+    'contract',
+    'presentation',
+    'workspace',
+    'drafting-history',
+  ].map((name) => [tsx, `scripts/verify-${name}.ts`]),
   ['scripts/verify-routes.mjs', '--static'],
 ];
 if (full) {
