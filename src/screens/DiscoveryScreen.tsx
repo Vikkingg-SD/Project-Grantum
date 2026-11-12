@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { View, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
@@ -83,11 +83,13 @@ export default function DiscoveryScreen() {
             Find your next opportunity
           </AppText>
           {summary.data && (
-            <StatusBadge
-              label={`Project Profile ${summary.data.profileCompletionPct}% Done`}
-              style={styles.centerBadge}
-              variant="pending"
-            />
+            <Pressable onPress={() => setExternalModal('profile')} style={styles.centerBadge}>
+              <StatusBadge
+                label={`Project Profile ${summary.data.profileCompletionPct}% Done`}
+                style={styles.centerBadge}
+                variant="pending"
+              />
+            </Pressable>
           )}
         </View>
         <WorkspaceStudioBar

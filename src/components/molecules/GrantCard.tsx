@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
 import { AppText } from '../atoms/AppText';
 import { AppButton } from '../atoms/AppButton';
 import { StatusBadge } from '../atoms/StatusBadge';
@@ -34,10 +34,12 @@ export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: G
         >
           {grant.funder}
         </AppText>
-        <StatusBadge
-          label={GRANT_CARD_COPY.matchLabel(grant.matchPct)}
-          variant={matchTier(grant.matchPct)}
-        />
+        <Pressable onPress={() => onSelect(grant)}>
+          <StatusBadge
+            label={GRANT_CARD_COPY.matchLabel(grant.matchPct)}
+            variant={matchTier(grant.matchPct)}
+          />
+        </Pressable>
       </View>
       <AppText variant="h3" style={styles.title}>
         {grant.title}

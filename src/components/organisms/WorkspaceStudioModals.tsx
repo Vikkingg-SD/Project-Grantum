@@ -13,7 +13,9 @@ import {
   canRolePerform,
   computeProfileReadiness,
   getProfileSyncLag,
+  parseVaultDocs,
   searchProjects,
+  toggleVaultDoc,
 } from '@/utils/workspace';
 import type { CoWorkRole, ProjectKind } from '@/types/workspace';
 import type { Grant } from '@/types/grant';
@@ -353,6 +355,43 @@ export function ProjectProfileModal({
             editable={canEdit}
             onChangeText={setSummary}
           />
+          <View style={[styles.checkItem, { borderColor: theme.border }]}>
+            <AppText variant="label">
+              Reusable Reference Document Vault (NotebookLM Context Sources)
+            </AppText>
+            <AppText variant="caption" color="muted">
+              Attach reusable dossier files (budgets, audited financials, letters of support, patent
+              specs) to this Project Profile Slot so every linked application in My Works inherits
+              them:
+            </AppText>
+            <View style={styles.rowWrap}>
+              {[
+                'Audited_Financials_FY2025.pdf',
+                'Utility_CoFunding_MoU.pdf',
+                'TRL4_Hydrophone_Telemetry_Spec.pdf',
+                'Nonprofit_501c3_Determination.pdf',
+                'Rural_Clinic_Letters_of_Support.pdf',
+              ].map((docName) => {
+                const activeDocs = parseVaultDocs(fields.vaultDocs);
+                const included = activeDocs.includes(docName);
+                return (
+                  <AppButton
+                    key={docName}
+                    size="sm"
+                    selected={included}
+                    disabled={!canEdit}
+                    label={included ? `✓ ${docName}` : `+ ${docName}`}
+                    onPress={() =>
+                      setFields((prev) => ({
+                        ...prev,
+                        vaultDocs: toggleVaultDoc(prev.vaultDocs, docName),
+                      }))
+                    }
+                  />
+                );
+              })}
+            </View>
+          </View>
           <View style={styles.rowWrap}>
             <AppButton
               label="Commit Profile Revision"

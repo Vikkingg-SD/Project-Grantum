@@ -56,6 +56,8 @@ function buildInitialWorkspace(): Workspace {
       budget: '$240,000 direct R&D + $60,000 confirmed utility co-funding',
       entityType: 'Registered Deep-Tech C-Corp / Municipal Consortium',
       teamLead: '',
+      vaultDocs:
+        'Audited_Financials_FY2025.pdf | Utility_CoFunding_MoU.pdf | TRL4_Hydrophone_Telemetry_Spec.pdf',
     },
   });
   ws = saveProject(ws, {
@@ -75,6 +77,7 @@ function buildInitialWorkspace(): Workspace {
       budget: '$150,000 program grant request',
       entityType: '501(c)(3) / Registered Nonprofit Foundation',
       teamLead: 'Dr. Elena Rostova, Principal Program Lead',
+      vaultDocs: 'Nonprofit_501c3_Determination.pdf | Rural_Clinic_Letters_of_Support.pdf',
     },
   });
 

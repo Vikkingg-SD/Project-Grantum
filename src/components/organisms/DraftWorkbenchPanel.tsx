@@ -13,6 +13,7 @@ import {
   acceptSuggestion,
   type TextSuggestion,
   applyTemplate,
+  buildSectionSuggestion,
   bundleText,
   computeLineDiff,
   DEFAULT_PITCH_SLIDES,
@@ -24,7 +25,7 @@ import {
   templates,
   validSource,
 } from '@/utils/drafting';
-import { canRolePerform, getProfileSyncLag, workSlotKey } from '@/utils/workspace';
+import { canRolePerform, getProfileSyncLag, parseVaultDocs, workSlotKey } from '@/utils/workspace';
 import { generateId } from '@/utils/uuid';
 import type { OutputKind, ProjectKind } from '@/types/workspace';
 import { RADIUS, SPACING } from '@/config/theme';
@@ -65,6 +66,8 @@ export function DraftWorkbenchPanel({
 
   const activeProject =
     workspace.projects.find((p) => p.id === activeProjectId) ?? workspace.projects[0];
+  const activeRevision = workspace.revisions.find((r) => r.id === activeProject?.currentRevisionId);
+  const vaultDocs = parseVaultDocs(activeRevision?.fields.vaultDocs);
   const activeApp = workspace.applications.find(
     (app) => app.projectId === activeProjectId && app.grantId === grantId
   );
@@ -82,6 +85,8 @@ export function DraftWorkbenchPanel({
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [compare, setCompare] = useState<string | null>(null);
+  const [localSuggestion, setLocalSuggestion] = useState<TextSuggestion | null>(null);
+  const activeSuggestion = suggestion ?? localSuggestion;
   const [sectionTitle, setSectionTitle] = useState('');
   const [sectionSource, setSectionSource] = useState('');
   const [tab, setTab] = useState<'templates' | 'edit' | 'requirements' | 'history' | 'review'>(
@@ -186,9 +191,16 @@ export function DraftWorkbenchPanel({
             )}
 
             <AppText variant="caption" color="muted">
-              Grounded local files attached: {localDraft.attachments.length} · Saved versions:{' '}
-              {work.versions.length}
+              Grounded local files attached: {localDraft.attachments.length} · Profile Vault Docs:{' '}
+              {vaultDocs.length} · Saved versions: {work.versions.length}
             </AppText>
+            {vaultDocs.length > 0 && (
+              <View style={styles.rowWrap}>
+                {vaultDocs.map((doc) => (
+                  <StatusBadge key={doc} label={doc} variant="neutral" />
+                ))}
+              </View>
+            )}
           </View>
 
           <View style={styles.mainCanvas}>
@@ -352,6 +364,21 @@ export function DraftWorkbenchPanel({
                         }))
                       }
                     />
+                    <AppButton
+                      size="sm"
+                      variant="ghost"
+                      label={`Preview grounded AI diff suggestion for ${section.title}`}
+                      disabled={!canEdit}
+                      onPress={() =>
+                        setLocalSuggestion(
+                          buildSectionSuggestion(
+                            section,
+                            activeProject?.name ?? activeProjectId,
+                            officialGrantUrl
+                          )
+                        )
+                      }
+                    />
                   </View>
                 ))}
 
@@ -473,12 +500,17 @@ export function DraftWorkbenchPanel({
               </>
             )}
 
-            {suggestion && (
-              <View style={{ gap: SPACING.sm }}>
+            {activeSuggestion && (
+              <View
+                style={[
+                  styles.subCard,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+              >
                 <AppText variant="h3">Review suggested change</AppText>
-                <AppText>Original: {suggestion.original}</AppText>
-                <AppText>Proposed: {suggestion.proposed}</AppText>
-                {suggestion.sources.map((source) => (
+                <AppText>Original: {activeSuggestion.original}</AppText>
+                <AppText color="verified">Proposed: {activeSuggestion.proposed}</AppText>
+                {activeSuggestion.sources.map((source) => (
                   <AppButton
                     key={source}
                     label={source}
@@ -488,30 +520,35 @@ export function DraftWorkbenchPanel({
                     }}
                   />
                 ))}
-                <AppButton
-                  label="Accept suggestion"
-                  disabled={!canEdit}
-                  onPress={() =>
-                    act(() => {
-                      update(key, (current) =>
-                        acceptSuggestion(
-                          current,
-                          suggestion,
-                          generateId('version'),
-                          new Date().toISOString()
-                        )
-                      );
+                <View style={styles.rowWrap}>
+                  <AppButton
+                    label="Accept suggestion"
+                    disabled={!canEdit}
+                    onPress={() =>
+                      act(() => {
+                        update(key, (current) =>
+                          acceptSuggestion(
+                            current,
+                            activeSuggestion,
+                            generateId('version'),
+                            new Date().toISOString()
+                          )
+                        );
+                        setLocalSuggestion(null);
+                        onDismissSuggestion?.();
+                      }, 'Accepted. Open History to restore the original text.')
+                    }
+                  />
+                  <AppButton
+                    label="Reject suggestion"
+                    variant="outline"
+                    onPress={() => {
+                      setLocalSuggestion(null);
                       onDismissSuggestion?.();
-                    }, 'Accepted. Open History to restore the original text.')
-                  }
-                />
-                <AppButton
-                  label="Reject suggestion"
-                  onPress={() => {
-                    onDismissSuggestion?.();
-                    setNotice('Suggestion rejected. Your text is unchanged.');
-                  }}
-                />
+                      setNotice('Suggestion rejected. Your text is unchanged.');
+                    }}
+                  />
+                </View>
               </View>
             )}
 

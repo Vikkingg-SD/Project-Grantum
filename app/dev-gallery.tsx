@@ -31,6 +31,7 @@ import { FilterFieldGroup } from '@/components/molecules/FilterFieldGroup';
 import { PipelineFunnelBar } from '@/components/organisms/PipelineFunnelBar';
 import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
 import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSheet';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioModals';
 import { useTheme } from '@/hooks/useTheme';
 import { useGrants } from '@/api/hooks/useGrants';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -277,6 +278,7 @@ function DevGalleryContent() {
       <AppText variant="h2" style={styles.section}>
         Organisms
       </AppText>
+      <WorkspaceStudioBar grants={GALLERY_GRANTS} />
       <PipelineFunnelBar stages={GALLERY_FUNNEL} />
       <AppButton
         label="Notebook (.ipynb) — long scaled text remains readable"

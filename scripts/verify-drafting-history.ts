@@ -1,6 +1,7 @@
 import {
   acceptSuggestion,
   applyTemplate,
+  buildSectionSuggestion,
   computeLineDiff,
   emptyWorkbench,
   evaluateWorkSlotAudit,
@@ -109,4 +110,15 @@ check(
   serializedBundle.includes('# Project Profile: CleanWater AI (Revision: rev-p1-v2)') &&
     serializedBundle.includes('## Application Narrative') &&
     serializedBundle.includes('## Requirement-to-Evidence Compliance Annex')
+);
+const builtSuggestion = buildSectionSuggestion(
+  accepted.sections[0],
+  'CleanWater AI',
+  'https://example.org/grant'
+);
+check(
+  'Given drafted section When building grounded AI diff suggestion Then original and source URL are preserved',
+  builtSuggestion.original === accepted.sections[0].text &&
+    builtSuggestion.proposed.includes('CleanWater AI') &&
+    builtSuggestion.sources[0].startsWith('https://')
 );
