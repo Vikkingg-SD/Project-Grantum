@@ -11,6 +11,7 @@ import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
+import { MOTION, pressScale, webPressTransition } from '@/config/motion';
 
 export interface AppButtonProps {
   label: string;
@@ -97,9 +98,10 @@ export function AppButton({
       disabled={disabled || isLoading}
       style={({ pressed }) => [
         styles.base,
-        Platform.OS === 'web' && !reduceMotion && webFeedback,
+        Platform.OS === 'web' && !reduceMotion && webPressTransition,
         styles[size],
         getVariantStyle(pressed),
+        pressScale(pressed, reduceMotion, size === 'lg' ? MOTION.pressScaleLarge : undefined),
         (disabled || isLoading) && styles.disabled,
         style,
       ]}
@@ -171,10 +173,3 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
 });
-
-// Web compositing feedback; native press feedback remains immediate.
-const webFeedback = {
-  transitionProperty: 'opacity',
-  transitionDuration: '120ms',
-  transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)',
-} as ViewStyle;

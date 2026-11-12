@@ -1,8 +1,8 @@
 import React, { memo } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { AppText } from '../atoms/AppText';
 import { AppButton } from '../atoms/AppButton';
-import { StatusBadge } from '../atoms/StatusBadge';
+import { PressableBadge } from './PressableBadge';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
 import { BREAKPOINTS } from '@/config/layout';
@@ -34,12 +34,12 @@ export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: G
         >
           {grant.funder}
         </AppText>
-        <Pressable onPress={() => onSelect(grant)}>
-          <StatusBadge
-            label={GRANT_CARD_COPY.matchLabel(grant.matchPct)}
-            variant={matchTier(grant.matchPct)}
-          />
-        </Pressable>
+        <PressableBadge
+          label={GRANT_CARD_COPY.matchLabel(grant.matchPct)}
+          variant={matchTier(grant.matchPct)}
+          actionLabel="Open match breakdown"
+          onPress={() => onSelect(grant)}
+        />
       </View>
       <AppText variant="h3" style={styles.title}>
         {grant.title}

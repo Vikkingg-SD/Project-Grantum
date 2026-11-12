@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, TextProps } from 'react-native';
+import { Platform, Text, TextProps, type TextStyle } from 'react-native';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, TYPOGRAPHY, DESKTOP_TYPOGRAPHY } from '@/config/theme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
@@ -47,6 +47,11 @@ export function AppText({
 
   const isHeader =
     variant === 'display' || variant === 'h1' || variant === 'h2' || variant === 'h3';
+  // Web only: balance short titles, avoid orphans in captions. Never applied to body prose.
+  const wrap = Platform.OS === 'web' && (isHeader || variant === 'caption');
+  const wrapStyle = wrap
+    ? ({ textWrap: isHeader ? 'balance' : 'pretty' } as unknown as TextStyle)
+    : undefined;
 
   return (
     <Text
@@ -54,6 +59,7 @@ export function AppText({
       style={[
         TYPOGRAPHY[variant],
         desktop && DESKTOP_TYPOGRAPHY[variant],
+        wrapStyle,
         { color: colorStyles[color], textAlign: align },
         style,
       ]}

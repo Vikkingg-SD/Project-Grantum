@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Bell from 'lucide-react-native/icons/bell';
 import Filter from 'lucide-react-native/icons/funnel';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
@@ -10,7 +10,7 @@ import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppInput } from '@/components/atoms/AppInput';
 import { IconButton } from '@/components/atoms/IconButton';
-import { StatusBadge } from '@/components/atoms/StatusBadge';
+import { PressableBadge } from '@/components/molecules/PressableBadge';
 import { CenteredHeading } from '@/components/molecules/CenteredHeading';
 import { HeroContinueCard } from '@/components/molecules/HeroContinueCard';
 import { PipelineFunnelBar } from '@/components/organisms/PipelineFunnelBar';
@@ -74,6 +74,36 @@ export default function DashboardScreen() {
     );
   }
   const active = summary.data.activeDraft;
+  const inboxItems = [
+    {
+      key: 'sync',
+      title: 'Profile sync',
+      body: 'My Works shows when a newer Project Profile revision can be pulled into a work slot.',
+      action: 'Open My Works',
+      run: () => setExternalModal('works'),
+    },
+    {
+      key: 'readiness',
+      title: 'Readiness and match',
+      body: `Profile ${summary.data.profileCompletionPct}% done. Open it to see what sits behind each match.`,
+      action: 'Open Project Profile',
+      run: () => setExternalModal('profile'),
+    },
+    {
+      key: 'roles',
+      title: 'Co-work roles',
+      body: 'Review who can edit, review or view each work slot.',
+      action: 'Role & Admin',
+      run: () => setExternalModal('admin'),
+    },
+    {
+      key: 'deadlines',
+      title: 'Deadlines',
+      body: `${grants.data?.length ?? 0} opportunities tracked in the catalog.`,
+      action: 'View deadlines',
+      run: () => navigation.navigateTo('discovery'),
+    },
+  ];
   return (
     <ScreenContainer>
       <View style={styles.content}>
@@ -131,13 +161,13 @@ export default function DashboardScreen() {
           returnKeyType="search"
         />
         <View style={styles.summaryRow}>
-          <Pressable onPress={() => setExternalModal('profile')} style={styles.profile}>
-            <StatusBadge
-              label={'Profile ' + summary.data.profileCompletionPct + '% done'}
-              style={styles.profile}
-              variant="pending"
-            />
-          </Pressable>
+          <PressableBadge
+            label={'Profile ' + summary.data.profileCompletionPct + '% done'}
+            actionLabel="Open project profile"
+            onPress={() => setExternalModal('profile')}
+            style={styles.profile}
+            variant="pending"
+          />
           <AppButton
             label={DASHBOARD_COPY.showAll}
             variant="ghost"
@@ -158,41 +188,32 @@ export default function DashboardScreen() {
           <AppText align="center">
             {active ? `Active application: ${active.title}` : 'No active application yet.'}
           </AppText>
-          <AppText variant="caption" color="muted" align="center">
-            • Cross-Slot Profile Sync: 1 application work slot in My Works can pull a newer Project
-            Profile revision.
-            {'\n'}• LLM Readiness & Match: Tap &quot;Profile 51% done&quot; or any &quot;94%
-            match&quot; badge for verifiable dossier breakdowns.
-            {'\n'}• Upcoming Deadlines: {grants.data?.length ?? 0} opportunities tracked in catalog.
-          </AppText>
-          <View style={styles.summaryRow}>
-            <AppButton
-              size="sm"
-              variant="outline"
-              label="Open Project Profile"
-              onPress={() => {
-                setActivityOpen(false);
-                setExternalModal('profile');
-              }}
-            />
-            <AppButton
-              size="sm"
-              variant="outline"
-              label="Open My Works"
-              onPress={() => {
-                setActivityOpen(false);
-                setExternalModal('works');
-              }}
-            />
-            <AppButton
-              size="sm"
-              variant="ghost"
-              label="Role & Admin"
-              onPress={() => {
-                setActivityOpen(false);
-                setExternalModal('admin');
-              }}
-            />
+          <View style={styles.inbox}>
+            {inboxItems.map((item, index) => (
+              <View
+                key={item.key}
+                style={[
+                  styles.inboxRow,
+                  index > 0 && { borderTopWidth: 1, borderTopColor: theme.border },
+                ]}
+              >
+                <View style={styles.inboxText}>
+                  <AppText variant="label">{item.title}</AppText>
+                  <AppText variant="caption" color="muted">
+                    {item.body}
+                  </AppText>
+                </View>
+                <AppButton
+                  size="sm"
+                  variant="outline"
+                  label={item.action}
+                  onPress={() => {
+                    setActivityOpen(false);
+                    item.run();
+                  }}
+                />
+              </View>
+            ))}
           </View>
           <AppText color="muted" align="center">
             {ENV.DATA_SOURCE === 'mock'
@@ -222,6 +243,15 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   content: { gap: SPACING.lg },
   modalBody: { padding: SPACING.lg, gap: SPACING.lg },
+  inbox: { alignSelf: 'stretch' },
+  inboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.md,
+    paddingVertical: SPACING.md,
+  },
+  inboxText: { flex: 1, minWidth: 0, gap: SPACING.xs },
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',

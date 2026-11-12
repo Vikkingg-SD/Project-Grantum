@@ -1,10 +1,11 @@
 import React from 'react';
-import { Platform, Pressable, StyleSheet, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet } from 'react-native';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
 import { LAYOUT } from '@/config/layout';
+import { pressScale, webPressTransition } from '@/config/motion';
 
 export interface ChipProps {
   label: string;
@@ -28,12 +29,13 @@ export function Chip({ label, selected = false, onToggle, disabled = false }: Ch
       disabled={isDisabled}
       style={({ pressed }) => [
         styles.chip,
-        Platform.OS === 'web' && !reduceMotion && webFeedback,
+        Platform.OS === 'web' && !reduceMotion && webPressTransition,
         {
           backgroundColor: selected ? theme.primary : theme.surface,
           borderColor: selected ? theme.primary : theme.border,
           opacity: isDisabled ? 0.4 : pressed ? 0.75 : 1,
         },
+        pressScale(pressed, reduceMotion),
       ]}
     >
       <AppText variant="caption" color={selected ? 'primaryForeground' : 'muted'}>
@@ -57,9 +59,3 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
 });
-
-const webFeedback = {
-  transitionProperty: 'opacity',
-  transitionDuration: '120ms',
-  transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)',
-} as ViewStyle;
