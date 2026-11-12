@@ -3,6 +3,8 @@ import {
   applyTemplate,
   computeLineDiff,
   emptyWorkbench,
+  evaluateWorkSlotAudit,
+  fullArtifactBundleText,
   recordSubmission,
   restoreVersion,
   saveVersion,
@@ -92,4 +94,19 @@ check(
   'Given sourced suggestion When accepted Then original text is preserved for undo',
   accepted.sections[0].text === 'Suggested answer' &&
     accepted.versions[accepted.versions.length - 1].sections[0].text === section.text
+);
+
+const auditBefore = evaluateWorkSlotAudit(accepted, 1);
+check(
+  'Given work slot with unapproved requirements and profile sync lag When audited Then handoff is blocked',
+  auditBefore.syncLag === 1 &&
+    auditBefore.pendingRequirements > 0 &&
+    auditBefore.readyForHandoff === false
+);
+const serializedBundle = fullArtifactBundleText(accepted, 'CleanWater AI', 'rev-p1-v2');
+check(
+  'Given multi-artifact work slot When serialized for export Then narrative and compliance annex are included',
+  serializedBundle.includes('# Project Profile: CleanWater AI (Revision: rev-p1-v2)') &&
+    serializedBundle.includes('## Application Narrative') &&
+    serializedBundle.includes('## Requirement-to-Evidence Compliance Annex')
 );

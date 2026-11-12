@@ -1,4 +1,4 @@
-/** Frontend integration contracts. Legacy grant-keyed APIs are not migrated yet. */
+/** Workspace, multi-slot drafting, verifiable match, and co-work role contracts. */
 export type ProjectKind = 'grant' | 'startup' | 'social' | 'invention' | 'other';
 export type OutputKind = 'application' | 'pitch-deck' | 'document';
 export type CoWorkRole = 'owner' | 'editor' | 'reviewer' | 'viewer';
@@ -153,4 +153,16 @@ export interface AdminAuditEntry {
   actor: string;
   action: string;
   targetTitle: string;
+}
+
+export interface WorkSlotAuditSummary {
+  totalSections: number;
+  filledSections: number;
+  groundedSections: number;
+  ungroundedSections: number;
+  totalRequirements: number;
+  approvedRequirements: number;
+  pendingRequirements: number;
+  syncLag: number;
+  readyForHandoff: boolean;
 }

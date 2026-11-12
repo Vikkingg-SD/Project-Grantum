@@ -16,6 +16,7 @@ import {
   bundleText,
   computeLineDiff,
   DEFAULT_PITCH_SLIDES,
+  fullArtifactBundleText,
   recordSubmission,
   restoreVersion,
   saveVersion,
@@ -613,7 +614,17 @@ export function DraftWorkbenchPanel({
                   disabled={!work.sections.length || work.sections.some((s) => !s.text.trim())}
                   onPress={() =>
                     act(
-                      () => setExport(grantId, bundleText(work)),
+                      () =>
+                        setExport(
+                          grantId,
+                          fullArtifactBundleText(
+                            work,
+                            activeProject?.name ?? activeProjectId,
+                            activeApp?.profileRevisionId ??
+                              activeProject?.currentRevisionId ??
+                              'latest'
+                          )
+                        ),
                       'Review text copied to Export. Download requires a connected service; nothing was submitted.'
                     )
                   }

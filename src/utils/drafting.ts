@@ -1,4 +1,10 @@
-import type { OutputKind, PitchSlide, ProjectKind, RequirementMapping } from '../types/workspace';
+import type {
+  OutputKind,
+  PitchSlide,
+  ProjectKind,
+  RequirementMapping,
+  WorkSlotAuditSummary,
+} from '../types/workspace';
 
 export interface DraftSection {
   id: string;
@@ -206,6 +212,72 @@ export const bundleText = (work: DraftWorkbench) =>
   work.sections
     .map((s) => `${s.title}\n${s.text}${s.evidence ? '\nSource: ' + s.evidence : ''}`)
     .join('\n\n');
+
+export function fullArtifactBundleText(
+  work: DraftWorkbench,
+  projectName = 'Active Project',
+  profileRevisionId = 'latest'
+): string {
+  const parts: string[] = [
+    `# Project Profile: ${projectName} (Revision: ${profileRevisionId})`,
+    `Requested Outputs: ${work.outputs.join(', ')}`,
+  ];
+  const narrative = bundleText(work);
+  if (narrative.trim()) {
+    parts.push(`## Application Narrative\n${narrative}`);
+  }
+  if (work.outputs.includes('pitch-deck') && work.pitchSlides?.length) {
+    const filledSlides = work.pitchSlides.filter((s) => s.bulletPoints.trim());
+    if (filledSlides.length) {
+      parts.push(
+        `## Pitch Deck Outline\n` +
+          filledSlides.map((s) => `### ${s.title}\n${s.bulletPoints.trim()}`).join('\n\n')
+      );
+    }
+  }
+  if (work.requirementMappings?.length) {
+    parts.push(
+      `## Requirement-to-Evidence Compliance Annex\n` +
+        work.requirementMappings
+          .map(
+            (m) =>
+              `- [${m.reviewStatus.toUpperCase()}] ${m.requirement} (Owner: ${m.owner} | Source: ${m.sourceUrl})`
+          )
+          .join('\n')
+    );
+  }
+  return parts.join('\n\n');
+}
+
+export function evaluateWorkSlotAudit(work: DraftWorkbench, syncLag: number): WorkSlotAuditSummary {
+  const totalSections = work.sections.length;
+  const filledSections = work.sections.filter((s) => s.text.trim().length > 0).length;
+  const groundedSections = work.sections.filter(
+    (s) => s.text.trim().length > 0 && validSource(s.evidence)
+  ).length;
+  const ungroundedSections = Math.max(0, totalSections - groundedSections);
+  const mappings = work.requirementMappings ?? [];
+  const totalRequirements = mappings.length;
+  const approvedRequirements = mappings.filter((m) => m.reviewStatus === 'approved').length;
+  const pendingRequirements = Math.max(0, totalRequirements - approvedRequirements);
+  const readyForHandoff =
+    totalSections > 0 &&
+    filledSections === totalSections &&
+    ungroundedSections === 0 &&
+    pendingRequirements === 0 &&
+    syncLag === 0;
+  return {
+    totalSections,
+    filledSections,
+    groundedSections,
+    ungroundedSections,
+    totalRequirements,
+    approvedRequirements,
+    pendingRequirements,
+    syncLag,
+    readyForHandoff,
+  };
+}
 
 export interface TextSuggestion {
   sectionId: string;
