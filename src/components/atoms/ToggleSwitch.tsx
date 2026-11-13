@@ -1,8 +1,10 @@
 import React from 'react';
-import { Pressable, View, StyleSheet } from 'react-native';
+import { Platform, Pressable, View, StyleSheet } from 'react-native';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS } from '@/config/theme';
 import { LAYOUT } from '@/config/layout';
+import { webStateTransition } from '@/config/motion';
 
 export interface ToggleSwitchProps {
   label: string;
@@ -14,6 +16,9 @@ export interface ToggleSwitchProps {
 export function ToggleSwitch({ label, checked, onChange, disabled = false }: ToggleSwitchProps) {
   const mode = useThemeStore((state) => state.mode);
   const theme = PALETTE[mode];
+  const reduceMotion = useReduceMotion();
+  // Thumb and track share one transition so the state change reads as a single movement.
+  const animated = Platform.OS === 'web' && !reduceMotion;
 
   return (
     <Pressable
@@ -23,11 +28,12 @@ export function ToggleSwitch({ label, checked, onChange, disabled = false }: Tog
       aria-checked={checked}
       onPress={() => !disabled && onChange(!checked)}
       disabled={disabled}
-      style={[styles.target, { opacity: disabled ? 0.4 : 1 }]}
+      style={({ pressed }) => [styles.target, { opacity: disabled ? 0.4 : pressed ? 0.8 : 1 }]}
     >
       <View
         style={[
           styles.track,
+          animated && webStateTransition,
           {
             backgroundColor: checked ? theme.verified : theme.subtle,
             borderColor: theme.inputBorder,
@@ -37,6 +43,7 @@ export function ToggleSwitch({ label, checked, onChange, disabled = false }: Tog
         <View
           style={[
             styles.thumb,
+            animated && webStateTransition,
             {
               backgroundColor: theme.textMain,
               transform: [{ translateX: checked ? 20 : 2 }],

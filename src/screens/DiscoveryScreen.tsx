@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { View, Pressable, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
@@ -14,6 +14,7 @@ import { CenteredHeading } from '@/components/molecules/CenteredHeading';
 import { useTheme } from '@/hooks/useTheme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
+import { PressableBadge } from '@/components/molecules/PressableBadge';
 import { FilterFieldGroup } from '@/components/molecules/FilterFieldGroup';
 import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
 import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSheet';
@@ -83,13 +84,13 @@ export default function DiscoveryScreen() {
             Find your next opportunity
           </AppText>
           {summary.data && (
-            <Pressable onPress={() => setExternalModal('profile')} style={styles.centerBadge}>
-              <StatusBadge
-                label={`Project Profile ${summary.data.profileCompletionPct}% Done`}
-                style={styles.centerBadge}
-                variant="pending"
-              />
-            </Pressable>
+            <PressableBadge
+              label={`Project Profile ${summary.data.profileCompletionPct}% Done`}
+              actionLabel="Open project profile"
+              onPress={() => setExternalModal('profile')}
+              style={styles.centerBadge}
+              variant="pending"
+            />
           )}
         </View>
         <WorkspaceStudioBar

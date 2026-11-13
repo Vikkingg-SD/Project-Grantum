@@ -59,7 +59,7 @@ export function StatusBadge({ label, variant = 'neutral', style }: StatusBadgePr
       <AppText
         variant="caption"
         accessibilityLabel={label}
-        style={{ color: colors.text, textAlign: 'center' }}
+        style={{ color: colors.text, textAlign: 'center', fontVariant: ['tabular-nums'] }}
       >
         {label}
       </AppText>
