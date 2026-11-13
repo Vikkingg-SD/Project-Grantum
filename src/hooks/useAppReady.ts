@@ -1,19 +1,32 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { useFonts } from 'expo-font';
 import { useThemeStore } from '@/store/useThemeStore';
+import { useWorkspaceStore, hydrateWorkspace } from '@/store/useWorkspaceStore';
+import { useWorkbenchStore, hydrateWorkbench } from '@/store/useWorkbenchStore';
 
 function subscribeToHydration(notify: () => void) {
   const start = useThemeStore.persist.onHydrate(notify);
   const finish = useThemeStore.persist.onFinishHydration(notify);
+  const workspace = useWorkspaceStore.subscribe(notify);
+  const workbench = useWorkbenchStore.subscribe(notify);
   return () => {
     start();
     finish();
+    workspace();
+    workbench();
   };
 }
-const hydrationSnapshot = () => useThemeStore.persist.hasHydrated();
+const hydrationSnapshot = () =>
+  useThemeStore.persist.hasHydrated() &&
+  useWorkspaceStore.getState().hydrated &&
+  useWorkbenchStore.getState().hydrated;
 const serverHydrationSnapshot = () => false;
 
 export function useAppReady(): boolean {
+  useEffect(() => {
+    void hydrateWorkspace();
+    void hydrateWorkbench();
+  }, []);
   const [fontsLoaded] = useFonts({
     Inter_400Regular: require('@expo-google-fonts/inter/Inter_400Regular.ttf'),
     Inter_500Medium: require('@expo-google-fonts/inter/Inter_500Medium.ttf'),

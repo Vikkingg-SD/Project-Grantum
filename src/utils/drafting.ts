@@ -97,7 +97,7 @@ export function syncGrantRequirements(
   requirements: readonly string[],
   sourceUrl: string
 ): DraftWorkbench {
-  if (!validSource(sourceUrl)) throw new Error('Official source URL must use http or https');
+  if (sourceUrl && !validSource(sourceUrl)) throw new Error('Reference URL must use http or https');
   const cleanReqs = requirements.map((r) => r.trim()).filter(Boolean);
   const newSections = [...work.sections];
   const newMappings = [...(work.requirementMappings ?? [])];
@@ -252,10 +252,10 @@ export function fullArtifactBundleText(
 export function evaluateWorkSlotAudit(work: DraftWorkbench, syncLag: number): WorkSlotAuditSummary {
   const totalSections = work.sections.length;
   const filledSections = work.sections.filter((s) => s.text.trim().length > 0).length;
-  const groundedSections = work.sections.filter(
+  const linkedSections = work.sections.filter(
     (s) => s.text.trim().length > 0 && validSource(s.evidence)
   ).length;
-  const ungroundedSections = Math.max(0, totalSections - groundedSections);
+  const unlinkedSections = Math.max(0, totalSections - linkedSections);
   const mappings = work.requirementMappings ?? [];
   const totalRequirements = mappings.length;
   const approvedRequirements = mappings.filter((m) => m.reviewStatus === 'approved').length;
@@ -263,14 +263,14 @@ export function evaluateWorkSlotAudit(work: DraftWorkbench, syncLag: number): Wo
   const readyForHandoff =
     totalSections > 0 &&
     filledSections === totalSections &&
-    ungroundedSections === 0 &&
+    unlinkedSections === 0 &&
     pendingRequirements === 0 &&
     syncLag === 0;
   return {
     totalSections,
     filledSections,
-    groundedSections,
-    ungroundedSections,
+    linkedSections,
+    unlinkedSections,
     totalRequirements,
     approvedRequirements,
     pendingRequirements,
@@ -288,18 +288,22 @@ export interface TextSuggestion {
 export function buildSectionSuggestion(
   section: DraftSection,
   projectName: string,
-  officialUrl: string
+  referenceUrl: string
 ): TextSuggestion {
   const baseText = section.text.trim();
-  const source = validSource(section.evidence) ? section.evidence : officialUrl;
+  const source = validSource(section.evidence)
+    ? section.evidence
+    : validSource(referenceUrl)
+      ? referenceUrl
+      : '';
   const proposed = baseText
-    ? `${baseText}\n[Grounded in ${projectName} dossier & verified against ${source}]`
-    : `Structured ${section.title} response grounded in ${projectName} dossier metrics and verified against ${source}.`;
+    ? `${baseText}\n\nReview note: check this section against the ${projectName} project profile.`
+    : `Describe ${section.title} for ${projectName}. Add supporting facts and review any references before submission.`;
   return {
     sectionId: section.id,
     original: section.text,
     proposed,
-    sources: [source],
+    sources: source ? [source] : [],
   };
 }
 export function acceptSuggestion(
@@ -311,7 +315,7 @@ export function acceptSuggestion(
   const section = work.sections.find((s) => s.id === suggestion.sectionId);
   if (!section || section.text !== suggestion.original)
     throw new Error('The section changed. Review a fresh suggestion.');
-  if (!suggestion.sources.length || suggestion.sources.some((source) => !validSource(source)))
+  if (suggestion.sources.some((source) => !validSource(source)))
     throw new Error('A suggestion needs valid source links');
   const saved = saveVersion(work, id, time, 'Before accepting suggestion');
   return {

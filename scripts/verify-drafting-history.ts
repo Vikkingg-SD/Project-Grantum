@@ -117,8 +117,25 @@ const builtSuggestion = buildSectionSuggestion(
   'https://example.org/grant'
 );
 check(
-  'Given drafted section When building grounded AI diff suggestion Then original and source URL are preserved',
+  'Given drafted section When building a template suggestion Then original and source URL are preserved',
   builtSuggestion.original === accepted.sections[0].text &&
     builtSuggestion.proposed.includes('CleanWater AI') &&
     builtSuggestion.sources[0].startsWith('https://')
+);
+
+check(
+  'Given a local template When generated Then no verification claim or invented URL is added',
+  !builtSuggestion.proposed.includes('verified against') &&
+    !builtSuggestion.proposed.includes('Grounded in')
+);
+
+const unlinked = syncGrantRequirements(emptyWorkbench(), ['Catalog requirement'], '');
+check(
+  'Given catalog text without a source When copied Then no evidence link is invented',
+  unlinked.sections[0].evidence === '' && unlinked.requirementMappings?.[0].sourceUrl === ''
+);
+const templateOnly = buildSectionSuggestion(unlinked.sections[0], 'Project', '');
+check(
+  'Given a template without sources When previewed Then sources stay empty and user review is required',
+  templateOnly.sources.length === 0 && templateOnly.proposed.includes('review')
 );

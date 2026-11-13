@@ -8,7 +8,7 @@ import type {
   ProjectKind,
   ProjectProfile,
   ReadinessChecklistItem,
-  VerifiableMatchReport,
+  ProfileComparisonReport,
 } from '../types/workspace';
 
 export interface Workspace {
@@ -254,49 +254,48 @@ export function computeProfileReadiness(
   };
 }
 
-export function buildVerifiableMatch(
+export function buildProfileComparison(
   grant: Grant,
   project: ProjectProfile,
   revision: ProfileRevision,
   requirements: string[] = []
-): VerifiableMatchReport {
+): ProfileComparisonReport {
   const fields = revision.fields;
-  const verifiedAlignments: { clause: string; profileFact: string }[] = [];
+  const profileFacts: { clause: string; profileFact: string }[] = [];
   const missingAreas: { gap: string; targetAction: string }[] = [];
 
   if ((fields.mission ?? '').trim()) {
-    verifiedAlignments.push({
+    profileFacts.push({
       clause: `${grant.funder} thematic scope (${grant.title})`,
       profileFact: `Mission (${revision.id}): ${fields.mission.trim()}`,
     });
   } else {
     missingAreas.push({
       gap: 'Core Mission & Value Thesis is missing in Project Profile',
-      targetAction:
-        'Add Mission statement in Project Profile Dossier to verify thematic alignment.',
+      targetAction: 'Add Mission statement in Project Profile Dossier for thematic review.',
     });
   }
 
   if ((fields.solution ?? '').trim()) {
-    verifiedAlignments.push({
+    profileFacts.push({
       clause: 'Technical & delivery execution capability',
       profileFact: `Approach (${revision.id}): ${fields.solution.trim()}`,
     });
   } else {
     missingAreas.push({
-      gap: 'Technical / Program Approach is unverified',
+      gap: 'Technical / Program Approach is missing',
       targetAction: 'Document technical methodology and delivery milestones in Project Profile.',
     });
   }
 
   if ((fields.budget ?? '').trim()) {
-    verifiedAlignments.push({
+    profileFacts.push({
       clause: `Funding envelope alignment (${grant.amount})`,
       profileFact: `Budget plan (${revision.id}): ${fields.budget.trim()}`,
     });
   } else {
     missingAreas.push({
-      gap: `No budget breakdown to verify against ${grant.amount} ceiling`,
+      gap: `No budget breakdown to compare against ${grant.amount} ceiling`,
       targetAction: 'Enter Budget Envelope & Co-Funding details in Project Profile.',
     });
   }
@@ -306,9 +305,9 @@ export function buildVerifiableMatch(
       (fields.problem ?? '').toLowerCase().includes(req.toLowerCase().slice(0, 6)) ||
       (fields.solution ?? '').toLowerCase().includes(req.toLowerCase().slice(0, 6));
     if (hasMatch) {
-      verifiedAlignments.push({
+      profileFacts.push({
         clause: `Grant requirement: ${req}`,
-        profileFact: `Grounded in ${project.name} revision ${revision.id}`,
+        profileFact: `Text overlap in ${project.name} revision ${revision.id}; review required`,
       });
     } else {
       missingAreas.push({
@@ -319,39 +318,30 @@ export function buildVerifiableMatch(
   }
 
   const profileRegion = (fields.region ?? '').trim();
-  const regionPass =
-    !profileRegion ||
-    grant.region.toLowerCase() === 'global' ||
-    profileRegion.toLowerCase().includes(grant.region.toLowerCase()) ||
-    grant.region.toLowerCase().includes(profileRegion.toLowerCase());
 
   const eligibilityGates = [
     {
       rule: `Geographic Jurisdiction (${grant.region})`,
-      status: profileRegion
-        ? regionPass
-          ? ('pass' as const)
-          : ('review' as const)
-        : ('unknown' as const),
+      status: profileRegion ? ('review' as const) : ('unknown' as const),
       detail: profileRegion
         ? `Project registered in "${profileRegion}" vs. grant region "${grant.region}".`
-        : 'Set Eligible Jurisdiction in Project Profile to verify regional gate.',
+        : 'Set Eligible Jurisdiction in Project Profile for regional review.',
     },
     {
       rule: `Award Ceiling (${grant.amount})`,
-      status: (fields.budget ?? '').trim() ? ('pass' as const) : ('unknown' as const),
+      status: (fields.budget ?? '').trim() ? ('review' as const) : ('unknown' as const),
       detail: (fields.budget ?? '').trim()
         ? `Profile budget ("${fields.budget.trim()}") recorded for ${grant.amount} window.`
-        : 'Add Budget Envelope in Project Profile to verify cost-share and cap.',
+        : 'Add Budget Envelope in Project Profile for cost-share and cap review.',
     },
     {
       rule: `Submission Window (${grant.deadline})`,
-      status: 'pass' as const,
-      detail: `Active solicitation window (${grant.deadline}) verified against catalog snapshot.`,
+      status: 'review' as const,
+      detail: `Active solicitation window (${grant.deadline}) listed in the catalog; current deadline has not been checked.`,
     },
     {
       rule: 'Applicant Legal Entity Type',
-      status: (fields.entityType ?? '').trim() ? ('pass' as const) : ('review' as const),
+      status: (fields.entityType ?? '').trim() ? ('review' as const) : ('unknown' as const),
       detail: (fields.entityType ?? '').trim()
         ? `Entity classification: ${fields.entityType.trim()}.`
         : 'Specify Legal Entity status in Project Profile before final compliance check.',
@@ -362,9 +352,9 @@ export function buildVerifiableMatch(
     score: grant.matchPct,
     profileRevisionId: revision.id,
     projectName: project.name,
-    officialUrl: `https://grants.example.org/opportunities/${encodeURIComponent(grant.id)}`,
-    lastVerifiedAt: revision.createdAt.slice(0, 10),
-    verifiedAlignments,
+    referenceUrl: null,
+    profileUpdatedAt: revision.createdAt.slice(0, 10),
+    profileFacts,
     missingAreas,
     eligibilityGates,
   };

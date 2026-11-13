@@ -9,8 +9,7 @@ import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
 import { MODAL_COPY } from '@/config/copy';
 import { ENV } from '@/config/env';
-import { matchTier } from '@/utils/scoring';
-import { buildVerifiableMatch } from '@/utils/workspace';
+import { buildProfileComparison } from '@/utils/workspace';
 
 export interface GrantDetailModalSheetProps {
   grant: Grant | null;
@@ -35,7 +34,7 @@ export function GrantDetailModalSheet({
   const matchReport = useMemo(
     () =>
       grant && activeProject && activeRevision
-        ? buildVerifiableMatch(grant, activeProject, activeRevision)
+        ? buildProfileComparison(grant, activeProject, activeRevision)
         : null,
     [activeProject, activeRevision, grant]
   );
@@ -52,7 +51,7 @@ export function GrantDetailModalSheet({
         <View style={styles.titleArea}>
           <AppText variant="h2">{grant.title}</AppText>
           <StatusBadge label={grant.funder} variant="neutral" />
-          <StatusBadge label={`${grant.matchPct}% match`} variant={matchTier(grant.matchPct)} />
+          <StatusBadge label={`${grant.matchPct}% catalog score`} variant="neutral" />
         </View>
       </View>
 
@@ -102,27 +101,27 @@ export function GrantDetailModalSheet({
           style={[styles.reportBox, { backgroundColor: theme.surface, borderColor: theme.border }]}
         >
           <AppText variant="h3">
-            Verifiable Match Breakdown ({matchReport.score}% vs. {matchReport.projectName})
+            Profile comparison ({matchReport.score}% catalog score · {matchReport.projectName})
           </AppText>
           <AppText variant="caption" color="muted">
-            Grounded against Profile Revision {matchReport.profileRevisionId} · Verified:{' '}
-            {matchReport.lastVerifiedAt} · Official Catalog Ref: {matchReport.officialUrl}
+            Profile revision {matchReport.profileRevisionId} · Saved: {matchReport.profileUpdatedAt}{' '}
+            · Local field comparison; evidence and eligibility have not been verified.
           </AppText>
 
-          <AppText variant="label">1. Verified Alignment</AppText>
-          {matchReport.verifiedAlignments.map((item, idx) => (
+          <AppText variant="label">Profile information</AppText>
+          {matchReport.profileFacts.map((item, idx) => (
             <View key={`align-${idx}`} style={styles.reportItem}>
               <AppText variant="body">• {item.clause}</AppText>
-              <AppText variant="caption" color="verified">
+              <AppText variant="caption" color="main">
                 {item.profileFact}
               </AppText>
             </View>
           ))}
 
-          <AppText variant="label">2. Missing / Weak Areas</AppText>
+          <AppText variant="label">Needs review</AppText>
           {matchReport.missingAreas.length === 0 ? (
-            <AppText variant="caption" color="verified">
-              All core dossier fields are populated for this opportunity.
+            <AppText variant="caption" color="main">
+              No missing fields were detected. This does not establish eligibility.
             </AppText>
           ) : (
             matchReport.missingAreas.map((item, idx) => (
@@ -143,7 +142,7 @@ export function GrantDetailModalSheet({
             />
           )}
 
-          <AppText variant="label">3. Hard Eligibility Gate</AppText>
+          <AppText variant="label">Eligibility review</AppText>
           {matchReport.eligibilityGates.map((gate) => (
             <View key={gate.rule} style={[styles.gateRow, { borderColor: theme.border }]}>
               <View style={styles.gateHeader}>

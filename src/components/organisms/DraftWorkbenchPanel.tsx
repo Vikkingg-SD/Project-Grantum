@@ -53,7 +53,14 @@ export function DraftWorkbenchPanel({
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const activeRole = useWorkspaceStore((state) => state.activeRole);
   const nickname = useWorkspaceStore((state) => state.nickname);
-  const persistenceStatus = useWorkspaceStore((state) => state.persistenceStatus);
+  const workspaceStatus = useWorkspaceStore((state) => state.persistenceStatus);
+  const draftStatus = useWorkbenchStore((state) => state.persistenceStatus);
+  const persistenceStatus =
+    workspaceStatus === 'session-only' || draftStatus === 'session-only'
+      ? 'session-only'
+      : workspaceStatus === 'saving' || draftStatus === 'saving'
+        ? 'saving'
+        : 'device-saved';
   const setActiveProject = useWorkspaceStore((state) => state.setActiveProject);
   const pullWorkSlotProfile = useWorkspaceStore((state) => state.pullWorkSlotProfile);
   const markWorkSlotSubmitted = useWorkspaceStore((state) => state.markWorkSlotSubmitted);
@@ -103,7 +110,7 @@ export function DraftWorkbenchPanel({
     }
   };
 
-  const officialGrantUrl = `https://grants.example.org/opportunities/${encodeURIComponent(grantId)}`;
+  const referenceUrl = validSource(sectionSource) ? sectionSource.trim() : '';
   const slides = work.pitchSlides ?? DEFAULT_PITCH_SLIDES;
   const mappings = work.requirementMappings ?? [];
 
@@ -120,7 +127,7 @@ export function DraftWorkbenchPanel({
         <View style={styles.headerRow}>
           <AppText variant="h2">Form templates and drafting</AppText>
           <StatusBadge
-            label={`${activeRole.toUpperCase()} · ${persistenceStatus === 'device-saved' ? 'Saved on device' : 'Session preview'}`}
+            label={`${activeRole.toUpperCase()} · ${persistenceStatus === 'device-saved' ? 'Saved on device' : persistenceStatus === 'saving' ? 'Saving on device…' : 'Edits may be session-only'}`}
             variant={persistenceStatus === 'device-saved' ? 'verified' : 'neutral'}
           />
         </View>
@@ -191,7 +198,7 @@ export function DraftWorkbenchPanel({
             )}
 
             <AppText variant="caption" color="muted">
-              Grounded local files attached: {localDraft.attachments.length} · Profile Vault Docs:{' '}
+              Local file references: {localDraft.attachments.length} · Profile Vault Docs:{' '}
               {vaultDocs.length} · Saved versions: {work.versions.length}
             </AppText>
             {vaultDocs.length > 0 && (
@@ -287,17 +294,17 @@ export function DraftWorkbenchPanel({
                       onPress={() =>
                         act(() => {
                           update(key, (current) =>
-                            syncGrantRequirements(current, grantRequirements, officialGrantUrl)
+                            syncGrantRequirements(current, grantRequirements, referenceUrl)
                           );
                           setTab('requirements');
-                        }, 'Synced grant track requirements with official source URL.')
+                        }, 'Copied catalog requirements; source content was not checked.')
                       }
                     />
                   )}
                 </View>
                 <AppText color="muted">
-                  Add a source-backed requirement manually below or sync official grant requirements
-                  above.
+                  Copy catalog requirements above or add one manually below. Reference links are
+                  optional when copying and their content is not checked.
                 </AppText>
                 <AppInput
                   label="Additional requirement"
@@ -307,7 +314,7 @@ export function DraftWorkbenchPanel({
                   maxLength={120}
                 />
                 <AppInput
-                  label="Official requirement source URL"
+                  label="Requirement reference URL"
                   value={sectionSource}
                   onChangeText={setSectionSource}
                   editable={canEdit}
@@ -367,14 +374,14 @@ export function DraftWorkbenchPanel({
                     <AppButton
                       size="sm"
                       variant="ghost"
-                      label={`Preview grounded AI diff suggestion for ${section.title}`}
+                      label={`Preview template suggestion for ${section.title}`}
                       disabled={!canEdit}
                       onPress={() =>
                         setLocalSuggestion(
                           buildSectionSuggestion(
                             section,
                             activeProject?.name ?? activeProjectId,
-                            officialGrantUrl
+                            referenceUrl
                           )
                         )
                       }
@@ -473,7 +480,7 @@ export function DraftWorkbenchPanel({
                         />
                       </View>
                       <AppText variant="caption" color="muted">
-                        Official Source: {item.sourceUrl} · Owner: {item.owner}
+                        Reference URL: {item.sourceUrl} · Owner: {item.owner}
                       </AppText>
                       <View style={styles.rowWrap}>
                         {(['drafting', 'in-review', 'approved'] as const).map((status) => (
@@ -509,7 +516,9 @@ export function DraftWorkbenchPanel({
               >
                 <AppText variant="h3">Review suggested change</AppText>
                 <AppText>Original: {activeSuggestion.original}</AppText>
-                <AppText color="verified">Proposed: {activeSuggestion.proposed}</AppText>
+                <AppText>
+                  Template preview (no AI or evidence verification): {activeSuggestion.proposed}
+                </AppText>
                 {activeSuggestion.sources.map((source) => (
                   <AppButton
                     key={source}

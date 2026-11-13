@@ -49,7 +49,7 @@ export default function PersonalSettingsScreen() {
             disabled={!validName}
             onPress={() => {
               setPersonalSettings(name, digest);
-              setNotice('Personal settings saved.');
+              setNotice('Settings updated. Check storage status below.');
             }}
           />
           {notice ? (
@@ -60,7 +60,9 @@ export default function PersonalSettingsScreen() {
           <AppText variant="caption" color="muted">
             {persistenceStatus === 'device-saved'
               ? 'Saved on this device.'
-              : 'Available for this session only.'}
+              : persistenceStatus === 'saving'
+                ? 'Saving on this device…'
+                : 'Available for this session only; device storage could not be used.'}
           </AppText>
         </View>
       </View>

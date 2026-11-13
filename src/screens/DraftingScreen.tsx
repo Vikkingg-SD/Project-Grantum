@@ -277,8 +277,9 @@ function DraftingSession({ grantId }: { grantId: string }) {
           {optionsTab === 'templates' ? (
             <View style={{ gap: SPACING.md }}>
               <AppText color="muted">
-                Launch the split-pane Drafting & History Studio or sync grant track requirements
-                into your active project work slot.
+                Launch the split-pane Drafting & History Studio or copy catalog requirements into
+                your active project work slot. Catalog text has not been checked against an official
+                source.
               </AppText>
               <AppButton
                 label="Form templates"
@@ -290,16 +291,12 @@ function DraftingSession({ grantId }: { grantId: string }) {
               />
               {trackReqs.length > 0 && (
                 <AppButton
-                  label={`Sync ${trackReqs.length} grant track requirements into Studio`}
+                  label={`Copy ${trackReqs.length} catalog requirements into Studio`}
                   variant="outline"
                   onPress={() => {
                     const slot = workSlotKey(activeProjectId, grantId);
                     updateWorkbench(slot, (current) =>
-                      syncGrantRequirements(
-                        current,
-                        trackReqs,
-                        `https://grants.example.org/opportunities/${encodeURIComponent(grantId)}`
-                      )
+                      syncGrantRequirements(current, trackReqs, '')
                     );
                     setOptionsOpen(false);
                     setWorkbenchOpen(true);

@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { createDevicePersistence, type PersistenceStatus } from './devicePersistence';
+import { getDeviceStorage } from './deviceStorage';
 import { ENV } from '@/config/env';
 import type {
   AdminAuditEntry,
@@ -173,39 +175,24 @@ interface PersistedSlice {
   adminAuditLog?: AdminAuditEntry[];
 }
 
-function getBrowserStorage(): Storage | undefined {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    return window.localStorage;
+const persistence = createDevicePersistence<PersistedSlice>(
+  STORAGE_KEY,
+  getDeviceStorage(),
+  (value): value is PersistedSlice => {
+    const data = value as PersistedSlice | null;
+    return Boolean(
+      data &&
+      Array.isArray(data.workspace?.projects) &&
+      data.workspace.projects.length &&
+      Array.isArray(data.workspace.revisions) &&
+      Array.isArray(data.workspace.applications) &&
+      typeof data.activeProjectId === 'string' &&
+      typeof data.nickname === 'string' &&
+      typeof data.digestEnabled === 'boolean' &&
+      ['owner', 'editor', 'reviewer', 'viewer'].includes(data.activeRole)
+    );
   }
-  return undefined;
-}
-
-function loadPersisted(): { slice: PersistedSlice | null; supported: boolean } {
-  try {
-    const storage = getBrowserStorage();
-    if (!storage) return { slice: null, supported: false };
-    const raw = storage.getItem(STORAGE_KEY);
-    if (!raw) return { slice: null, supported: true };
-    const parsed = JSON.parse(raw) as PersistedSlice;
-    if (!parsed || !Array.isArray(parsed.workspace?.projects)) {
-      return { slice: null, supported: true };
-    }
-    return { slice: parsed, supported: true };
-  } catch {
-    return { slice: null, supported: false };
-  }
-}
-
-function writePersisted(slice: PersistedSlice): boolean {
-  try {
-    const storage = getBrowserStorage();
-    if (!storage) return false;
-    storage.setItem(STORAGE_KEY, JSON.stringify(slice));
-    return true;
-  } catch {
-    return false;
-  }
-}
+);
 
 export interface WorkspaceStoreState {
   workspace: Workspace;
@@ -215,7 +202,8 @@ export interface WorkspaceStoreState {
   userId: string;
   nickname: string;
   digestEnabled: boolean;
-  persistenceStatus: 'device-saved' | 'session-only';
+  persistenceStatus: PersistenceStatus;
+  hydrated: boolean;
   adminQueue: AdminQueueItem[];
   adminAuditLog: AdminAuditEntry[];
   setActiveProject: (projectId: string) => void;
@@ -236,7 +224,7 @@ export interface WorkspaceStoreState {
   resolveAdminQueueItem: (id: string, status: 'approved' | 'rejected' | 'retried') => void;
 }
 
-const initialLoad = loadPersisted();
+const initialLoad = { slice: persistence.initial };
 const seedWorkspace = initialLoad.slice?.workspace ?? buildInitialWorkspace();
 
 export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
@@ -252,8 +240,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
       adminQueue: next.adminQueue ?? current.adminQueue,
       adminAuditLog: next.adminAuditLog ?? current.adminAuditLog,
     };
-    const saved = writePersisted(merged);
-    return saved ? ('device-saved' as const) : ('session-only' as const);
+    return persistence.save(merged, (persistenceStatus) => set({ persistenceStatus }));
   };
 
   return {
@@ -271,7 +258,8 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
     userId: 'usr_94f8a2c1',
     nickname: initialLoad.slice?.nickname ?? 'Founder Lead',
     digestEnabled: initialLoad.slice?.digestEnabled ?? true,
-    persistenceStatus: initialLoad.supported ? 'device-saved' : 'session-only',
+    persistenceStatus: persistence.status,
+    hydrated: persistence.hydrated,
     adminQueue:
       initialLoad.slice?.adminQueue ?? (ENV.DATA_SOURCE === 'mock' ? INITIAL_ADMIN_QUEUE : []),
     adminAuditLog:
@@ -480,3 +468,23 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
       }),
   };
 });
+
+export async function hydrateWorkspace() {
+  await persistence.hydrate((slice) => {
+    useWorkspaceStore.setState({
+      workspace: slice.workspace,
+      activeProjectId: slice.activeProjectId,
+      activeRole: slice.activeRole,
+      nickname: slice.nickname,
+      digestEnabled: slice.digestEnabled,
+      adminQueue: slice.adminQueue ?? useWorkspaceStore.getState().adminQueue,
+      adminAuditLog: slice.adminAuditLog ?? useWorkspaceStore.getState().adminAuditLog,
+      projectRoles:
+        slice.projectRoles ??
+        Object.fromEntries(
+          slice.workspace.projects.map((project) => [project.id, slice.activeRole])
+        ),
+    });
+  });
+  useWorkspaceStore.setState({ hydrated: true, persistenceStatus: persistence.status });
+}

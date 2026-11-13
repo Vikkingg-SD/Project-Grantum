@@ -1,46 +1,56 @@
 import { create } from 'zustand';
+import { createDevicePersistence, type PersistenceStatus } from './devicePersistence';
+import { getDeviceStorage } from './deviceStorage';
 import { emptyWorkbench, type DraftWorkbench } from '@/utils/drafting';
 
 const WORKBENCH_STORAGE_KEY = 'grantum.workbench.v1';
 
-function loadWorkbenches(): Record<string, DraftWorkbench> {
-  try {
-    if (typeof window === 'undefined' || !window.localStorage) return {};
-    const raw = window.localStorage.getItem(WORKBENCH_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, DraftWorkbench>;
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveWorkbenches(work: Record<string, DraftWorkbench>) {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(WORKBENCH_STORAGE_KEY, JSON.stringify(work));
-    }
-  } catch {
-    // Ignore storage quota errors in session-only environments
-  }
-}
+const persistence = createDevicePersistence<Record<string, DraftWorkbench>>(
+  WORKBENCH_STORAGE_KEY,
+  getDeviceStorage(),
+  (value): value is Record<string, DraftWorkbench> =>
+    Boolean(
+      value &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      Object.values(value).every(
+        (work) =>
+          work &&
+          Array.isArray(work.sections) &&
+          Array.isArray(work.versions) &&
+          Array.isArray(work.submissions) &&
+          Array.isArray(work.outputs)
+      )
+    )
+);
 
 interface WorkbenchStore {
   work: Record<string, DraftWorkbench>;
+  hydrated: boolean;
+  persistenceStatus: PersistenceStatus;
   update: (key: string, change: (work: DraftWorkbench) => DraftWorkbench) => void;
 }
 
 export const useWorkbenchStore = create<WorkbenchStore>((set) => ({
-  work: loadWorkbenches(),
+  work: persistence.initial ?? {},
+  hydrated: persistence.hydrated,
+  persistenceStatus: persistence.status,
   update: (key, change) =>
     set((state) => {
       const next = {
         ...state.work,
         [key]: change(state.work[key] ?? emptyWorkbench()),
       };
-      saveWorkbenches(next);
-      return { work: next };
+      const persistenceStatus = persistence.save(next, (status) =>
+        set({ persistenceStatus: status })
+      );
+      return { work: next, persistenceStatus };
     }),
 }));
 
 export const EMPTY_WORKBENCH = emptyWorkbench();
+
+export async function hydrateWorkbench() {
+  await persistence.hydrate((work) => useWorkbenchStore.setState({ work }));
+  useWorkbenchStore.setState({ hydrated: true, persistenceStatus: persistence.status });
+}
