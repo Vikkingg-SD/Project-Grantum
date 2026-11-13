@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Bell from 'lucide-react-native/icons/bell';
@@ -30,11 +31,12 @@ import type { Grant } from '@/types/grant';
 
 export default function DashboardScreen() {
   const navigation = useAppNavigation();
+  const router = useRouter();
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
   const [query, setQuery] = useState('');
   const [activityOpen, setActivityOpen] = useState(false);
-  const [externalModal, setExternalModal] = useState<'profile' | 'works' | 'admin' | null>(null);
+  const [externalModal, setExternalModal] = useState<'admin' | null>(null);
   const grants = useGrants();
   const summary = useDashboardSummary();
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
@@ -80,14 +82,14 @@ export default function DashboardScreen() {
       title: 'Profile sync',
       body: 'My Works shows when a newer Project Profile revision can be pulled into a work slot.',
       action: 'Open My Works',
-      run: () => setExternalModal('works'),
+      run: () => router.push('/my-works'),
     },
     {
       key: 'readiness',
       title: 'Readiness and match',
       body: `Profile ${summary.data.profileCompletionPct}% done. Open it to see what sits behind each match.`,
       action: 'Open Project Profile',
-      run: () => setExternalModal('profile'),
+      run: () => router.push('/project-profile'),
     },
     {
       key: 'roles',
@@ -164,7 +166,7 @@ export default function DashboardScreen() {
           <PressableBadge
             label={'Profile ' + summary.data.profileCompletionPct + '% done'}
             actionLabel="Open project profile"
-            onPress={() => setExternalModal('profile')}
+            onPress={() => router.push('/project-profile')}
             style={styles.profile}
             variant="pending"
           />
@@ -233,7 +235,7 @@ export default function DashboardScreen() {
           onApply={applyGrant}
           onOpenProfile={() => {
             setSelectedGrant(null);
-            setExternalModal('profile');
+            router.push('/project-profile');
           }}
         />
       </ModalSheetLayout>

@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { View, StyleSheet } from 'react-native';
@@ -37,6 +38,7 @@ const toggle = (items: string[], value: string) =>
 
 export default function DiscoveryScreen() {
   const navigation = useAppNavigation();
+  const router = useRouter();
   const { mobile } = useLayoutMetrics();
   const wide = !mobile;
   const theme = useTheme();
@@ -45,7 +47,7 @@ export default function DiscoveryScreen() {
   const [regions, setRegions] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
-  const [externalModal, setExternalModal] = useState<'profile' | 'works' | 'admin' | null>(null);
+  const [externalModal, setExternalModal] = useState<'admin' | null>(null);
   const [bountyTitle, setBountyTitle] = useState('');
   const bounty = useMutation({
     mutationFn: (input: BountyInput) => getDataSource().submitBounty(input),
@@ -87,7 +89,7 @@ export default function DiscoveryScreen() {
             <PressableBadge
               label={`Project Profile ${summary.data.profileCompletionPct}% Done`}
               actionLabel="Open project profile"
-              onPress={() => setExternalModal('profile')}
+              onPress={() => router.push('/project-profile')}
               style={styles.centerBadge}
               variant="pending"
             />
@@ -223,7 +225,7 @@ export default function DiscoveryScreen() {
           onApply={openDraft}
           onOpenProfile={() => {
             setSelectedGrant(null);
-            setExternalModal('profile');
+            router.push('/project-profile');
           }}
         />
       </ModalSheetLayout>

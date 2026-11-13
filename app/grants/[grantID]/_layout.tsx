@@ -7,6 +7,7 @@ import { useActiveGrantId } from '@/hooks/useActiveGrantId';
 import { useActiveView } from '@/hooks/useActiveView';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { AppHeader } from '@/components/templates/AppHeader';
+import { WorkspaceNavigation } from '@/components/organisms/WorkspaceNavigation';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 import { ROUTE_COPY } from '@/config/copy';
@@ -47,6 +48,7 @@ export default function GrantLayout() {
           else router.replace('/dashboard');
         }}
       />
+      <WorkspaceNavigation />
       <TopTabNavigation items={items} selectedName={selectedName} onSelect={onSelect} />
       <View style={{ flex: 1 }}>
         <Stack
