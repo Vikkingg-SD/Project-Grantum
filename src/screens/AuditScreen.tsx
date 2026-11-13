@@ -10,7 +10,7 @@ import { AuditLogLine } from '@/components/molecules/AuditLogLine';
 import { InfoCard } from '@/components/molecules/InfoCard';
 import { ChatMessageBubble } from '@/components/molecules/ChatMessageBubble';
 import { ChatInputRow } from '@/components/molecules/ChatInputRow';
-import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioModals';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import { useProposalDraft } from '@/api/hooks/useProposalDraft';
 import { useAuditStatus, useTriggerAuditScan } from '@/api/hooks/useAuditScan';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';

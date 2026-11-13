@@ -117,7 +117,6 @@ export interface ProfileReadinessReport {
   score: number;
   profileRevisionId: string;
   checklist: ReadinessChecklistItem[];
-  summaryText: string;
 }
 
 export interface MatchEligibilityItem {

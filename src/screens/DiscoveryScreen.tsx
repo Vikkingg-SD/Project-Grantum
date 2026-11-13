@@ -20,7 +20,7 @@ import { PressableBadge } from '@/components/molecules/PressableBadge';
 import { FilterFieldGroup } from '@/components/molecules/FilterFieldGroup';
 import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
 import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSheet';
-import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioModals';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import { useGrants } from '@/api/hooks/useGrants';
 import { getDataSource } from '@/api/dataSource';
 import { ENV } from '@/config/env';

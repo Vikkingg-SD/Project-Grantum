@@ -63,7 +63,7 @@ await check('workspace workflows have independent page routes', () => {
     );
   }
   assert.doesNotMatch(
-    read('src/components/organisms/WorkspaceStudioModals.tsx'),
+    read('src/components/organisms/WorkspaceStudioBar.tsx'),
     /ProjectProfileModal|MyWorksModal|AccountAdminModal/
   );
 });

@@ -1,5 +1,5 @@
 import { DraftWorkbenchPanel } from '@/components/organisms/DraftWorkbenchPanel';
-import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioModals';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import ArrowLeft from 'lucide-react-native/icons/arrow-left';
 import ArrowRight from 'lucide-react-native/icons/arrow-right';
 import { IconButton } from '@/components/atoms/IconButton';

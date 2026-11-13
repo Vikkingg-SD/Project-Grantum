@@ -31,7 +31,7 @@ import { FilterFieldGroup } from '@/components/molecules/FilterFieldGroup';
 import { PipelineFunnelBar } from '@/components/organisms/PipelineFunnelBar';
 import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
 import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSheet';
-import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioModals';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import { useTheme } from '@/hooks/useTheme';
 import { useGrants } from '@/api/hooks/useGrants';
 import { useBreakpoint } from '@/hooks/useBreakpoint';

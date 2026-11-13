@@ -247,16 +247,10 @@ export function computeProfileReadiness(
       guidance: def.guidance,
     };
   });
-  const missingHigh = checklist.filter((item) => !item.filled && item.impact === 'high').length;
-  const summaryText =
-    earned >= 85
-      ? `${project.name} (${revision.id}) is well-grounded for multi-section drafting.`
-      : `${project.name} (${revision.id}) is ${earned}% ready. Complete ${missingHigh} high-impact dossier field(s) to strengthen eligibility and narrative grounding.`;
   return {
     score: earned,
     profileRevisionId: revision.id,
     checklist,
-    summaryText,
   };
 }
 

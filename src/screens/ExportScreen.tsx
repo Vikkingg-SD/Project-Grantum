@@ -6,7 +6,7 @@ import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppTextArea } from '@/components/atoms/AppTextArea';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
-import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioModals';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import { useProposalDraft } from '@/api/hooks/useProposalDraft';
 import { useExportBundle } from '@/api/hooks/useExportBundle';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';

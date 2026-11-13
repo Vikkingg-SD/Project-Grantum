@@ -10,7 +10,7 @@ import { reportUrgency, formatCalendarDate } from '@/utils/presentation';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { AuditLogLine } from '@/components/molecules/AuditLogLine';
 import { InfoCard } from '@/components/molecules/InfoCard';
-import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioModals';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import { useAward } from '@/api/hooks/useAward';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 import { ApiError } from '@/api/client';
