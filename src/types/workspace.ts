@@ -125,13 +125,13 @@ export interface MatchEligibilityItem {
   detail: string;
 }
 
-export interface VerifiableMatchReport {
+export interface ProfileComparisonReport {
   score: number;
   profileRevisionId: string;
   projectName: string;
-  officialUrl: string;
-  lastVerifiedAt: string;
-  verifiedAlignments: { clause: string; profileFact: string }[];
+  referenceUrl: string | null;
+  profileUpdatedAt: string;
+  profileFacts: { clause: string; profileFact: string }[];
   missingAreas: { gap: string; targetAction: string }[];
   eligibilityGates: MatchEligibilityItem[];
 }
@@ -157,8 +157,8 @@ export interface AdminAuditEntry {
 export interface WorkSlotAuditSummary {
   totalSections: number;
   filledSections: number;
-  groundedSections: number;
-  ungroundedSections: number;
+  linkedSections: number;
+  unlinkedSections: number;
   totalRequirements: number;
   approvedRequirements: number;
   pendingRequirements: number;

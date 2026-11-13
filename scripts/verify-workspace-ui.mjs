@@ -227,8 +227,64 @@ try {
         .first()
         .click();
       await expect(page).toHaveURL(/grants\/1\/drafting$/);
-      await page.goBack();
-      await expect(page).toHaveURL(/my-works$/);
+      const openWorkbench = async () => {
+        await page.getByRole('button', { name: 'Drafting options', exact: true }).click();
+        await page.getByRole('button', { name: 'Form templates', exact: true }).click();
+        await expect(
+          page.getByRole('dialog', { name: 'Form templates and drafting', exact: true })
+        ).toBeVisible();
+      };
+      await openWorkbench();
+      await page.getByRole('button', { name: 'Apply template', exact: true }).click();
+      const authored = page.getByRole('textbox', { name: 'Project summary', exact: true });
+      await authored.fill('Authored narrative survives a restart');
+      await page
+        .getByRole('button', {
+          name: 'Preview template suggestion for Project summary',
+          exact: true,
+        })
+        .click();
+      await expect(
+        page.getByText(/Template preview \(no AI or evidence verification\)/)
+      ).toBeVisible();
+      await expect(page.getByText(/verified against/)).toHaveCount(0);
+      await page.getByRole('button', { name: 'Reject suggestion', exact: true }).click();
+      await expect(authored).toHaveValue('Authored narrative survives a restart');
+      await page
+        .getByRole('textbox', { name: 'Version change summary', exact: true })
+        .fill('Restart persistence regression');
+      await page.getByRole('button', { name: 'Save session version', exact: true }).click();
+      await expect(page.getByText(/OWNER · Saved on device/)).toBeVisible();
+      await page.reload();
+      await openWorkbench();
+      await page.getByRole('button', { name: 'Sections', exact: true }).click();
+      await expect(authored).toHaveValue('Authored narrative survives a restart');
+      await page.getByRole('button', { name: 'History', exact: true }).click();
+      await expect(page.getByText('Restart persistence regression', { exact: true })).toBeVisible();
+      await page.screenshot({ path: path.join(output, `draft-history-${width}-${theme}.png`) });
+      const stored = await page.evaluate(() =>
+        globalThis.localStorage.getItem('grantum.workbench.v1')
+      );
+      assert.ok(stored.includes('Authored narrative survives a restart'));
+      assert.ok(!stored.includes('grants.example.org'));
+      await page.goto(`${origin}/discover`);
+      await page.getByRole('button', { name: 'View details', exact: true }).first().click();
+      await expect(
+        page.getByText(/Local field comparison; evidence and eligibility have not been verified/)
+      ).toBeVisible();
+      await expect(
+        page.getByText(/Verifiable Match Breakdown|Verified Alignment|Official Catalog Ref/)
+      ).toHaveCount(0);
+      await page.screenshot({
+        path: path.join(output, `profile-comparison-${width}-${theme}.png`),
+      });
+      findings.push({
+        name: 'template truth, authored draft and version restart persistence, unverified comparison',
+        width,
+        theme,
+        passed: true,
+      });
+      await page.goto(`${origin}/my-works`);
       findings.push({
         name: 'project-scoped role controls, readonly editing, search/filter and draft handoff',
         width,
@@ -283,6 +339,6 @@ try {
 }
 process.stdout.write(JSON.stringify(findings, null, 2) + '\n');
 assert.ok(
-  findings.length === 48 && findings.every((row) => row.passed) && diagnostics.length === 0,
+  findings.length === 54 && findings.every((row) => row.passed) && diagnostics.length === 0,
   'Workspace copy/layout regression; see captures and report'
 );

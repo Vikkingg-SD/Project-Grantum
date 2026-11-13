@@ -211,9 +211,8 @@ function AuditSession({ grantId }: { grantId: string }) {
             Profile: {activeApp?.profileRevisionId ?? activeProject?.currentRevisionId}
           </AppText>
           <AppText variant="body">
-            • Grounded Studio Sections (with valid http/https evidence):{' '}
-            {slotAudit.groundedSections}/{slotAudit.totalSections} ({slotAudit.filledSections}{' '}
-            drafted)
+            • Sections with source links (content not verified): {slotAudit.linkedSections}/
+            {slotAudit.totalSections} ({slotAudit.filledSections} drafted)
             {'\n'}• Requirement Matrix Approvals: {slotAudit.approvedRequirements}/
             {slotAudit.totalRequirements} approved
             {'\n'}• Local Reference Attachments: {local.attachments.length} staged

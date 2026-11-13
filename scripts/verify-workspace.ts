@@ -1,7 +1,7 @@
 import {
   addApplication,
   archiveProject,
-  buildVerifiableMatch,
+  buildProfileComparison,
   canRolePerform,
   computeProfileReadiness,
   emptyWorkspace,
@@ -120,7 +120,7 @@ console.info(
 );
 const readiness = computeProfileReadiness(workspace.projects[0], workspace.revisions[2]);
 assert.equal(typeof readiness.score, 'number');
-const matchReport = buildVerifiableMatch(
+const matchReport = buildProfileComparison(
   {
     id: 'g1',
     title: 'Clean Water Fund',
@@ -156,4 +156,10 @@ assert.equal(searchProjects(workspace, 'learning').length, 1);
 assert.equal(workspace.applications.length, 2);
 console.info(
   'PASS Given archived work When restored Then search resumes without deleting application history'
+);
+
+assert.equal(matchReport.referenceUrl, null);
+assert.equal(
+  matchReport.eligibilityGates.some((item) => item.status === 'pass'),
+  false
 );
