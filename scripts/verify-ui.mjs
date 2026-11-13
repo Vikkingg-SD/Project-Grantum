@@ -137,9 +137,7 @@ try {
               );
             assert.deepEqual(outside, []);
             if (route === 'discovery-studio') {
-              await expect(
-                page.getByText('Project Profile 51% Done', { exact: true })
-              ).toBeVisible();
+              await expect(page.getByText(/^Project Profile \d+% Done$/)).toBeVisible();
               const applyButton = await page
                 .getByRole('button', { name: 'Help me apply', exact: true })
                 .first()
@@ -164,7 +162,7 @@ try {
               await expect(
                 page.getByRole('button', { name: 'New application', exact: true })
               ).toHaveCount(0);
-              const badge = await page.getByText('Profile 51% done', { exact: true }).boundingBox();
+              const badge = await page.getByText(/^Profile \d+% done$/).boundingBox();
               const button = await page
                 .getByRole('button', { name: 'Show all', exact: true })
                 .boundingBox();

@@ -1,5 +1,5 @@
 import { DraftWorkbenchPanel } from '@/components/organisms/DraftWorkbenchPanel';
-import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioModals';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import ArrowLeft from 'lucide-react-native/icons/arrow-left';
 import ArrowRight from 'lucide-react-native/icons/arrow-right';
 import { IconButton } from '@/components/atoms/IconButton';
@@ -18,7 +18,6 @@ import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useWorkbenchStore } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
-import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useTheme } from '@/hooks/useTheme';
 import { RADIUS, SPACING } from '@/config/theme';
 import { DRAFTING_COPY } from '@/config/copy';
@@ -35,7 +34,6 @@ export default function DraftingScreen() {
 }
 
 function DraftingSession({ grantId }: { grantId: string }) {
-  const navigation = useAppNavigation();
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -111,9 +109,7 @@ function DraftingSession({ grantId }: { grantId: string }) {
           />
         </View>
         <GrantContext grantId={grantId} />
-        <WorkspaceStudioBar
-          onOpenGrantDraft={(targetGrantId) => navigation.navigateTo('drafting', targetGrantId)}
-        />
+        <WorkspaceStudioBar />
         <View>
           <AppButton
             label={`Required sections (${completedSections.length}/${requiredSections.length})`}

@@ -44,7 +44,11 @@ export function ScreenContainer({
   const [windowY, setWindowY] = useState(0);
   // The grant layout owns safe-area edges around its header and navigation.
   // Root/gallery callers own their edges; explicit edges support other containers.
-  const edges = insetEdges ?? (segments[0] === 'grants' ? [] : ['top', 'right', 'bottom', 'left']);
+  const edges =
+    insetEdges ??
+    (segments[0] === 'grants' || segments[0] === '(workspace)'
+      ? []
+      : ['top', 'right', 'bottom', 'left']);
   const safeStyle = {
     paddingTop: edges.includes('top') ? insets.top : 0,
     paddingBottom: edges.includes('bottom') ? insets.bottom : 0,

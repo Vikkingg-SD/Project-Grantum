@@ -9,9 +9,10 @@ export interface AppInputProps extends TextInputProps {
   label?: string;
   error?: string;
   icon?: React.ReactNode;
+  inputRef?: React.Ref<TextInput>;
 }
 
-export function AppInput({ label, error, icon, style, ...props }: AppInputProps) {
+export function AppInput({ label, error, icon, style, inputRef, ...props }: AppInputProps) {
   const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
   const { desktop } = useLayoutMetrics();
@@ -33,6 +34,7 @@ export function AppInput({ label, error, icon, style, ...props }: AppInputProps)
       >
         {icon && <View style={styles.iconContainer}>{icon}</View>}
         <TextInput
+          ref={inputRef}
           accessibilityLabel={label ?? props.placeholder}
           aria-invalid={Boolean(error)}
           placeholderTextColor={theme.textMuted}

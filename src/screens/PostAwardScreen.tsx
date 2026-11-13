@@ -10,12 +10,11 @@ import { reportUrgency, formatCalendarDate } from '@/utils/presentation';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { AuditLogLine } from '@/components/molecules/AuditLogLine';
 import { InfoCard } from '@/components/molecules/InfoCard';
-import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioModals';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import { useAward } from '@/api/hooks/useAward';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 import { ApiError } from '@/api/client';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
-import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { canRolePerform, workSlotKey } from '@/utils/workspace';
@@ -51,7 +50,6 @@ const INITIAL_MILESTONES: readonly ComplianceMilestone[] = [
 ];
 
 export default function PostAwardScreen() {
-  const navigation = useAppNavigation();
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
   const [tab, setTab] = useState('Details');
@@ -123,9 +121,7 @@ export default function PostAwardScreen() {
               : 'Review your next reporting date and application history.'}
           </AppText>
         </InfoCard>
-        <WorkspaceStudioBar
-          onOpenGrantDraft={(targetGrantId) => navigation.navigateTo('drafting', targetGrantId)}
-        />
+        <WorkspaceStudioBar />
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <AppText variant="h2" align="center">
             Next reporting date

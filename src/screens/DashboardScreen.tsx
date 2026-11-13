@@ -1,3 +1,5 @@
+import { useProfileReadiness } from '@/hooks/useProfileReadiness';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Bell from 'lucide-react-native/icons/bell';
@@ -16,7 +18,7 @@ import { HeroContinueCard } from '@/components/molecules/HeroContinueCard';
 import { PipelineFunnelBar } from '@/components/organisms/PipelineFunnelBar';
 import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
 import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSheet';
-import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioModals';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import { useGrants } from '@/api/hooks/useGrants';
 import { useDashboardSummary } from '@/api/hooks/useDashboardSummary';
 import { useDraftStore } from '@/store/useDraftStore';
@@ -30,11 +32,12 @@ import type { Grant } from '@/types/grant';
 
 export default function DashboardScreen() {
   const navigation = useAppNavigation();
+  const router = useRouter();
+  const profileReadiness = useProfileReadiness();
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
   const [query, setQuery] = useState('');
   const [activityOpen, setActivityOpen] = useState(false);
-  const [externalModal, setExternalModal] = useState<'profile' | 'works' | 'admin' | null>(null);
   const grants = useGrants();
   const summary = useDashboardSummary();
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
@@ -80,21 +83,21 @@ export default function DashboardScreen() {
       title: 'Profile sync',
       body: 'My Works shows when a newer Project Profile revision can be pulled into a work slot.',
       action: 'Open My Works',
-      run: () => setExternalModal('works'),
+      run: () => router.push('/my-works'),
     },
     {
       key: 'readiness',
       title: 'Readiness and match',
-      body: `Profile ${summary.data.profileCompletionPct}% done. Open it to see what sits behind each match.`,
+      body: `Profile ${profileReadiness?.score ?? 0}% done. Open it to see what sits behind each match.`,
       action: 'Open Project Profile',
-      run: () => setExternalModal('profile'),
+      run: () => router.push('/project-profile'),
     },
     {
       key: 'roles',
       title: 'Co-work roles',
       body: 'Review who can edit, review or view each work slot.',
-      action: 'Role & Admin',
-      run: () => setExternalModal('admin'),
+      action: 'Open project team',
+      run: () => router.push('/project-profile'),
     },
     {
       key: 'deadlines',
@@ -136,12 +139,7 @@ export default function DashboardScreen() {
             : 'Portfolio overview'}
         </AppText>
         <PipelineFunnelBar stages={summary.data.pipeline} />
-        <WorkspaceStudioBar
-          grants={grants.data ?? []}
-          onOpenGrantDraft={(grantId, projectId) => openDraft(grantId, projectId)}
-          externalModal={externalModal}
-          onCloseExternalModal={() => setExternalModal(null)}
-        />
+        <WorkspaceStudioBar />
         <CenteredHeading
           title={DASHBOARD_COPY.recommended}
           variant="h2"
@@ -162,9 +160,9 @@ export default function DashboardScreen() {
         />
         <View style={styles.summaryRow}>
           <PressableBadge
-            label={'Profile ' + summary.data.profileCompletionPct + '% done'}
+            label={'Profile ' + (profileReadiness?.score ?? 0) + '% done'}
             actionLabel="Open project profile"
-            onPress={() => setExternalModal('profile')}
+            onPress={() => router.push('/project-profile')}
             style={styles.profile}
             variant="pending"
           />
@@ -233,7 +231,7 @@ export default function DashboardScreen() {
           onApply={applyGrant}
           onOpenProfile={() => {
             setSelectedGrant(null);
-            setExternalModal('profile');
+            router.push('/project-profile');
           }}
         />
       </ModalSheetLayout>

@@ -49,6 +49,25 @@ await check('grant identity and history have a single route owner', () => {
   assert.match(read('src/hooks/useActiveGrantId.ts'), /useLocalSearchParams/);
 });
 
+await check('workspace workflows have independent page routes', () => {
+  for (const [leaf, screen] of [
+    ['my-works', 'MyWorks'],
+    ['project-profile', 'ProjectProfile'],
+    ['discover', 'Discovery'],
+    ['settings', 'PersonalSettings'],
+    ['admin', 'Admin'],
+  ]) {
+    assert.equal(
+      read(`app/(workspace)/${leaf}.tsx`).trim(),
+      `export { default } from '@/screens/${screen}Screen';`
+    );
+  }
+  assert.doesNotMatch(
+    read('src/components/organisms/WorkspaceStudioBar.tsx'),
+    /ProjectProfileModal|MyWorksModal|AccountAdminModal/
+  );
+});
+
 // Like the existing preflight verifier, lint this mjs with the installed Expo
 // parser and every project rule. The ordinary lint command covers js/ts/tsx.
 const { ESLint } = await import('eslint');

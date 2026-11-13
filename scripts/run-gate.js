@@ -27,12 +27,14 @@ const tasks = [
     'contract',
     'presentation',
     'workspace',
+    'workspace-access',
     'drafting-history',
   ].map((name) => [tsx, `scripts/verify-${name}.ts`]),
   ['scripts/verify-routes.mjs', '--static'],
 ];
 if (full) {
   tasks.push(['scripts/verify-ui.mjs']);
+  tasks.push(['scripts/verify-workspace-ui.mjs', '.expo/ui-verification']);
   tasks.push([
     require.resolve('@playwright/test/cli'),
     'test',

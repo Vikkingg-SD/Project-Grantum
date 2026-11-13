@@ -6,14 +6,13 @@ import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppTextArea } from '@/components/atoms/AppTextArea';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
-import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioModals';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import { useProposalDraft } from '@/api/hooks/useProposalDraft';
 import { useExportBundle } from '@/api/hooks/useExportBundle';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
-import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { MAX_INPUT_CHARS, TIERS } from '@/config/constants';
 import { EXPORT_FORMATS } from '@/config/exportFormats';
 import { GrantContext } from '@/components/molecules/GrantContext';
@@ -32,7 +31,6 @@ export default function ExportScreen() {
 }
 
 function ExportSession({ grantId }: { grantId: string }) {
-  const navigation = useAppNavigation();
   const theme = useTheme();
   const { effectiveWidth } = useLayoutMetrics();
   const serviceAvailable = ENV.DATA_SOURCE !== 'mock';
@@ -95,9 +93,7 @@ function ExportSession({ grantId }: { grantId: string }) {
           Review & export
         </AppText>
         <GrantContext grantId={grantId} />
-        <WorkspaceStudioBar
-          onOpenGrantDraft={(targetGrantId) => navigation.navigateTo('drafting', targetGrantId)}
-        />
+        <WorkspaceStudioBar />
         {!serviceAvailable && (
           <View style={[styles.notice, { backgroundColor: theme.subtle }]}>
             <AppText variant="label" align="center">

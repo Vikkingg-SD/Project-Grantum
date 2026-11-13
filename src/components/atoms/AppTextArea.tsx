@@ -8,9 +8,17 @@ import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 export interface AppTextAreaProps extends TextInputProps {
   label?: string;
   charLimit?: number;
+  inputRef?: React.Ref<TextInput>;
 }
 
-export function AppTextArea({ label, charLimit, value, style, ...props }: AppTextAreaProps) {
+export function AppTextArea({
+  label,
+  charLimit,
+  value,
+  style,
+  inputRef,
+  ...props
+}: AppTextAreaProps) {
   const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
   const { desktop } = useLayoutMetrics();
@@ -33,6 +41,7 @@ export function AppTextArea({ label, charLimit, value, style, ...props }: AppTex
         ]}
       >
         <TextInput
+          ref={inputRef}
           accessibilityLabel={label}
           aria-invalid={isOver}
           multiline
