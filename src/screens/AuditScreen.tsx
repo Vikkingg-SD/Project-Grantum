@@ -17,7 +17,6 @@ import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
-import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useTheme } from '@/hooks/useTheme';
 import { RADIUS, SPACING } from '@/config/theme';
 import { AUDIT_COPY } from '@/config/copy';
@@ -33,7 +32,6 @@ export default function AuditScreen() {
 }
 
 function AuditSession({ grantId }: { grantId: string }) {
-  const navigation = useAppNavigation();
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
   const [promptsOpen, setPromptsOpen] = useState(false);
@@ -123,9 +121,7 @@ function AuditSession({ grantId }: { grantId: string }) {
           />
         </View>
         <GrantContext grantId={grantId} />
-        <WorkspaceStudioBar
-          onOpenGrantDraft={(targetGrantId) => navigation.navigateTo('drafting', targetGrantId)}
-        />
+        <WorkspaceStudioBar />
         <InfoCard tone="surface">
           <AppText color="muted" align="center">
             {ENV.DATA_SOURCE === 'mock'

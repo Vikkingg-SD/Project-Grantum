@@ -27,6 +27,7 @@ const tasks = [
     'contract',
     'presentation',
     'workspace',
+    'workspace-access',
     'drafting-history',
   ].map((name) => [tsx, `scripts/verify-${name}.ts`]),
   ['scripts/verify-routes.mjs', '--static'],

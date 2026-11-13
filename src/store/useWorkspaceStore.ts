@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { ENV } from '@/config/env';
 import type {
   AdminAuditEntry,
   AdminQueueItem,
@@ -165,8 +166,11 @@ interface PersistedSlice {
   workspace: Workspace;
   activeProjectId: string;
   activeRole: CoWorkRole;
+  projectRoles?: Record<string, CoWorkRole>;
   nickname: string;
   digestEnabled: boolean;
+  adminQueue?: AdminQueueItem[];
+  adminAuditLog?: AdminAuditEntry[];
 }
 
 function getBrowserStorage(): Storage | undefined {
@@ -207,6 +211,7 @@ export interface WorkspaceStoreState {
   workspace: Workspace;
   activeProjectId: string;
   activeRole: CoWorkRole;
+  projectRoles: Record<string, CoWorkRole>;
   userId: string;
   nickname: string;
   digestEnabled: boolean;
@@ -226,6 +231,7 @@ export interface WorkspaceStoreState {
   pullWorkSlotProfile: (applicationId: string) => void;
   markWorkSlotSubmitted: (applicationId: string, receiptReference: string) => void;
   setRole: (role: CoWorkRole) => void;
+  setProjectRole: (projectId: string, role: CoWorkRole) => void;
   setPersonalSettings: (nickname: string, digestEnabled: boolean) => void;
   resolveAdminQueueItem: (id: string, status: 'approved' | 'rejected' | 'retried') => void;
 }
@@ -240,8 +246,11 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
       workspace: next.workspace ?? current.workspace,
       activeProjectId: next.activeProjectId ?? current.activeProjectId,
       activeRole: next.activeRole ?? current.activeRole,
+      projectRoles: next.projectRoles ?? current.projectRoles,
       nickname: next.nickname ?? current.nickname,
       digestEnabled: next.digestEnabled ?? current.digestEnabled,
+      adminQueue: next.adminQueue ?? current.adminQueue,
+      adminAuditLog: next.adminAuditLog ?? current.adminAuditLog,
     };
     const saved = writePersisted(merged);
     return saved ? ('device-saved' as const) : ('session-only' as const);
@@ -251,25 +260,40 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
     workspace: seedWorkspace,
     activeProjectId: initialLoad.slice?.activeProjectId ?? 'project-1',
     activeRole: initialLoad.slice?.activeRole ?? 'owner',
+    projectRoles:
+      initialLoad.slice?.projectRoles ??
+      Object.fromEntries(
+        seedWorkspace.projects.map((project) => [
+          project.id,
+          initialLoad.slice?.activeRole ?? 'owner',
+        ])
+      ),
     userId: 'usr_94f8a2c1',
     nickname: initialLoad.slice?.nickname ?? 'Founder Lead',
     digestEnabled: initialLoad.slice?.digestEnabled ?? true,
     persistenceStatus: initialLoad.supported ? 'device-saved' : 'session-only',
-    adminQueue: INITIAL_ADMIN_QUEUE,
-    adminAuditLog: [
-      {
-        id: 'audit-init',
-        timestamp: '2026-11-12T08:00:00Z',
-        actor: 'Founder Lead (owner)',
-        action: 'Initialized workspace session and verified catalog queue',
-        targetTitle: 'System Queue',
-      },
-    ],
+    adminQueue:
+      initialLoad.slice?.adminQueue ?? (ENV.DATA_SOURCE === 'mock' ? INITIAL_ADMIN_QUEUE : []),
+    adminAuditLog:
+      initialLoad.slice?.adminAuditLog ??
+      (ENV.DATA_SOURCE === 'mock'
+        ? [
+            {
+              id: 'audit-init',
+              timestamp: '2026-11-12T08:00:00Z',
+              actor: 'Sample staff',
+              action: 'Loaded sample staff queue',
+              targetTitle: 'System Queue',
+            },
+          ]
+        : []),
 
     setActiveProject: (projectId) =>
-      set(() => {
-        const persistenceStatus = persistState({ activeProjectId: projectId });
-        return { activeProjectId: projectId, persistenceStatus };
+      set((state) => {
+        if (!state.workspace.projects.some((project) => project.id === projectId)) return state;
+        const activeRole = state.projectRoles[projectId] ?? 'owner';
+        const persistenceStatus = persistState({ activeProjectId: projectId, activeRole });
+        return { activeProjectId: projectId, activeRole, persistenceStatus };
       }),
 
     saveProjectProfile: (input) =>
@@ -290,10 +314,12 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
         const persistenceStatus = persistState({
           workspace: nextWorkspace,
           activeProjectId: input.projectId,
+          activeRole: state.projectRoles[input.projectId] ?? 'owner',
         });
         return {
           workspace: nextWorkspace,
           activeProjectId: input.projectId,
+          activeRole: state.projectRoles[input.projectId] ?? 'owner',
           persistenceStatus,
         };
       }),
@@ -312,10 +338,12 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
         const persistenceStatus = persistState({
           workspace: nextWorkspace,
           activeProjectId: nextActive,
+          activeRole: state.projectRoles[nextActive] ?? 'owner',
         });
         return {
           workspace: nextWorkspace,
           activeProjectId: nextActive,
+          activeRole: state.projectRoles[nextActive] ?? 'owner',
           persistenceStatus,
         };
       }),
@@ -394,10 +422,19 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
         return { workspace: nextWorkspace, persistenceStatus };
       }),
 
-    setRole: (role) =>
-      set(() => {
-        const persistenceStatus = persistState({ activeRole: role });
-        return { activeRole: role, persistenceStatus };
+    setRole: (role) => get().setProjectRole(get().activeProjectId, role),
+    setProjectRole: (projectId, role) =>
+      set((state) => {
+        if (ENV.DATA_SOURCE !== 'mock')
+          throw new Error('Role changes require a connected team service.');
+        if (!state.workspace.projects.some((project) => project.id === projectId))
+          throw new Error('Project not found');
+        if (!['owner', 'editor', 'reviewer', 'viewer'].includes(role))
+          throw new Error('Invalid project role');
+        const projectRoles = { ...state.projectRoles, [projectId]: role };
+        const activeRole = projectId === state.activeProjectId ? role : state.activeRole;
+        const persistenceStatus = persistState({ projectRoles, activeRole });
+        return { projectRoles, activeRole, persistenceStatus };
       }),
 
     setPersonalSettings: (nickname, digestEnabled) =>
@@ -409,8 +446,17 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
 
     resolveAdminQueueItem: (id, status) =>
       set((state) => {
+        if (ENV.DATA_SOURCE !== 'mock')
+          throw new Error('Staff actions require an authenticated staff service.');
         const target = state.adminQueue.find((item) => item.id === id);
-        if (!target) return state;
+        if (!target || target.status !== 'pending') return state;
+        if (
+          target.category === 'failed-job'
+            ? status !== 'retried'
+            : !['approved', 'rejected'].includes(status)
+        ) {
+          throw new Error('This action is not available for the selected queue item.');
+        }
         const now = new Date().toISOString();
         const nextQueue = state.adminQueue.map((item) =>
           item.id === id ? { ...item, status, updatedAt: now, actor: state.nickname } : item
@@ -418,13 +464,18 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
         const entry: AdminAuditEntry = {
           id: `audit-${state.adminAuditLog.length + 1}`,
           timestamp: now,
-          actor: `${state.nickname} (${state.activeRole})`,
+          actor: `${state.nickname} (sample staff)`,
           action: `Marked queue item as ${status.toUpperCase()}`,
           targetTitle: target.title,
         };
+        const persistenceStatus = persistState({
+          adminQueue: nextQueue,
+          adminAuditLog: [entry, ...state.adminAuditLog],
+        });
         return {
           adminQueue: nextQueue,
           adminAuditLog: [entry, ...state.adminAuditLog],
+          persistenceStatus,
         };
       }),
   };

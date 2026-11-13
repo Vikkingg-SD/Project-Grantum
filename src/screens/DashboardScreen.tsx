@@ -1,3 +1,4 @@
+import { useProfileReadiness } from '@/hooks/useProfileReadiness';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
@@ -32,11 +33,11 @@ import type { Grant } from '@/types/grant';
 export default function DashboardScreen() {
   const navigation = useAppNavigation();
   const router = useRouter();
+  const profileReadiness = useProfileReadiness();
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
   const [query, setQuery] = useState('');
   const [activityOpen, setActivityOpen] = useState(false);
-  const [externalModal, setExternalModal] = useState<'admin' | null>(null);
   const grants = useGrants();
   const summary = useDashboardSummary();
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
@@ -87,7 +88,7 @@ export default function DashboardScreen() {
     {
       key: 'readiness',
       title: 'Readiness and match',
-      body: `Profile ${summary.data.profileCompletionPct}% done. Open it to see what sits behind each match.`,
+      body: `Profile ${profileReadiness?.score ?? 0}% done. Open it to see what sits behind each match.`,
       action: 'Open Project Profile',
       run: () => router.push('/project-profile'),
     },
@@ -95,8 +96,8 @@ export default function DashboardScreen() {
       key: 'roles',
       title: 'Co-work roles',
       body: 'Review who can edit, review or view each work slot.',
-      action: 'Role & Admin',
-      run: () => setExternalModal('admin'),
+      action: 'Open project team',
+      run: () => router.push('/project-profile'),
     },
     {
       key: 'deadlines',
@@ -138,12 +139,7 @@ export default function DashboardScreen() {
             : 'Portfolio overview'}
         </AppText>
         <PipelineFunnelBar stages={summary.data.pipeline} />
-        <WorkspaceStudioBar
-          grants={grants.data ?? []}
-          onOpenGrantDraft={(grantId, projectId) => openDraft(grantId, projectId)}
-          externalModal={externalModal}
-          onCloseExternalModal={() => setExternalModal(null)}
-        />
+        <WorkspaceStudioBar />
         <CenteredHeading
           title={DASHBOARD_COPY.recommended}
           variant="h2"
@@ -164,7 +160,7 @@ export default function DashboardScreen() {
         />
         <View style={styles.summaryRow}>
           <PressableBadge
-            label={'Profile ' + summary.data.profileCompletionPct + '% done'}
+            label={'Profile ' + (profileReadiness?.score ?? 0) + '% done'}
             actionLabel="Open project profile"
             onPress={() => router.push('/project-profile')}
             style={styles.profile}

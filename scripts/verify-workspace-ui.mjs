@@ -44,7 +44,7 @@ const prohibited = [
 const origin = `http://127.0.0.1:${server.address().port}`;
 const diagnostics = [];
 try {
-  for (const width of [390, 1440])
+  for (const width of [320, 390, 1440])
     for (const theme of ['light', 'dark']) {
       const context = await browser.newContext({
         viewport: { width, height: 900 },
@@ -58,37 +58,50 @@ try {
         );
       }, theme);
       const page = await context.newPage();
+      page.setDefaultTimeout(15000);
       page.on('pageerror', (error) => diagnostics.push(error.message));
-      for (const [name, button, route] of [
-        ['profile', /^Project:/, '/project-profile'],
-        ['works', /^My Works \(/, '/my-works'],
-        ['account', /^Role:/, null],
+      for (const [name, route, heading] of [
+        ['profile', '/project-profile', 'Project Profile'],
+        ['works', '/my-works', 'My Works'],
+        ['settings', '/settings', 'Personal settings'],
+        ['admin', '/admin', 'Staff administration'],
       ]) {
-        await page.goto(`${origin}/grants/1/dashboard`);
-        await page.getByRole('button', { name: button }).click();
-        if (route) {
-          await expect(page).toHaveURL(new RegExp(route + '$'));
-          await page
-            .getByRole('heading', {
-              name: name === 'profile' ? 'Project Profile' : 'My Works',
-              exact: true,
-            })
-            .waitFor();
-          assert.equal(
-            await page.getByRole('dialog').count(),
-            0,
-            'Primary workflow must not be a modal'
-          );
+        await page.goto(`${origin}${route}`);
+        await page.getByRole('heading', { name: heading, exact: true }).waitFor();
+        assert.equal(
+          await page.getByRole('dialog').count(),
+          0,
+          'Sustained workflows must be pages'
+        );
+        if (name === 'profile' || name === 'works') {
           const columns = page.getByTestId('workspace-columns');
           const bounds = await columns.boundingBox();
           assert.ok(
             width < 1024 || bounds.width >= 1024,
             'Desktop workspace must use the full canvas'
           );
-          const direction = await columns.evaluate((el) => getComputedStyle(el).flexDirection);
-          assert.equal(direction, width >= 1024 ? 'row' : 'column');
-        } else await page.getByRole('button', { name: 'Close', exact: true }).waitFor();
+          assert.equal(
+            await columns.evaluate((el) => getComputedStyle(el).flexDirection),
+            width >= 1024 ? 'row' : 'column'
+          );
+        }
+        if (name !== 'admin')
+          await expect(
+            page.getByRole('heading', { name: 'Needs attention', exact: true })
+          ).toHaveCount(0);
+        if (name !== 'settings')
+          await expect(
+            page.getByRole('textbox', { name: 'Display name', exact: true })
+          ).toHaveCount(0);
         await page.evaluate(() => document.fonts.ready);
+        if (name === 'profile') {
+          const preview = page.getByTestId('check-preview-mission');
+          const singleLine = await preview.evaluate(
+            (el) =>
+              el.getBoundingClientRect().height <= parseFloat(getComputedStyle(el).lineHeight) + 1
+          );
+          assert.ok(singleLine, 'Completed checklist previews must stay on one line');
+        }
         const text = await page.locator('body').innerText();
         const leaked = prohibited.filter((pattern) => pattern.test(text)).map(String);
         const screenshot = `${name}-${width}-${theme}.png`;
@@ -109,9 +122,16 @@ try {
               return count;
             })
           );
+          const overflow = [...document.querySelectorAll('[role="button"],input,textarea')]
+            .filter((el) => {
+              const r = el.getBoundingClientRect();
+              return r.width > 0 && (r.left < -1 || r.right > window.innerWidth + 1);
+            })
+            .map((el) => el.getAttribute('aria-label'));
           return {
             documentOverflow: document.documentElement.scrollWidth > window.innerWidth,
             borderedDepth: depth,
+            overflow,
           };
         });
         findings.push({
@@ -121,34 +141,75 @@ try {
           leaked,
           ...layout,
           screenshot,
-          passed: leaked.length === 0 && !layout.documentOverflow && layout.borderedDepth <= 2,
+          passed:
+            leaked.length === 0 &&
+            !layout.documentOverflow &&
+            layout.borderedDepth <= 2 &&
+            layout.overflow.length === 0,
         });
-        if (route) {
-          await page.goBack();
-          await expect(page).toHaveURL(/grants\/1\/dashboard$/);
-        } else await page.getByRole('button', { name: 'Close', exact: true }).click();
       }
-      // Direct links and reload retain project edits and version history.
-      await page.goto(`${origin}/project-profile`);
-      const projectName = page.getByRole('textbox', {
-        name: 'Project / Venture Name',
+      await page.goto(`${origin}/grants/1/dashboard`);
+      await expect(page.getByRole('button', { name: /^Profile 92% done/ })).toBeVisible();
+      await page.getByRole('button', { name: /^Project:/ }).click();
+      await expect(page).toHaveURL(/project-profile$/);
+      await page.getByRole('button', { name: /^Fix Project lead/ }).click();
+      const lead = page.getByRole('textbox', {
+        name: 'Project lead',
         exact: true,
       });
-      await expect(projectName).toHaveValue('CleanWater AI Infrastructure');
-      await projectName.fill('Stage 2 saved project');
+      await expect(lead).toBeFocused();
+      const leadBounds = await lead.boundingBox();
+      assert.ok(
+        leadBounds.y >= 0 && leadBounds.y + leadBounds.height <= 900,
+        'Fix action must reveal the actual input'
+      );
+      await lead.fill('Project lead for application');
+      await expect(page.getByText('100% complete', { exact: true })).toBeVisible();
+      await expect(
+        page.getByText('Unsaved preview · save to update linked badges.', { exact: true })
+      ).toBeVisible();
+      const projectName = page.getByRole('textbox', {
+        name: 'Project name',
+        exact: true,
+      });
+      await projectName.fill('Saved workspace project');
       await page
         .getByRole('textbox', { name: 'Change summary', exact: true })
-        .fill('Route persistence regression');
+        .fill('Readiness and route regression');
       await page.getByRole('button', { name: 'Save profile', exact: true }).click();
+      await expect(
+        page.getByText('Unsaved preview · save to update linked badges.', { exact: true })
+      ).toHaveCount(0);
       await page
         .getByRole('button', { name: 'Save profile', exact: true })
         .scrollIntoViewIfNeeded();
       await page.screenshot({ path: path.join(output, `profile-editor-${width}-${theme}.png`) });
       await page.reload();
-      await expect(projectName).toHaveValue('Stage 2 saved project');
-      await expect(page.getByText('Route persistence regression', { exact: true })).toBeVisible();
+      await expect(projectName).toHaveValue('Saved workspace project');
+      await expect(page.getByText('Readiness and route regression', { exact: true })).toBeVisible();
+      await page.goto(`${origin}/grants/1/dashboard`);
+      await expect(page.getByRole('button', { name: /^Profile 100% done/ })).toBeVisible();
+      await expect(page.getByRole('button', { name: /^Project:.*100% ready/ })).toBeVisible();
+      await page.goto(`${origin}/discover`);
+      await expect(page.getByRole('button', { name: /^Project Profile 100% Done/ })).toBeVisible();
+      findings.push({
+        name: 'missing-field focus, saved readiness, shared badges and revision persistence',
+        width,
+        theme,
+        passed: true,
+      });
+
+      await page.goto(`${origin}/project-profile`);
+      await page.getByRole('button', { name: /^Role for / }).click();
+      await page.getByRole('button', { name: 'Viewer', exact: true }).click();
+      await expect(projectName).not.toBeEditable();
+      await expect(page.getByRole('textbox', { name: 'Mission', exact: true })).not.toBeEditable();
       await page.getByRole('button', { name: 'Community Health & STEM Lab', exact: true }).click();
-      await expect(projectName).toHaveValue('Community Health & STEM Lab');
+      await expect(projectName).toBeEditable();
+      await page.getByRole('button', { name: 'Saved workspace project', exact: true }).click();
+      await expect(projectName).not.toBeEditable();
+      await page.getByRole('button', { name: /^Role for / }).click();
+      await page.getByRole('button', { name: 'Owner', exact: true }).click();
       await page.goto(`${origin}/my-works`);
       await page
         .getByRole('textbox', { name: 'Search your work', exact: true })
@@ -168,42 +229,51 @@ try {
       await expect(page).toHaveURL(/grants\/1\/drafting$/);
       await page.goBack();
       await expect(page).toHaveURL(/my-works$/);
-      await page.goto(`${origin}/discover`);
-      await page
-        .getByRole('heading', { name: 'Find your next opportunity', exact: true })
-        .waitFor();
-      await page.getByRole('button', { name: /Open project profile$/i }).click();
-      await expect(page).toHaveURL(/project-profile$/);
-      await page.getByRole('textbox', { name: 'Project / Venture Name', exact: true }).click();
+      findings.push({
+        name: 'project-scoped role controls, readonly editing, search/filter and draft handoff',
+        width,
+        theme,
+        passed: true,
+      });
+
+      await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+      await page.getByRole('button', { name: 'Personal settings', exact: true }).click();
+      await expect(page).toHaveURL(/settings$/);
+      await page.getByRole('textbox', { name: 'Display name', exact: true }).fill('Updated name');
+      await page.getByRole('switch', { name: 'Deadline and sync digest', exact: true }).click();
+      await page.getByRole('button', { name: 'Save settings', exact: true }).click();
+      await page.reload();
+      await expect(page.getByRole('textbox', { name: 'Display name', exact: true })).toHaveValue(
+        'Updated name'
+      );
       await expect(
-        page.getByRole('textbox', { name: 'Project / Venture Name', exact: true })
-      ).toBeFocused();
+        page.getByRole('switch', { name: 'Deadline and sync digest', exact: true })
+      ).not.toBeChecked();
+      await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+      await expect(page.getByRole('dialog')).toBeVisible();
       await page.keyboard.press('Escape');
-      await expect(page).toHaveURL(/project-profile$/);
-      // A fresh deep link has a safe Back fallback even without an in-app history stack.
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+      await page.getByRole('button', { name: 'Staff administration', exact: true }).click();
+      await expect(page).toHaveURL(/admin$/);
+      await page.getByRole('button', { name: 'Retry Job', exact: true }).click();
+      await expect(page.getByText('Sample job marked for retry.', { exact: true })).toBeVisible();
+      await page.reload();
+      await expect(page.getByRole('button', { name: 'Retry Job', exact: true })).toBeDisabled();
+      await expect(page.getByText(/Marked queue item as RETRIED/)).toBeVisible();
+      findings.push({
+        name: 'avatar menu, separate settings, local preference persistence and sample staff audit',
+        width,
+        theme,
+        passed: true,
+      });
+
       const direct = await context.newPage();
       await direct.goto(`${origin}/project-profile`);
       await direct.getByRole('button', { name: 'Go back', exact: true }).click();
       await expect(direct).toHaveURL(/grants\/1\/dashboard$/);
       await direct.close();
-      await page.goto(`${origin}/grants/1/dashboard`);
-      await page.getByRole('button', { name: /^Role:/ }).click();
-      await page.getByRole('button', { name: 'VIEWER', exact: true }).click();
-      await page.getByRole('button', { name: 'Close', exact: true }).click();
-      await page.goto(`${origin}/project-profile`);
-      await expect(
-        page.getByRole('textbox', { name: 'Project / Venture Name', exact: true })
-      ).not.toBeEditable();
-      await expect(
-        page.getByRole('textbox', { name: 'Core Mission & Value Thesis', exact: true })
-      ).not.toBeEditable();
-      await expect(page.getByRole('button', { name: 'Save profile', exact: true })).toBeDisabled();
-      findings.push({
-        name: 'direct links, save/reload, project switching, empty/filter states, draft handoff and history',
-        width,
-        theme,
-        passed: true,
-      });
+      findings.push({ name: 'fresh direct-link back fallback', width, theme, passed: true });
       await context.close();
     }
 } finally {
@@ -213,6 +283,6 @@ try {
 }
 process.stdout.write(JSON.stringify(findings, null, 2) + '\n');
 assert.ok(
-  findings.length === 16 && findings.every((row) => row.passed) && diagnostics.length === 0,
+  findings.length === 48 && findings.every((row) => row.passed) && diagnostics.length === 0,
   'Workspace copy/layout regression; see captures and report'
 );

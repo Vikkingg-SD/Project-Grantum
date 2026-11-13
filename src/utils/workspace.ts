@@ -165,7 +165,7 @@ export function pullProfileRevision(
   };
 }
 
-const READINESS_DEFINITIONS: readonly {
+export const PROFILE_FIELD_DEFINITIONS: readonly {
   key: string;
   label: string;
   weight: number;
@@ -174,56 +174,56 @@ const READINESS_DEFINITIONS: readonly {
 }[] = [
   {
     key: 'mission',
-    label: 'Core Mission & Value Thesis',
+    label: 'Mission',
     weight: 16,
     impact: 'high',
     guidance: 'State the organization mission and measurable outcome in 2-3 sentences.',
   },
   {
     key: 'problem',
-    label: 'Quantified Problem Evidence',
+    label: 'Problem evidence',
     weight: 15,
     impact: 'high',
     guidance: 'Include baseline metrics, affected population, and cited empirical sources.',
   },
   {
     key: 'solution',
-    label: 'Technical / Program Approach',
+    label: 'Approach',
     weight: 15,
     impact: 'high',
     guidance: 'Describe implementation architecture, milestones, and operational readiness.',
   },
   {
     key: 'beneficiaries',
-    label: 'Target Beneficiaries & Market Scope',
+    label: 'Beneficiaries',
     weight: 12,
     impact: 'high',
     guidance: 'Specify primary beneficiaries, deployment geography, and inclusion criteria.',
   },
   {
     key: 'budget',
-    label: 'Budget Envelope & Co-Funding',
+    label: 'Budget',
     weight: 14,
     impact: 'high',
     guidance: 'Provide direct/indirect cost breakdown and confirmed matching funds.',
   },
   {
     key: 'region',
-    label: 'Eligible Jurisdiction & Region',
+    label: 'Region',
     weight: 10,
     impact: 'medium',
     guidance: 'List registered operating regions (e.g., Global, East Europe, CIS).',
   },
   {
     key: 'entityType',
-    label: 'Legal Entity & Registration Status',
+    label: 'Legal entity',
     weight: 10,
     impact: 'medium',
     guidance: 'Confirm nonprofit, research institute, or commercial entity classification.',
   },
   {
     key: 'teamLead',
-    label: 'Principal Investigator / Execution Lead',
+    label: 'Project lead',
     weight: 8,
     impact: 'medium',
     guidance: 'Identify lead key personnel, credentials, and prior grant delivery track record.',
@@ -235,7 +235,7 @@ export function computeProfileReadiness(
   revision: ProfileRevision
 ): ProfileReadinessReport {
   let earned = 0;
-  const checklist: ReadinessChecklistItem[] = READINESS_DEFINITIONS.map((def) => {
+  const checklist: ReadinessChecklistItem[] = PROFILE_FIELD_DEFINITIONS.map((def) => {
     const value = (revision.fields[def.key] ?? '').trim();
     const filled = value.length >= 8;
     if (filled) earned += def.weight;

@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { View, type TextInput } from 'react-native';
+import { ProjectRolePicker } from '@/components/molecules/ProjectRolePicker';
+import { ENV } from '@/config/env';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
@@ -12,6 +14,7 @@ import { styles } from './workspacePageStyles';
 import { AppTextArea } from '@/components/atoms/AppTextArea';
 import {
   canRolePerform,
+  PROFILE_FIELD_DEFINITIONS,
   computeProfileReadiness,
   parseVaultDocs,
   toggleVaultDoc,
@@ -20,16 +23,11 @@ import type { ProjectKind } from '@/types/workspace';
 
 const PROJECT_KINDS: readonly ProjectKind[] = ['grant', 'startup', 'social', 'invention', 'other'];
 
-const FIELD_LABELS: readonly { key: string; label: string; multiline?: boolean }[] = [
-  { key: 'mission', label: 'Core Mission & Value Thesis', multiline: true },
-  { key: 'problem', label: 'Quantified Problem Evidence', multiline: true },
-  { key: 'solution', label: 'Technical / Program Approach', multiline: true },
-  { key: 'beneficiaries', label: 'Target Beneficiaries & Market Scope' },
-  { key: 'budget', label: 'Budget Envelope & Co-Funding' },
-  { key: 'region', label: 'Eligible Jurisdiction & Region' },
-  { key: 'entityType', label: 'Legal Entity & Registration Status' },
-  { key: 'teamLead', label: 'Principal Investigator / Execution Lead' },
-];
+const FIELD_LABELS = PROFILE_FIELD_DEFINITIONS.map(({ key, label }) => ({
+  key,
+  label,
+  multiline: ['mission', 'problem', 'solution'].includes(key),
+}));
 
 export default function ProjectProfileScreen() {
   const theme = useTheme();
@@ -37,6 +35,9 @@ export default function ProjectProfileScreen() {
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const activeRole = useWorkspaceStore((state) => state.activeRole);
+  const nickname = useWorkspaceStore((state) => state.nickname);
+  const setProjectRole = useWorkspaceStore((state) => state.setProjectRole);
+  const inputs = useRef<Record<string, TextInput | null>>({});
   const setActiveProject = useWorkspaceStore((state) => state.setActiveProject);
   const saveProjectProfile = useWorkspaceStore((state) => state.saveProjectProfile);
   const toggleArchiveProject = useWorkspaceStore((state) => state.toggleArchiveProject);
@@ -125,6 +126,10 @@ export default function ProjectProfileScreen() {
     [editingProjectId, workspace.revisions]
   );
 
+  const unsaved =
+    name !== (currentProject?.name ?? '') ||
+    kind !== currentProject?.kind ||
+    JSON.stringify(fields) !== JSON.stringify(currentRevision?.fields ?? {});
   const canEdit =
     canRolePerform(activeRole, 'manage-project') || canRolePerform(activeRole, 'edit');
 
@@ -184,7 +189,7 @@ export default function ProjectProfileScreen() {
               <View style={styles.rowBetween}>
                 <AppText variant="h3">Profile checklist</AppText>
                 <StatusBadge
-                  label={`${previewReadiness.score}% done`}
+                  label={`${previewReadiness.score}% complete`}
                   variant={previewReadiness.score >= 75 ? 'verified' : 'pending'}
                 />
               </View>
@@ -193,23 +198,66 @@ export default function ProjectProfileScreen() {
                 {previewReadiness.checklist.length} profile fields complete.
               </AppText>
               <View style={styles.checklistGrid}>
+                {unsaved && (
+                  <AppText variant="caption" color="gold">
+                    Unsaved preview · save to update linked badges.
+                  </AppText>
+                )}
                 {previewReadiness.checklist.map((item) => (
                   <View key={item.key} style={[styles.checkItem, { borderColor: theme.border }]}>
                     <View style={styles.rowBetween}>
                       <AppText variant="body">{item.label}</AppText>
-                      <StatusBadge
-                        label={item.filled ? 'Complete' : `${item.impact.toUpperCase()} impact gap`}
-                        variant={item.filled ? 'verified' : 'pending'}
-                      />
-                    </View>
-                    {!item.filled && (
-                      <AppText variant="caption" color="muted">
-                        {item.guidance}
+                      <AppText variant="caption" color={item.filled ? 'verified' : 'gold'}>
+                        {item.filled ? 'Complete' : 'Needs detail'}
                       </AppText>
+                    </View>
+                    {item.filled ? (
+                      <AppText
+                        testID={`check-preview-${item.key}`}
+                        variant="caption"
+                        color="muted"
+                        numberOfLines={1}
+                      >
+                        {fields[item.key]}
+                      </AppText>
+                    ) : (
+                      <>
+                        <AppText variant="caption" color="gold">
+                          {item.guidance}
+                        </AppText>
+                        <AppButton
+                          size="sm"
+                          variant="ghost"
+                          label={`Fix ${item.label}`}
+                          disabled={!canEdit}
+                          onPress={() => inputs.current[item.key]?.focus()}
+                        />
+                      </>
                     )}
                   </View>
                 ))}
               </View>
+            </View>
+            <View
+              testID="project-team"
+              style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            >
+              <AppText variant="h3">Project team</AppText>
+              <AppText>{nickname} · You</AppText>
+              <ProjectRolePicker
+                name={nickname}
+                role={activeRole}
+                disabled={!currentProject || ENV.DATA_SOURCE !== 'mock'}
+                onChange={(role) => {
+                  setProjectRole(editingProjectId, role);
+                  setNotice(`Project access changed to ${role}.`);
+                }}
+              />
+              <AppText variant="caption" color="muted">
+                {ENV.DATA_SOURCE === 'mock'
+                  ? 'Sample workspace: preview each role for this project. Other projects keep their own roles.'
+                  : 'Team membership and role changes require your connected service.'}
+              </AppText>
             </View>
           </View>
           <View testID="profile-editor" style={styles.mainColumn}>
@@ -218,12 +266,12 @@ export default function ProjectProfileScreen() {
             >
               <AppText variant="h3">Project details</AppText>
               <AppInput
-                label="Project / Venture Name"
+                label="Project name"
                 value={name}
                 onChangeText={setName}
                 editable={canEdit}
               />
-              <AppText variant="label">Template Category</AppText>
+              <AppText variant="label">Project type</AppText>
               <View style={styles.rowWrap}>
                 {PROJECT_KINDS.map((item) => (
                   <AppButton
@@ -242,6 +290,9 @@ export default function ProjectProfileScreen() {
                   <AppTextArea
                     key={field.key}
                     label={field.label}
+                    inputRef={(input) => {
+                      inputs.current[field.key] = input;
+                    }}
                     value={fields[field.key] ?? ''}
                     charLimit={2000}
                     editable={canEdit}
@@ -251,6 +302,9 @@ export default function ProjectProfileScreen() {
                   <AppInput
                     key={field.key}
                     label={field.label}
+                    inputRef={(input) => {
+                      inputs.current[field.key] = input;
+                    }}
                     value={fields[field.key] ?? ''}
                     editable={canEdit}
                     onChangeText={(text) => setFields((prev) => ({ ...prev, [field.key]: text }))}

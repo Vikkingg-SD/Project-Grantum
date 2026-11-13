@@ -11,6 +11,8 @@ import { HEADER_COPY } from '@/config/copy';
 import { LAYOUT } from '@/config/layout';
 import { SPACING, RADIUS } from '@/config/theme';
 import { useThemeStore } from '@/store/useThemeStore';
+import { AccountMenu } from '@/components/organisms/AccountMenu';
+import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 
 export interface AppHeaderProps {
   title?: string;
@@ -21,6 +23,7 @@ export interface AppHeaderProps {
 
 export function AppHeader({ canGoBack, onBack, onHome }: AppHeaderProps) {
   const theme = useTheme();
+  const { effectiveWidth } = useLayoutMetrics();
   const mode = useThemeStore((state) => state.mode);
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
   useEffect(() => {
@@ -73,10 +76,10 @@ export function AppHeader({ canGoBack, onBack, onHome }: AppHeaderProps) {
           { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? 0.7 : 1 },
         ]}
       >
-        <AppText variant="h2" color="primary" align="center">
+        <AppText variant={effectiveWidth < 420 ? 'h3' : 'h2'} color="primary" align="center">
           {HEADER_COPY.brand}
         </AppText>
-        <House size={20} color={theme.primaryText} />
+        {effectiveWidth >= 420 && <House size={20} color={theme.primaryText} />}
       </Pressable>
       <IconButton
         label={mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
@@ -89,6 +92,7 @@ export function AppHeader({ canGoBack, onBack, onHome }: AppHeaderProps) {
         }
         onPress={toggleTheme}
       />
+      <AccountMenu />
     </View>
   );
 }

@@ -278,7 +278,7 @@ function DevGalleryContent() {
       <AppText variant="h2" style={styles.section}>
         Organisms
       </AppText>
-      <WorkspaceStudioBar grants={GALLERY_GRANTS} />
+      <WorkspaceStudioBar />
       <PipelineFunnelBar stages={GALLERY_FUNNEL} />
       <AppButton
         label="Notebook (.ipynb) — long scaled text remains readable"

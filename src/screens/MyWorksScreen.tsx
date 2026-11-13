@@ -142,7 +142,7 @@ export default function MyWorksScreen() {
             )}
             {visibleProjects.map((proj) => {
               const rev = workspace.revisions.find((r) => r.id === proj.currentRevisionId);
-              const readiness = rev ? computeProfileReadiness(proj, rev).score : 51;
+              const readiness = rev ? computeProfileReadiness(proj, rev).score : 0;
               const isActive = proj.id === activeProjectId;
               return (
                 <View key={proj.id} style={[styles.checkItem, { borderColor: theme.border }]}>

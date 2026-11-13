@@ -1,3 +1,4 @@
+import { useProfileReadiness } from '@/hooks/useProfileReadiness';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
@@ -25,7 +26,6 @@ import { getDataSource } from '@/api/dataSource';
 import { ENV } from '@/config/env';
 import { MAX_INPUT_CHARS } from '@/config/constants';
 import type { BountyInput } from '@/types/api';
-import { useDashboardSummary } from '@/api/hooks/useDashboardSummary';
 import { useDraftStore } from '@/store/useDraftStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { SPACING } from '@/config/theme';
@@ -39,6 +39,7 @@ const toggle = (items: string[], value: string) =>
 export default function DiscoveryScreen() {
   const navigation = useAppNavigation();
   const router = useRouter();
+  const profileReadiness = useProfileReadiness();
   const { mobile } = useLayoutMetrics();
   const wide = !mobile;
   const theme = useTheme();
@@ -47,7 +48,6 @@ export default function DiscoveryScreen() {
   const [regions, setRegions] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
-  const [externalModal, setExternalModal] = useState<'admin' | null>(null);
   const [bountyTitle, setBountyTitle] = useState('');
   const bounty = useMutation({
     mutationFn: (input: BountyInput) => getDataSource().submitBounty(input),
@@ -56,7 +56,6 @@ export default function DiscoveryScreen() {
   const currentBounty =
     bounty.variables?.title === bountyTitle.trim() && bounty.variables.note === bountyNote;
   const grants = useGrants({ q: query, region: regions, category: categories });
-  const summary = useDashboardSummary();
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
@@ -85,9 +84,9 @@ export default function DiscoveryScreen() {
           <AppText variant="h1" align="center" style={styles.title}>
             Find your next opportunity
           </AppText>
-          {summary.data && (
+          {profileReadiness && (
             <PressableBadge
-              label={`Project Profile ${summary.data.profileCompletionPct}% Done`}
+              label={`Project Profile ${profileReadiness?.score ?? 0}% Done`}
               actionLabel="Open project profile"
               onPress={() => router.push('/project-profile')}
               style={styles.centerBadge}
@@ -95,12 +94,7 @@ export default function DiscoveryScreen() {
             />
           )}
         </View>
-        <WorkspaceStudioBar
-          grants={grants.data ?? []}
-          onOpenGrantDraft={(grantId, projectId) => openDraftById(grantId, projectId)}
-          externalModal={externalModal}
-          onCloseExternalModal={() => setExternalModal(null)}
-        />
+        <WorkspaceStudioBar />
         <AppInput
           accessibilityLabel="Search the grant index"
           placeholder="Search grants"

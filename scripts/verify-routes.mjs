@@ -54,6 +54,8 @@ await check('workspace workflows have independent page routes', () => {
     ['my-works', 'MyWorks'],
     ['project-profile', 'ProjectProfile'],
     ['discover', 'Discovery'],
+    ['settings', 'PersonalSettings'],
+    ['admin', 'Admin'],
   ]) {
     assert.equal(
       read(`app/(workspace)/${leaf}.tsx`).trim(),
@@ -62,7 +64,7 @@ await check('workspace workflows have independent page routes', () => {
   }
   assert.doesNotMatch(
     read('src/components/organisms/WorkspaceStudioModals.tsx'),
-    /ProjectProfileModal|MyWorksModal/
+    /ProjectProfileModal|MyWorksModal|AccountAdminModal/
   );
 });
 

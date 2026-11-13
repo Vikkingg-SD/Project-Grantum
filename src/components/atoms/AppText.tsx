@@ -26,6 +26,7 @@ export function AppText({
   align = 'auto',
   style,
   children,
+  numberOfLines,
   ...props
 }: AppTextProps) {
   const mode = useThemeStore((s) => s.mode);
@@ -48,13 +49,14 @@ export function AppText({
   const isHeader =
     variant === 'display' || variant === 'h1' || variant === 'h2' || variant === 'h3';
   // Web only: balance short titles, avoid orphans in captions. Never applied to body prose.
-  const wrap = Platform.OS === 'web' && (isHeader || variant === 'caption');
+  const wrap = Platform.OS === 'web' && !numberOfLines && (isHeader || variant === 'caption');
   const wrapStyle = wrap
     ? ({ textWrap: isHeader ? 'balance' : 'pretty' } as unknown as TextStyle)
     : undefined;
 
   return (
     <Text
+      numberOfLines={numberOfLines}
       accessibilityRole={isHeader ? 'header' : undefined}
       style={[
         TYPOGRAPHY[variant],
