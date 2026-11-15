@@ -10,6 +10,7 @@ const extensions = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.cts'
 const ignored = new Set([
   '.git',
   '.expo',
+  '.vercel',
   'node_modules',
   'dist',
   'web-build',

@@ -3,7 +3,7 @@ export const GRANT_CARD_COPY = {
   deadline: 'Deadline',
   details: 'View details',
   apply: 'Help me apply',
-  matchLabel: (pct: number): string => `${pct}% match`,
+  matchLabel: (pct: number): string => `${pct}% catalog score`,
 } as const;
 
 export const HERO_CONTINUE_COPY = {

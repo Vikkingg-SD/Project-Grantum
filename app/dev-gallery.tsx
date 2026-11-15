@@ -42,6 +42,7 @@ import type { Grant } from '@/types/grant';
 import type { ChatEntry } from '@/types/chat';
 import { armRecoveryFault, useRecoveryProbe } from '@/components/templates/AppErrorBoundary';
 import { router } from 'expo-router';
+import NotFoundScreen from '@/screens/NotFoundScreen';
 export { AppScreenErrorBoundary as ErrorBoundary } from '@/components/templates/AppErrorBoundary';
 
 const GALLERY_GRANTS: Grant[] = [
@@ -79,7 +80,7 @@ const GALLERY_FUNNEL = [
 const REGION_OPTIONS = ['Global', 'East Europe', 'CIS'];
 
 export default function DevGalleryScreen() {
-  return __DEV__ ? <DevGalleryContent /> : null;
+  return __DEV__ ? <DevGalleryContent /> : <NotFoundScreen />;
 }
 
 function DevGalleryContent() {

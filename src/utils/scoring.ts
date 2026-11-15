@@ -13,12 +13,6 @@ export function scoreTier(
 export function isExportUnlocked(score: number): boolean {
   return score >= TIERS.confidence.pass;
 }
-export function matchTier(pct: number): ScoreTier {
-  return scoreTier(pct, TIERS.match);
-}
-export function confidenceTier(score: number): ScoreTier {
-  return scoreTier(score, TIERS.confidence);
-}
 
 export function draftConfidenceScore(
   completedSections: string[],
