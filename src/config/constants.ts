@@ -13,4 +13,3 @@ export const TIERS = {
 } as const;
 
 export const MAX_INPUT_CHARS = 10_000;
-export const SCAN_SETTLE_MS = 3_000;

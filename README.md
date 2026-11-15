@@ -13,7 +13,19 @@ Use `pnpm start` for Expo Go, `pnpm android` or `pnpm ios` for a native developm
 
 Keep `node_modules` and Metro's temporary cache between runs; cache resets are for diagnosed cache corruption. Metro uses one worker on hosts with up to 6 GB RAM. TypeScript retains incremental data in ignored `.expo/cache`. Native file references use the system document chooser; only validated names, types, and sizes are kept for the session.
 
-The default interactive preview uses sample opportunities and award records. Working notes and document edits last for the current session. The preview checks section presence only; it does not verify eligibility, budget math, or evidence. AI narrative generation, uploads, live notifications, and downloadable exports require connected services.
+The interactive preview uses sample opportunities and award records. Project profiles, authored workbench sections, versions and workspace preferences are saved on the current device when storage is available. Chat, attachment references and legacy working notes remain session-scoped. The preview checks section presence only; catalog scores do not verify eligibility, budget math or evidence. AI narrative generation, uploads, live notifications and downloadable exports require connected services.
+
+## Public web preview
+
+`pnpm build:web` creates a sample-data-only web export in `dist/` and a Vercel Build Output API package in `.vercel/output/`. The build disables dotenv loading, selects mock data and clears the API origin. The deployment package contains generated public web assets; source files, credentials and source maps are excluded. Deep links use SPA routing. The public test site requests no search-engine indexing.
+
+Deploy the tested package with the authenticated Vercel CLI:
+
+```sh
+vercel deploy --prebuilt --prod --project grantum-r-n --create-if-missing --yes
+```
+
+Vercel linkage and generated output stay Git-ignored. Project plans and test evidence remain outside this repository.
 
 ## Development
 
@@ -27,7 +39,7 @@ Verification is portable and does not require local agent software, Python, or a
 
 ## Structure
 
-`app/` contains Expo Router routes. `src/screens/` contains work areas. `src/components/` contains the shared UI. `src/config/theme.ts` owns Obsidian and Quartz color and type tokens. `src/api/` contains TanStack Query hooks and the data-source interface; `src/mock/` provides sample records. Zustand holds per-grant session notes and narrative edits.
+`app/` contains Expo Router routes. `src/screens/` contains work areas. `src/components/` contains the shared UI. `src/config/theme.ts` owns Obsidian and Quartz color and type tokens. `src/api/` contains TanStack Query hooks and the data-source interface; `src/mock/` provides sample records. Zustand separates session drafts from device-persisted workspace and workbench state.
 
 Backend integration types live in `src/types/api.ts`; `scripts/verify-contract.ts` checks the data-source contract. Project specifications, agent configuration, task plans, review packs, and session records belong in the external control-plane workspace.
 

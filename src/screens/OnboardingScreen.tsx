@@ -14,8 +14,8 @@ import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 
 const slides = [
   {
-    title: 'Discover funders that match your project.',
-    body: 'Grantum scores opportunities against your mission, geography, budget, and eligibility profile.',
+    title: 'Explore funding opportunities.',
+    body: 'Browse sample opportunities and compare their catalog information with your project profile. Scores do not verify eligibility or evidence.',
   },
   {
     title: 'Give every requirement a place in your draft.',

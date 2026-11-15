@@ -8,7 +8,6 @@ import { PALETTE, RADIUS, SPACING } from '@/config/theme';
 import { BREAKPOINTS } from '@/config/layout';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { GRANT_CARD_COPY } from '@/config/copy';
-import { matchTier } from '@/utils/scoring';
 import type { Grant } from '@/types/grant';
 
 export interface GrantCardProps {
@@ -36,8 +35,8 @@ export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: G
         </AppText>
         <PressableBadge
           label={GRANT_CARD_COPY.matchLabel(grant.matchPct)}
-          variant={matchTier(grant.matchPct)}
-          actionLabel="Open match breakdown"
+          variant="neutral"
+          actionLabel="Open profile comparison"
           onPress={() => onSelect(grant)}
         />
       </View>

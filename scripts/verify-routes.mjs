@@ -225,7 +225,7 @@ try {
   await check('root opens onboarding, which hands off a queried grant', async () => {
     await page.goto(origin);
     await page.waitForURL(`${origin}/onboarding`);
-    await visible('Discover funders that match your project.');
+    await visible('Explore funding opportunities.');
     await page.getByRole('button', { name: 'Next', exact: true }).click();
     await visible('Give every requirement a place in your draft.');
     await page.getByRole('button', { name: 'Next', exact: true }).click();

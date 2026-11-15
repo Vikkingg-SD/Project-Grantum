@@ -298,7 +298,7 @@ test.describe('app recovery:', () => {
     for (const [label, target, repeats, restored] of [
       ['Test screen recovery', 'SCREEN', 1, 'Dev Gallery'],
       ['Test repeated failure', 'SCREEN', 2, 'Dev Gallery'],
-      ['Test root recovery', 'ROOT', 1, 'Discover funders that match your project.'],
+      ['Test root recovery', 'ROOT', 1, 'Explore funding opportunities.'],
       ['Test tab recovery', 'TAB', 1, 'Welcome back, Alex.'],
     ] as const) {
       test(`${mode} ${target} ${repeats} real throw and retry`, async ({ page }) => {
