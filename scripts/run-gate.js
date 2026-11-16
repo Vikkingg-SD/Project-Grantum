@@ -35,6 +35,7 @@ const tasks = [
     'finish-review',
     'proposal-library',
     'milestones',
+    'local-export',
   ].map((name) => [tsx, `scripts/verify-${name}.ts`]),
   ['scripts/verify-routes.mjs', '--static'],
   ['scripts/verify-public-release.mjs'],
