@@ -22,6 +22,12 @@ import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { RADIUS, SPACING } from '@/config/theme';
 import { isExportUnlocked } from '@/utils/scoring';
 import { fullArtifactBundleText } from '@/utils/drafting';
+import {
+  buildSafeExportFilename,
+  formatLocalExportContent,
+  triggerWebTextDownload,
+  type LocalTextFormat,
+} from '@/utils/localExport';
 import { canRolePerform, workSlotKey } from '@/utils/workspace';
 import type { ExportFormat } from '@/types/api';
 
@@ -77,6 +83,36 @@ function ExportSession({ grantId }: { grantId: string }) {
   }
   const selectedFormat = EXPORT_FORMATS.find((item) => item.id === format);
   const documentBody = local.exportDocument ?? draft.data.body;
+  const localBodyReady = Boolean(documentBody.trim()) && documentBody.length <= MAX_INPUT_CHARS;
+  const activeProjectName = activeProject?.name ?? activeProjectId;
+  const activeRevisionId =
+    activeApp?.profileRevisionId ?? activeProject?.currentRevisionId ?? 'latest';
+  const txtFilename = buildSafeExportFilename(activeProjectName, grantId, 'txt');
+  const mdFilename = buildSafeExportFilename(activeProjectName, grantId, 'md');
+  const handleLocalDownload = (localFormat: LocalTextFormat) => {
+    try {
+      const filename = localFormat === 'txt' ? txtFilename : mdFilename;
+      const content = formatLocalExportContent({
+        format: localFormat,
+        projectName: activeProjectName,
+        grantId,
+        profileRevisionId: activeRevisionId,
+        body: documentBody,
+      });
+      const mimeType =
+        localFormat === 'md' ? 'text/markdown;charset=utf-8' : 'text/plain;charset=utf-8';
+      const triggered = triggerWebTextDownload(filename, content, mimeType);
+      setDownloadError('');
+      setBundleNotice(
+        triggered
+          ? `Downloaded ${filename} on this device. Server DOCX/PDF export remains unavailable in sample mode.`
+          : 'Browser download is unavailable on this device. Copy the application narrative below instead.'
+      );
+    } catch (e) {
+      setBundleNotice('');
+      setDownloadError(e instanceof Error ? e.message : 'Unable to export local file.');
+    }
+  };
   const unlocked =
     draft.data.requiredSections.length > 0 && isExportUnlocked(draft.data.confidenceScore);
   const result =
@@ -121,17 +157,32 @@ function ExportSession({ grantId }: { grantId: string }) {
             label="Load Active Work Slot Bundle into Export"
             disabled={!canEdit}
             onPress={() => {
-              const serialized = fullArtifactBundleText(
-                work,
-                activeProject?.name ?? activeProjectId,
-                activeApp?.profileRevisionId ?? activeProject?.currentRevisionId ?? 'latest'
-              );
+              const serialized = fullArtifactBundleText(work, activeProjectName, activeRevisionId);
               setDocument(grantId, serialized);
               setBundleNotice(
                 'Loaded Narrative, Pitch Deck Slide Outline, and Requirement Compliance Annex into Export.'
               );
             }}
           />
+          <AppText variant="caption" color="muted">
+            Local files: {txtFilename} · {mdFilename}
+          </AppText>
+          <View style={styles.rowWrap}>
+            <AppButton
+              size="sm"
+              variant="primary"
+              label="Download .txt on this device"
+              disabled={!localBodyReady}
+              onPress={() => handleLocalDownload('txt')}
+            />
+            <AppButton
+              size="sm"
+              variant="outline"
+              label="Download .md on this device"
+              disabled={!localBodyReady}
+              onPress={() => handleLocalDownload('md')}
+            />
+          </View>
         </View>
         <AppText variant="h3" align="center">
           Document format
@@ -256,6 +307,11 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: SPACING.sm,
+  },
+  rowWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: SPACING.sm,
   },
   formats: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: SPACING.sm },
