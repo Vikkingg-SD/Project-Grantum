@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
+import { AppInput } from '@/components/atoms/AppInput';
 import { ENV } from '@/config/env';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { reportUrgency, formatCalendarDate } from '@/utils/presentation';
@@ -15,57 +16,74 @@ import { useAward } from '@/api/hooks/useAward';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 import { ApiError } from '@/api/client';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
+import { hydrateMilestones, useMilestonesStore } from '@/store/useMilestonesStore';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import {
+  buildDefaultMilestoneRecord,
+  summarizeSlotMilestones,
+  type ApplicationOutcomeStatus,
+} from '@/utils/milestones';
 import { canRolePerform, workSlotKey } from '@/utils/workspace';
 import { useTheme } from '@/hooks/useTheme';
 import { RADIUS, SPACING } from '@/config/theme';
 
-interface ComplianceMilestone {
-  id: string;
-  title: string;
-  deliverable: string;
-  status: 'Pending' | 'Prepared' | 'Verified';
-}
-
-const INITIAL_MILESTONES: readonly ComplianceMilestone[] = [
-  {
-    id: 'ms-1',
-    title: '1. Financial Expenditure & Co-Funding Report',
-    deliverable: 'General ledger drawdowns + utility co-funding match receipts',
-    status: 'Prepared',
-  },
-  {
-    id: 'ms-2',
-    title: '2. Technical Milestone & Telemetry Deliverable',
-    deliverable: 'Deployment verification log and sensor calibration annex',
-    status: 'Pending',
-  },
-  {
-    id: 'ms-3',
-    title: '3. Beneficiary Impact & Audit Verification',
-    deliverable: 'Quarterly service coverage metrics and signed compliance attestation',
-    status: 'Pending',
-  },
+const OUTCOME_OPTIONS: readonly ApplicationOutcomeStatus[] = [
+  'in-progress',
+  'submitted',
+  'awarded',
+  'declined',
 ];
 
 export default function PostAwardScreen() {
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
   const [tab, setTab] = useState('Details');
-  const [milestones, setMilestones] = useState<ComplianceMilestone[]>(() =>
-    INITIAL_MILESTONES.map((m) => ({ ...m }))
-  );
   const grantId = useActiveGrantId();
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const activeRole = useWorkspaceStore((state) => state.activeRole);
   const slotKey = workSlotKey(activeProjectId, grantId);
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
+  const milestoneRecords = useMilestonesStore((state) => state.records);
+  const hasSavedMilestones = useMilestonesStore((state) => state.hasSaved);
+  const milestonePersistenceStatus = useMilestonesStore((state) => state.status);
+  const setMilestoneStatus = useMilestonesStore((state) => state.setMilestoneStatus);
+  const saveDatesAndOutcome = useMilestonesStore((state) => state.saveDatesAndOutcome);
   const query = useAward(grantId);
   const detail = useGrantDetail(grantId);
   const error = query.error ?? detail.error;
   const absent = error instanceof ApiError && error.status === 404;
+
+  const defaultSubmittedDate = query.data?.submittedAt.slice(0, 10) ?? '2026-11-10';
+  const defaultNextReportDate = query.data?.nextReportAt.slice(0, 10) ?? '2026-12-15';
+  const savedSlotRecord = milestoneRecords[slotKey];
+  const slotRecord = useMemo(
+    () =>
+      savedSlotRecord ??
+      buildDefaultMilestoneRecord(slotKey, defaultSubmittedDate, defaultNextReportDate),
+    [defaultNextReportDate, defaultSubmittedDate, savedSlotRecord, slotKey]
+  );
+  const milestoneSummary = useMemo(() => summarizeSlotMilestones(slotRecord), [slotRecord]);
+
+  const [edits, setEdits] = useState<{
+    slotKey: string;
+    outcome?: ApplicationOutcomeStatus;
+    submittedDate?: string;
+    expectedResultDate?: string;
+    nextReportDate?: string;
+  }>({ slotKey });
+  const activeEdits = edits.slotKey === slotKey ? edits : { slotKey };
+  const outcome = activeEdits.outcome ?? slotRecord.outcome;
+  const submittedDate = activeEdits.submittedDate ?? slotRecord.submittedDate;
+  const expectedResultDate = activeEdits.expectedResultDate ?? slotRecord.expectedResultDate;
+  const nextReportDate = activeEdits.nextReportDate ?? slotRecord.nextReportDate;
+  const [milestoneNotice, setMilestoneNotice] = useState('');
+  const [milestoneError, setMilestoneError] = useState('');
+
+  useEffect(() => {
+    void hydrateMilestones();
+  }, []);
 
   const activeProject =
     workspace.projects.find((p) => p.id === activeProjectId) ?? workspace.projects[0];
@@ -209,7 +227,88 @@ export default function PostAwardScreen() {
                 ? ` · Receipt: ${work.submissions[0].receipt}`
                 : ' · No external funder receipt recorded in this slot yet'}
           </AppText>
-          {milestones.map((item) => (
+          <AppText variant="caption" color="muted" align="center">
+            {milestoneSummary.summaryLine}
+          </AppText>
+          <AppText variant="caption" color="muted" align="center">
+            {!hasSavedMilestones
+              ? 'Starter deliverable schedule loaded. Edit dates or milestone statuses below to save on this device.'
+              : milestonePersistenceStatus === 'saving'
+                ? 'Saving milestones on this device…'
+                : milestonePersistenceStatus === 'session-only'
+                  ? 'Milestones kept for this session only; device storage is unavailable.'
+                  : 'Milestones and dates saved on this device.'}
+          </AppText>
+          <View style={[styles.milestoneRow, { borderColor: theme.border }]}>
+            <AppText variant="label">Application outcome &amp; key dates</AppText>
+            <View style={styles.heading}>
+              {OUTCOME_OPTIONS.map((value) => (
+                <AppButton
+                  key={value}
+                  size="sm"
+                  label={value}
+                  accessibilityLabel={`Application outcome: ${value}`}
+                  selected={outcome === value}
+                  disabled={!canReview}
+                  onPress={() => setEdits({ ...activeEdits, outcome: value })}
+                />
+              ))}
+            </View>
+            <AppInput
+              label="Submitted date (YYYY-MM-DD)"
+              value={submittedDate}
+              editable={canReview}
+              onChangeText={(value) => setEdits({ ...activeEdits, submittedDate: value })}
+              placeholder="2026-11-10"
+            />
+            <AppInput
+              label="Expected result date (YYYY-MM-DD)"
+              value={expectedResultDate}
+              editable={canReview}
+              onChangeText={(value) => setEdits({ ...activeEdits, expectedResultDate: value })}
+              placeholder="2026-12-05"
+            />
+            <AppInput
+              label="Next report date (YYYY-MM-DD)"
+              value={nextReportDate}
+              editable={canReview}
+              onChangeText={(value) => setEdits({ ...activeEdits, nextReportDate: value })}
+              placeholder="2026-12-15"
+            />
+            {milestoneError ? (
+              <AppText color="failureText" accessibilityRole="alert">
+                {milestoneError}
+              </AppText>
+            ) : null}
+            {milestoneNotice ? (
+              <AppText accessibilityLiveRegion="polite" color="verified">
+                {milestoneNotice}
+              </AppText>
+            ) : null}
+            <AppButton
+              size="sm"
+              variant="primary"
+              label="Save milestone dates"
+              disabled={!canReview}
+              onPress={() => {
+                try {
+                  saveDatesAndOutcome(
+                    slotKey,
+                    { outcome, submittedDate, expectedResultDate, nextReportDate },
+                    { submittedDate: defaultSubmittedDate, nextReportDate: defaultNextReportDate }
+                  );
+                  setEdits({ slotKey });
+                  setMilestoneError('');
+                  setMilestoneNotice('Key application dates and outcome saved on this device.');
+                } catch (e) {
+                  setMilestoneError(
+                    e instanceof Error ? e.message : 'Unable to save milestone dates'
+                  );
+                }
+              }}
+            />
+          </View>
+          {slotRecord.milestones.map((item) => (
             <View key={item.id} style={[styles.milestoneRow, { borderColor: theme.border }]}>
               <View style={styles.rowBetween}>
                 <AppText variant="body">{item.title}</AppText>
@@ -225,7 +324,7 @@ export default function PostAwardScreen() {
                 />
               </View>
               <AppText variant="caption" color="muted">
-                {item.deliverable}
+                Due: {item.dueDate} · {item.deliverable}
               </AppText>
               <View style={styles.heading}>
                 {(['Pending', 'Prepared', 'Verified'] as const).map((status) => (
@@ -233,13 +332,17 @@ export default function PostAwardScreen() {
                     key={status}
                     size="sm"
                     label={status}
+                    accessibilityLabel={`${item.title}: ${status}`}
                     selected={item.status === status}
                     disabled={!canReview}
-                    onPress={() =>
-                      setMilestones((prev) =>
-                        prev.map((m) => (m.id === item.id ? { ...m, status } : m))
-                      )
-                    }
+                    onPress={() => {
+                      setMilestoneStatus(slotKey, item.id, status, {
+                        submittedDate: defaultSubmittedDate,
+                        nextReportDate: defaultNextReportDate,
+                      });
+                      setMilestoneError('');
+                      setMilestoneNotice(`Marked "${item.title}" as ${status}.`);
+                    }}
                   />
                 ))}
               </View>

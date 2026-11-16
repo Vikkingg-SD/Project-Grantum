@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
@@ -8,6 +8,7 @@ import { AppInput } from '@/components/atoms/AppInput';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { useTheme } from '@/hooks/useTheme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
+import { hydrateMilestones, useMilestonesStore } from '@/store/useMilestonesStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { styles } from './workspacePageStyles';
 import { useGrants } from '@/api/hooks/useGrants';
@@ -17,8 +18,10 @@ import {
   computeProfileReadiness,
   getProfileSyncLag,
   searchProjects,
+  workSlotKey,
 } from '@/utils/workspace';
 import { FINISH_REVERSIBILITY_NOTE } from '@/utils/finishReview';
+import { buildDefaultMilestoneRecord, summarizeSlotMilestones } from '@/utils/milestones';
 
 export default function MyWorksScreen() {
   const theme = useTheme();
@@ -40,6 +43,11 @@ export default function MyWorksScreen() {
   const pullWorkSlotProfile = useWorkspaceStore((state) => state.pullWorkSlotProfile);
   const setWorkSlotReviewStatus = useWorkspaceStore((state) => state.setWorkSlotReviewStatus);
   const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
+  const milestoneRecords = useMilestonesStore((state) => state.records);
+
+  useEffect(() => {
+    void hydrateMilestones();
+  }, []);
 
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'sync-needed' | 'archived'>('all');
@@ -229,6 +237,14 @@ export default function MyWorksScreen() {
                     Slot ID: {app.id} · Pinned Profile: {app.profileRevisionId} · Updated:{' '}
                     {app.updatedAt.slice(0, 16).replace('T', ' ')}
                   </AppText>
+                  <AppText variant="caption" color="muted">
+                    {
+                      summarizeSlotMilestones(
+                        milestoneRecords[workSlotKey(app.projectId, app.grantId)] ??
+                          buildDefaultMilestoneRecord(workSlotKey(app.projectId, app.grantId))
+                      ).summaryLine
+                    }
+                  </AppText>
                   <View style={styles.rowWrap}>
                     {app.artifacts.map((art) => (
                       <StatusBadge
@@ -287,6 +303,19 @@ export default function MyWorksScreen() {
                         }}
                       />
                     )}
+                    <AppButton
+                      size="sm"
+                      variant="outline"
+                      label="Open Post-Award & Deadlines"
+                      accessibilityLabel={`Open Post-Award & Deadlines for ${proj?.name ?? app.projectId}`}
+                      onPress={() => {
+                        setActiveProject(app.projectId);
+                        router.navigate({
+                          pathname: '/grants/[grantID]/post-award-tracker',
+                          params: { grantID: app.grantId },
+                        });
+                      }}
+                    />
                     {app.status !== 'submitted' && app.status !== 'archived' && (
                       <>
                         {app.status !== 'ready' && (
