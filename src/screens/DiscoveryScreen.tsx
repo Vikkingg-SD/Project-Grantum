@@ -1,7 +1,7 @@
 import { SourceSuggestions } from '@/components/organisms/SourceSuggestions';
 import { useProfileReadiness } from '@/hooks/useProfileReadiness';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
@@ -24,11 +24,15 @@ import { useGrants } from '@/api/hooks/useGrants';
 import { ENV } from '@/config/env';
 import { useDraftStore } from '@/store/useDraftStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { filterGrants } from '@/utils/filters';
 import { SPACING } from '@/config/theme';
 import type { Grant } from '@/types/grant';
 
 const REGION_OPTIONS = ['Global', 'East Europe', 'CIS'];
 const CATEGORY_OPTIONS = ['Infrastructure', 'Health', 'Technology', 'Workforce'];
+const STAGE_OPTIONS = ['Idea / Early', 'Prototype / Pilot', 'Scaling'];
+const PARTICIPATION_OPTIONS = ['Solo', 'Consortium', 'Either'];
+const TEAM_SIZE_OPTIONS = ['1-3', '4-10', '11+'];
 const toggle = (items: string[], value: string) =>
   items.includes(value) ? items.filter((item) => item !== value) : [...items, value];
 
@@ -43,8 +47,17 @@ export default function DiscoveryScreen() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [regions, setRegions] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [stages, setStages] = useState<string[]>([]);
+  const [participations, setParticipations] = useState<string[]>([]);
+  const [teamSizes, setTeamSizes] = useState<string[]>([]);
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
   const grants = useGrants({ q: query, region: regions, category: categories });
+  const visibleGrants = useMemo(
+    () => filterGrants(grants.data ?? [], { stages, participations, teamSizes }),
+    [grants.data, participations, stages, teamSizes]
+  );
+  const activeFilterCount =
+    regions.length + categories.length + stages.length + participations.length + teamSizes.length;
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
@@ -54,6 +67,18 @@ export default function DiscoveryScreen() {
   );
   const toggleCategory = useCallback(
     (value: string) => setCategories((items) => toggle(items, value)),
+    []
+  );
+  const toggleStage = useCallback(
+    (value: string) => setStages((items) => toggle(items, value)),
+    []
+  );
+  const toggleParticipation = useCallback(
+    (value: string) => setParticipations((items) => toggle(items, value)),
+    []
+  );
+  const toggleTeamSize = useCallback(
+    (value: string) => setTeamSizes((items) => toggle(items, value)),
     []
   );
   const openDraftById = useCallback(
@@ -95,16 +120,16 @@ export default function DiscoveryScreen() {
           title={
             grants.isFetching
               ? 'Updating opportunities...'
-              : `${grants.data?.length ?? 0} ${ENV.DATA_SOURCE === 'mock' ? 'sample ' : ''}opportunities`
+              : `${visibleGrants.length} ${ENV.DATA_SOURCE === 'mock' ? 'sample ' : ''}opportunities`
           }
           variant="caption"
           color="muted"
           leading={
             !wide ? (
               <IconButton
-                label={`Filter grants${regions.length + categories.length ? ` (${regions.length + categories.length} active)` : ''}`}
+                label={`Filter grants${activeFilterCount ? ` (${activeFilterCount} active)` : ''}`}
                 expanded={filtersOpen}
-                active={filtersOpen || regions.length + categories.length > 0}
+                active={filtersOpen || activeFilterCount > 0}
                 onPress={() => setFiltersOpen(!filtersOpen)}
                 icon={<Filter size={SPACING.lg} color={theme.textMuted} />}
               />
@@ -126,6 +151,9 @@ export default function DiscoveryScreen() {
                     setQuery('');
                     setRegions([]);
                     setCategories([]);
+                    setStages([]);
+                    setParticipations([]);
+                    setTeamSizes([]);
                   }}
                 />
               </View>
@@ -141,6 +169,24 @@ export default function DiscoveryScreen() {
                 selected={categories}
                 onToggle={toggleCategory}
               />
+              <FilterFieldGroup
+                label="Project stage"
+                options={STAGE_OPTIONS}
+                selected={stages}
+                onToggle={toggleStage}
+              />
+              <FilterFieldGroup
+                label="Participation format"
+                options={PARTICIPATION_OPTIONS}
+                selected={participations}
+                onToggle={toggleParticipation}
+              />
+              <FilterFieldGroup
+                label="Team size"
+                options={TEAM_SIZE_OPTIONS}
+                selected={teamSizes}
+                onToggle={toggleTeamSize}
+              />
             </View>
           )}
           <View style={[styles.content, styles.results]}>
@@ -153,7 +199,7 @@ export default function DiscoveryScreen() {
                   void grants.refetch();
                 }}
               />
-            ) : grants.data.length === 0 ? (
+            ) : visibleGrants.length === 0 ? (
               <View style={styles.content}>
                 <EmptyStateLayout
                   title="No grants match your exact criteria"
@@ -162,7 +208,7 @@ export default function DiscoveryScreen() {
               </View>
             ) : (
               <GrantDiscoveryGrid
-                grants={grants.data}
+                grants={visibleGrants}
                 onSelect={setSelectedGrant}
                 onApply={openDraft}
               />

@@ -5,12 +5,18 @@ export interface GrantFilters {
   query?: string;
   regions?: string[];
   categories?: string[];
+  stages?: string[];
+  participations?: string[];
+  teamSizes?: string[];
 }
 
 export function filterGrants(grants: Grant[], filters: GrantFilters): Grant[] {
   const q = filters.query?.toLowerCase().trim() ?? '';
   const regions = filters.regions ?? [];
   const categories = filters.categories ?? [];
+  const stages = filters.stages ?? [];
+  const participations = filters.participations ?? [];
+  const teamSizes = filters.teamSizes ?? [];
 
   return grants.filter((grant) => {
     if (q) {
@@ -23,6 +29,18 @@ export function filterGrants(grants: Grant[], filters: GrantFilters): Grant[] {
     if (categories.length > 0) {
       const { category } = splitRegion(grant.region);
       if (!categories.includes(category)) return false;
+    }
+    if (stages.length > 0 && (!grant.stage || !stages.includes(grant.stage))) {
+      return false;
+    }
+    if (
+      participations.length > 0 &&
+      (!grant.participation || !participations.includes(grant.participation))
+    ) {
+      return false;
+    }
+    if (teamSizes.length > 0 && (!grant.teamSize || !teamSizes.includes(grant.teamSize))) {
+      return false;
     }
     return true;
   });

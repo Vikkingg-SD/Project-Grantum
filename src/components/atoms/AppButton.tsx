@@ -15,6 +15,7 @@ import { MOTION, pressScale, webPressTransition } from '@/config/motion';
 
 export interface AppButtonProps {
   label: string;
+  accessibilityLabel?: string;
   onPress: () => void;
   variant?: 'primary' | 'surface' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
@@ -29,6 +30,7 @@ export interface AppButtonProps {
 
 export function AppButton({
   label,
+  accessibilityLabel,
   onPress,
   variant = 'surface',
   size = 'md',
@@ -90,7 +92,7 @@ export function AppButton({
     <Pressable
       accessibilityRole="button"
       aria-expanded={expanded}
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: disabled || isLoading, busy: isLoading, expanded, selected }}
       aria-busy={isLoading}
       aria-pressed={Platform.OS === 'web' ? selected : undefined}
