@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { AppText } from '@/components/atoms/AppText';
 import { AppInput } from '@/components/atoms/AppInput';
@@ -10,6 +11,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { styles } from './workspacePageStyles';
 
 export default function PersonalSettingsScreen() {
+  const router = useRouter();
   const theme = useTheme();
   const nickname = useWorkspaceStore((state) => state.nickname);
   const userId = useWorkspaceStore((state) => state.userId);
@@ -64,6 +66,11 @@ export default function PersonalSettingsScreen() {
                 ? 'Saving on this device…'
                 : 'Available for this session only; device storage could not be used.'}
           </AppText>
+          <AppButton
+            label="Subscriptions & plans overview"
+            variant="outline"
+            onPress={() => router.push('/plans')}
+          />
         </View>
       </View>
     </ScreenContainer>

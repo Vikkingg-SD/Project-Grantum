@@ -17,7 +17,7 @@ export function AccountMenu() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const navigate = (path: '/settings' | '/project-profile' | '/admin') => {
+  const navigate = (path: '/settings' | '/project-profile' | '/admin' | '/plans') => {
     setOpen(false);
     router.push(path);
   };
@@ -73,6 +73,11 @@ export function AccountMenu() {
               label="Personal settings"
               variant="ghost"
               onPress={() => navigate('/settings')}
+            />
+            <AppButton
+              label="Subscriptions & plans"
+              variant="ghost"
+              onPress={() => navigate('/plans')}
             />
             <AppButton
               label="Project team"
