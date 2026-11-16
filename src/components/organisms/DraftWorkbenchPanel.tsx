@@ -7,8 +7,10 @@ import { AppTextArea } from '../atoms/AppTextArea';
 import { StatusBadge } from '../atoms/StatusBadge';
 import { ModalSheetLayout } from '../templates/ModalSheetLayout';
 import { DraftReviewTab } from './DraftReviewTab';
+import { ReusableProposalLibraryCard } from './ReusableProposalLibraryCard';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
+import { useProposalLibraryStore } from '@/store/useProposalLibraryStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import {
   acceptSuggestion,
@@ -67,6 +69,7 @@ export function DraftWorkbenchPanel({
   const key = workSlotKey(activeProjectId, grantId);
   const work = useWorkbenchStore((state) => state.work[key] ?? EMPTY_WORKBENCH);
   const update = useWorkbenchStore((state) => state.update);
+  const saveLibrarySection = useProposalLibraryStore((state) => state.saveSection);
   const setExport = useDraftStore((state) => state.setExportDocument);
   const localDraft = useDraftStore((state) => state.drafts[grantId] ?? EMPTY_DRAFT);
 
@@ -383,8 +386,50 @@ export function DraftWorkbenchPanel({
                         )
                       }
                     />
+                    <AppButton
+                      size="sm"
+                      variant="outline"
+                      label={`Save ${section.title} to reusable library`}
+                      disabled={!canEdit || !section.text.trim()}
+                      onPress={() =>
+                        act(
+                          () =>
+                            saveLibrarySection({
+                              title: section.title,
+                              text: section.text,
+                              evidence: section.evidence,
+                              projectId: activeProjectId,
+                              projectName: activeProject?.name ?? activeProjectId,
+                              grantId,
+                              tags: [work.kind],
+                            }),
+                          `Saved "${section.title}" to reusable library on this device.`
+                        )
+                      }
+                    />
                   </View>
                 ))}
+
+                {work.sections.length > 0 && (
+                  <ReusableProposalLibraryCard
+                    sections={work.sections}
+                    canEdit={canEdit}
+                    onInsert={(sectionId, text, evidence) =>
+                      act(
+                        () =>
+                          update(key, (current) => ({
+                            ...current,
+                            sections: current.sections.map((s) =>
+                              s.id === sectionId
+                                ? { ...s, text, evidence: s.evidence || evidence }
+                                : s
+                            ),
+                          })),
+                        'Inserted reusable section into draft.'
+                      )
+                    }
+                  />
+                )}
 
                 {work.outputs.includes('pitch-deck') && (
                   <View
