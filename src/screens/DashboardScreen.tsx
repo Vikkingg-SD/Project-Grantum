@@ -24,10 +24,11 @@ import { useDashboardSummary } from '@/api/hooks/useDashboardSummary';
 import { useDraftStore } from '@/store/useDraftStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useTheme } from '@/hooks/useTheme';
-import { SPACING } from '@/config/theme';
+import { RADIUS, SPACING } from '@/config/theme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { ENV } from '@/config/env';
 import { DASHBOARD_COPY } from '@/config/copy';
+import { formatCooldownRemaining, isSupportPromptVisible } from '@/utils/supportPrompt';
 import type { Grant } from '@/types/grant';
 
 export default function DashboardScreen() {
@@ -43,6 +44,10 @@ export default function DashboardScreen() {
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
+  const supportPromptDismissedAt = useWorkspaceStore((state) => state.supportPromptDismissedAt);
+  const dismissSupportPrompt = useWorkspaceStore((state) => state.dismissSupportPrompt);
+  const restoreSupportPrompt = useWorkspaceStore((state) => state.restoreSupportPrompt);
+  const [cooldownNowMs, setCooldownNowMs] = useState(() => Date.now());
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
   const openDraft = useCallback(
     (grantId: string, projectId = activeProjectId) => {
@@ -173,11 +178,73 @@ export default function DashboardScreen() {
           />
         </View>
         <GrantDiscoveryGrid grants={filtered} onSelect={setSelectedGrant} onApply={applyGrant} />
-        <AppButton
-          label="Roadmap and feedback"
-          variant="ghost"
-          onPress={() => router.push('/roadmap')}
-        />
+        {isSupportPromptVisible(supportPromptDismissedAt, cooldownNowMs) ? (
+          <View
+            style={[
+              styles.supportCard,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
+            <AppText variant="h3">Support &amp; shape Grantum</AppText>
+            <AppText variant="caption" color="muted">
+              Tell us what slows your applications down, inspect our roadmap, or review proposed
+              plans. No subscription is required to browse sample grants.
+            </AppText>
+            <AppText variant="caption" selectable>
+              suggestions_grantum@gmail.com
+            </AppText>
+            <View style={styles.supportActions}>
+              <AppButton
+                size="sm"
+                variant="outline"
+                label="Roadmap and feedback"
+                onPress={() => router.push('/roadmap')}
+              />
+              <AppButton
+                size="sm"
+                variant="outline"
+                label="Subscriptions & plans"
+                onPress={() => router.push('/plans')}
+              />
+              <AppButton
+                size="sm"
+                variant="ghost"
+                label="Remind me in 7 days"
+                onPress={() => {
+                  const now = Date.now();
+                  setCooldownNowMs(now);
+                  dismissSupportPrompt(new Date(now).toISOString());
+                }}
+              />
+            </View>
+          </View>
+        ) : (
+          <View style={styles.supportSnoozed}>
+            <AppText variant="caption" color="muted" align="center">
+              {formatCooldownRemaining(supportPromptDismissedAt, cooldownNowMs)}
+            </AppText>
+            <View style={styles.supportActions}>
+              <AppButton
+                size="sm"
+                label="Roadmap and feedback"
+                variant="ghost"
+                onPress={() => router.push('/roadmap')}
+              />
+              <AppButton
+                size="sm"
+                label="Subscriptions & plans"
+                variant="ghost"
+                onPress={() => router.push('/plans')}
+              />
+              <AppButton
+                size="sm"
+                label="Show support note"
+                variant="ghost"
+                onPress={restoreSupportPrompt}
+              />
+            </View>
+          </View>
+        )}
       </View>
       <ModalSheetLayout
         visible={activityOpen}
@@ -262,4 +329,20 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   profile: { alignSelf: 'center', flexShrink: 1 },
+  supportCard: {
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    gap: SPACING.sm,
+  },
+  supportSnoozed: {
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  supportActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+  },
 });

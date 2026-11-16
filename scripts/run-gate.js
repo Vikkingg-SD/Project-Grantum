@@ -38,6 +38,7 @@ const tasks = [
     'local-export',
     'budget-checks',
     'plans',
+    'support-admin',
   ].map((name) => [tsx, `scripts/verify-${name}.ts`]),
   ['scripts/verify-routes.mjs', '--static'],
   ['scripts/verify-public-release.mjs'],

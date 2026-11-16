@@ -144,6 +144,9 @@ export interface AdminQueueItem {
   status: 'pending' | 'approved' | 'rejected' | 'retried';
   updatedAt: string;
   actor: string;
+  sourceUrl?: string;
+  lastCheckedAt?: string;
+  failureContext?: string;
 }
 
 export interface AdminAuditEntry {
