@@ -80,6 +80,11 @@ export default function RoadmapScreen() {
           {notice ? <AppText accessibilityLiveRegion="polite">{notice}</AppText> : null}
         </View>
         <AppButton
+          label="View proposed subscriptions & pricing"
+          variant="outline"
+          onPress={() => router.push('/plans')}
+        />
+        <AppButton
           label="Explore the sample workspace"
           variant="primary"
           onPress={() => router.push('/dashboard')}
