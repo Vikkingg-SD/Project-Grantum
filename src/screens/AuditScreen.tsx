@@ -11,6 +11,7 @@ import { InfoCard } from '@/components/molecules/InfoCard';
 import { ChatMessageBubble } from '@/components/molecules/ChatMessageBubble';
 import { ChatInputRow } from '@/components/molecules/ChatInputRow';
 import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
+import { BudgetChecklistCard } from '@/components/organisms/BudgetChecklistCard';
 import { useProposalDraft } from '@/api/hooks/useProposalDraft';
 import { useAuditStatus, useTriggerAuditScan } from '@/api/hooks/useAuditScan';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
@@ -369,6 +370,8 @@ function AuditSession({ grantId }: { grantId: string }) {
             />
           )}
         </View>
+
+        <BudgetChecklistCard slotKey={slotKey} canEdit={canEdit} />
 
         <View style={styles.chat}>
           <AppText variant="h3" align="center">
