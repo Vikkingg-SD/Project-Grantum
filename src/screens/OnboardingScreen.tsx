@@ -104,6 +104,11 @@ export default function OnboardingScreen() {
               }}
             />
           )}
+          <AppButton
+            label="Roadmap and feedback"
+            variant="ghost"
+            onPress={() => router.push('/roadmap')}
+          />
         </View>
       </View>
     </ScreenContainer>

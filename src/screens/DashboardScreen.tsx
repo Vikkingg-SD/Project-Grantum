@@ -173,6 +173,11 @@ export default function DashboardScreen() {
           />
         </View>
         <GrantDiscoveryGrid grants={filtered} onSelect={setSelectedGrant} onApply={applyGrant} />
+        <AppButton
+          label="Roadmap and feedback"
+          variant="ghost"
+          onPress={() => router.push('/roadmap')}
+        />
       </View>
       <ModalSheetLayout
         visible={activityOpen}
