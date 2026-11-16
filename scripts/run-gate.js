@@ -33,6 +33,7 @@ const tasks = [
     'source-suggestions',
     'eligibility-preflight',
     'finish-review',
+    'proposal-library',
   ].map((name) => [tsx, `scripts/verify-${name}.ts`]),
   ['scripts/verify-routes.mjs', '--static'],
   ['scripts/verify-public-release.mjs'],
