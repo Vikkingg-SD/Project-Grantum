@@ -12,7 +12,13 @@ import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { styles } from './workspacePageStyles';
 import { useGrants } from '@/api/hooks/useGrants';
 import { useDraftStore } from '@/store/useDraftStore';
-import { computeProfileReadiness, getProfileSyncLag, searchProjects } from '@/utils/workspace';
+import {
+  canRolePerform,
+  computeProfileReadiness,
+  getProfileSyncLag,
+  searchProjects,
+} from '@/utils/workspace';
+import { FINISH_REVERSIBILITY_NOTE } from '@/utils/finishReview';
 
 export default function MyWorksScreen() {
   const theme = useTheme();
@@ -29,8 +35,10 @@ export default function MyWorksScreen() {
   const onOpenProfile = () => router.push('/project-profile');
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const projectRoles = useWorkspaceStore((state) => state.projectRoles);
   const setActiveProject = useWorkspaceStore((state) => state.setActiveProject);
   const pullWorkSlotProfile = useWorkspaceStore((state) => state.pullWorkSlotProfile);
+  const setWorkSlotReviewStatus = useWorkspaceStore((state) => state.setWorkSlotReviewStatus);
   const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
 
   const [query, setQuery] = useState('');
@@ -210,7 +218,11 @@ export default function MyWorksScreen() {
                     </AppText>
                     <StatusBadge
                       label={app.status.toUpperCase()}
-                      variant={app.status === 'submitted' ? 'verified' : 'pending'}
+                      variant={
+                        app.status === 'submitted' || app.status === 'ready'
+                          ? 'verified'
+                          : 'pending'
+                      }
                     />
                   </View>
                   <AppText variant="caption" color="muted">
@@ -263,17 +275,72 @@ export default function MyWorksScreen() {
                     </View>
                   )}
 
-                  {onOpenGrantDraft && (
-                    <AppButton
-                      size="sm"
-                      variant="outline"
-                      label="Open in Drafting Studio"
-                      onPress={() => {
-                        setActiveProject(app.projectId);
-                        onOpenGrantDraft(app.grantId, app.projectId);
-                      }}
-                    />
-                  )}
+                  <View style={styles.rowWrap}>
+                    {onOpenGrantDraft && (
+                      <AppButton
+                        size="sm"
+                        variant="outline"
+                        label="Open in Drafting Studio"
+                        onPress={() => {
+                          setActiveProject(app.projectId);
+                          onOpenGrantDraft(app.grantId, app.projectId);
+                        }}
+                      />
+                    )}
+                    {app.status !== 'submitted' && app.status !== 'archived' && (
+                      <>
+                        {app.status !== 'ready' && (
+                          <AppButton
+                            size="sm"
+                            variant="primary"
+                            label="Finish application (mark ready)"
+                            accessibilityLabel={`Finish application (mark ready) for ${proj?.name ?? app.projectId}`}
+                            disabled={
+                              !canRolePerform(projectRoles[app.projectId] ?? 'owner', 'edit') &&
+                              !canRolePerform(projectRoles[app.projectId] ?? 'owner', 'review')
+                            }
+                            onPress={() => {
+                              try {
+                                setWorkSlotReviewStatus(app.id, 'ready');
+                                setError('');
+                                setNotice(
+                                  `Marked "${proj?.name ?? app.projectId}" READY on this device. ${FINISH_REVERSIBILITY_NOTE}`
+                                );
+                              } catch (e) {
+                                setError(
+                                  e instanceof Error ? e.message : 'Unable to finish application'
+                                );
+                              }
+                            }}
+                          />
+                        )}
+                        {app.status !== 'drafting' && (
+                          <AppButton
+                            size="sm"
+                            variant="outline"
+                            label="Reopen for drafting"
+                            accessibilityLabel={`Reopen for drafting for ${proj?.name ?? app.projectId}`}
+                            disabled={
+                              !canRolePerform(projectRoles[app.projectId] ?? 'owner', 'edit')
+                            }
+                            onPress={() => {
+                              try {
+                                setWorkSlotReviewStatus(app.id, 'drafting');
+                                setError('');
+                                setNotice(
+                                  `Reopened "${proj?.name ?? app.projectId}" to DRAFTING for further editing.`
+                                );
+                              } catch (e) {
+                                setError(
+                                  e instanceof Error ? e.message : 'Unable to reopen application'
+                                );
+                              }
+                            }}
+                          />
+                        )}
+                      </>
+                    )}
+                  </View>
                 </View>
               );
             })}

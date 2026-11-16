@@ -6,6 +6,7 @@ import { AppInput } from '../atoms/AppInput';
 import { AppTextArea } from '../atoms/AppTextArea';
 import { StatusBadge } from '../atoms/StatusBadge';
 import { ModalSheetLayout } from '../templates/ModalSheetLayout';
+import { DraftReviewTab } from './DraftReviewTab';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
@@ -14,11 +15,8 @@ import {
   type TextSuggestion,
   applyTemplate,
   buildSectionSuggestion,
-  bundleText,
   computeLineDiff,
   DEFAULT_PITCH_SLIDES,
-  fullArtifactBundleText,
-  recordSubmission,
   restoreVersion,
   saveVersion,
   syncGrantRequirements,
@@ -64,6 +62,7 @@ export function DraftWorkbenchPanel({
   const setActiveProject = useWorkspaceStore((state) => state.setActiveProject);
   const pullWorkSlotProfile = useWorkspaceStore((state) => state.pullWorkSlotProfile);
   const markWorkSlotSubmitted = useWorkspaceStore((state) => state.markWorkSlotSubmitted);
+  const setWorkSlotReviewStatus = useWorkspaceStore((state) => state.setWorkSlotReviewStatus);
 
   const key = workSlotKey(activeProjectId, grantId);
   const work = useWorkbenchStore((state) => state.work[key] ?? EMPTY_WORKBENCH);
@@ -87,8 +86,6 @@ export function DraftWorkbenchPanel({
   const [kind, setKind] = useState<ProjectKind>(work.kind);
   const [outputs, setOutputs] = useState<OutputKind[]>([...work.outputs]);
   const [summary, setSummary] = useState('');
-  const [receipt, setReceipt] = useState('');
-  const [destination, setDestination] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [compare, setCompare] = useState<string | null>(null);
@@ -643,98 +640,27 @@ export function DraftWorkbenchPanel({
             )}
 
             {tab === 'review' && (
-              <>
-                <AppText variant="h3">Bundle review</AppText>
-                <AppText>Outputs: {work.outputs.join(', ')}</AppText>
-                <AppText>
-                  {work.sections.filter((s) => s.text.trim()).length}/{work.sections.length}{' '}
-                  sections have text. This is not an AI assessment or eligibility verdict.
-                </AppText>
-                <AppText>{bundleText(work) || 'No content to review.'}</AppText>
-                <AppText color="muted">
-                  Open the Grant Detail sheet to inspect the structured Verifiable Match Report for
-                  your active Project Profile Slot.
-                </AppText>
-                <AppButton
-                  label="Use reviewed text in Export"
-                  disabled={!work.sections.length || work.sections.some((s) => !s.text.trim())}
-                  onPress={() =>
-                    act(
-                      () =>
-                        setExport(
-                          grantId,
-                          fullArtifactBundleText(
-                            work,
-                            activeProject?.name ?? activeProjectId,
-                            activeApp?.profileRevisionId ??
-                              activeProject?.currentRevisionId ??
-                              'latest'
-                          )
-                        ),
-                      'Review text copied to Export. Download requires a connected service; nothing was submitted.'
-                    )
-                  }
-                />
-                <AppText variant="h3">Record an external submission</AppText>
-                <AppText>
-                  Submit through the funder&apos;s official site first, then record its receipt.
-                  This locks the work slot snapshot for audit compliance.
-                </AppText>
-                <AppInput
-                  label="Official submission destination URL"
-                  value={destination}
-                  editable={canSubmit}
-                  onChangeText={setDestination}
-                  autoCapitalize="none"
-                />
-                <AppButton
-                  label="Open official destination"
-                  disabled={!validSource(destination)}
-                  onPress={() => {
-                    void Linking.openURL(destination).catch(() =>
-                      setError('Could not open the destination.')
-                    );
-                  }}
-                />
-                <AppInput
-                  label="Receipt reference supplied by funder"
-                  value={receipt}
-                  editable={canSubmit}
-                  onChangeText={setReceipt}
-                  maxLength={200}
-                />
-                <AppButton
-                  label="Record receipt and snapshot"
-                  disabled={!canSubmit || !receipt.trim() || !validSource(destination)}
-                  onPress={() =>
-                    act(() => {
-                      update(key, (current) =>
-                        recordSubmission(
-                          current,
-                          generateId('submission'),
-                          new Date().toISOString(),
-                          receipt,
-                          destination
-                        )
-                      );
-                      if (activeApp) {
-                        markWorkSlotSubmitted(activeApp.id, receipt.trim());
-                      }
-                    }, 'Receipt recorded in this session; snapshot preserved.')
-                  }
-                />
-                {work.submissions.map((item) => (
-                  <View key={item.id}>
-                    <AppText>Recorded: {item.receipt}</AppText>
-                    <AppText>
-                      {item.recordedAt} · {item.destination}
-                    </AppText>
-                    <AppText>
-                      {item.version.sections.length} sections preserved in the submission snapshot.
-                    </AppText>
-                  </View>
-                ))}
-              </>
+              <DraftReviewTab
+                grantId={grantId}
+                slotKey={key}
+                work={work}
+                activeProjectId={activeProjectId}
+                activeProjectName={activeProject?.name ?? activeProjectId}
+                activeProfileRevisionId={
+                  activeApp?.profileRevisionId ?? activeProject?.currentRevisionId ?? 'latest'
+                }
+                activeApp={activeApp}
+                syncLag={syncLag}
+                canEdit={canEdit}
+                canReview={canReview}
+                canSubmit={canSubmit}
+                act={act}
+                update={update}
+                setExport={setExport}
+                setWorkSlotReviewStatus={setWorkSlotReviewStatus}
+                markWorkSlotSubmitted={markWorkSlotSubmitted}
+                onError={setError}
+              />
             )}
           </View>
         </View>

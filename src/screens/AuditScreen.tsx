@@ -24,6 +24,7 @@ import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { GrantContext } from '@/components/molecules/GrantContext';
 import { ENV } from '@/config/env';
 import { evaluateWorkSlotAudit } from '@/utils/drafting';
+import { evaluateFinishReview } from '@/utils/finishReview';
 import { canRolePerform, getProfileSyncLag, workSlotKey } from '@/utils/workspace';
 
 export default function AuditScreen() {
@@ -35,7 +36,9 @@ function AuditSession({ grantId }: { grantId: string }) {
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
   const [promptsOpen, setPromptsOpen] = useState(false);
+  const [finishInfoOpen, setFinishInfoOpen] = useState(false);
   const [slotNotice, setSlotNotice] = useState('');
+  const [slotError, setSlotError] = useState('');
   const scrollRef = useRef<ScrollView>(null);
   const scrollAfterNote = useRef(false);
   const draft = useProposalDraft(grantId);
@@ -47,6 +50,7 @@ function AuditSession({ grantId }: { grantId: string }) {
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const activeRole = useWorkspaceStore((state) => state.activeRole);
   const pullWorkSlotProfile = useWorkspaceStore((state) => state.pullWorkSlotProfile);
+  const setWorkSlotReviewStatus = useWorkspaceStore((state) => state.setWorkSlotReviewStatus);
   const slotKey = workSlotKey(activeProjectId, grantId);
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
   const updateWorkbench = useWorkbenchStore((state) => state.update);
@@ -59,6 +63,18 @@ function AuditSession({ grantId }: { grantId: string }) {
   );
   const syncLag = activeApp ? getProfileSyncLag(workspace, activeApp.id) : 0;
   const slotAudit = useMemo(() => evaluateWorkSlotAudit(work, syncLag), [syncLag, work]);
+  const finishReview = useMemo(
+    () =>
+      evaluateFinishReview({
+        status: activeApp?.status ?? 'drafting',
+        filledSections: slotAudit.filledSections,
+        totalSections: slotAudit.totalSections,
+        approvedRequirements: slotAudit.approvedRequirements,
+        totalRequirements: slotAudit.totalRequirements,
+        syncLag,
+      }),
+    [activeApp?.status, slotAudit, syncLag]
+  );
   const canReview = canRolePerform(activeRole, 'review');
   const canEdit = canRolePerform(activeRole, 'edit');
 
@@ -201,10 +217,20 @@ function AuditSession({ grantId }: { grantId: string }) {
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.rowBetween}>
             <AppText variant="h3">Work Slot Grounding & Reviewer Compliance</AppText>
-            <StatusBadge
-              label={slotAudit.readyForHandoff ? 'Handoff Ready' : 'Review Studio Items'}
-              variant={slotAudit.readyForHandoff ? 'verified' : 'pending'}
-            />
+            <View style={styles.chipsRow}>
+              <StatusBadge
+                label={finishReview.status.toUpperCase()}
+                variant={
+                  finishReview.status === 'submitted' || finishReview.status === 'ready'
+                    ? 'verified'
+                    : 'pending'
+                }
+              />
+              <StatusBadge
+                label={slotAudit.readyForHandoff ? 'Handoff Ready' : 'Review Studio Items'}
+                variant={slotAudit.readyForHandoff ? 'verified' : 'pending'}
+              />
+            </View>
           </View>
           <AppText variant="caption" color="muted">
             Active Slot: {slotKey} · Project: {activeProject?.name ?? activeProjectId} · Pinned
@@ -216,8 +242,89 @@ function AuditSession({ grantId }: { grantId: string }) {
             {'\n'}• Requirement Matrix Approvals: {slotAudit.approvedRequirements}/
             {slotAudit.totalRequirements} approved
             {'\n'}• Local Reference Attachments: {local.attachments.length} staged
+            {'\n'}• Finish review checks: {finishReview.passedCount}/{finishReview.totalCount} ready
           </AppText>
+          <AppButton
+            size="sm"
+            variant="ghost"
+            label={finishReview.reversibilityTitle}
+            expanded={finishInfoOpen}
+            onPress={() => setFinishInfoOpen(!finishInfoOpen)}
+          />
+          {finishInfoOpen && (
+            <AppText variant="caption" color="muted">
+              {finishReview.reversibilityNote}
+            </AppText>
+          )}
+          {slotError ? (
+            <AppText color="failureText" accessibilityRole="alert">
+              {slotError}
+            </AppText>
+          ) : null}
           {slotNotice ? <AppText color="verified">{slotNotice}</AppText> : null}
+          {activeApp && (
+            <View style={styles.chipsRow}>
+              <AppButton
+                size="sm"
+                variant="outline"
+                label="Mark in review"
+                disabled={
+                  !finishReview.canTransition ||
+                  (!canEdit && !canReview) ||
+                  finishReview.status === 'review'
+                }
+                onPress={() => {
+                  try {
+                    setWorkSlotReviewStatus(activeApp.id, 'review');
+                    setSlotError('');
+                    setSlotNotice(
+                      'Work slot marked IN REVIEW on this device. Editing remains reversible.'
+                    );
+                  } catch (e) {
+                    setSlotError(e instanceof Error ? e.message : 'Unable to update status');
+                  }
+                }}
+              />
+              <AppButton
+                size="sm"
+                variant="primary"
+                label="Finish application (mark ready)"
+                disabled={
+                  !finishReview.canTransition ||
+                  (!canEdit && !canReview) ||
+                  finishReview.status === 'ready'
+                }
+                onPress={() => {
+                  try {
+                    setWorkSlotReviewStatus(activeApp.id, 'ready');
+                    setSlotError('');
+                    setSlotNotice(
+                      'Application marked READY on this device. You can reopen it at any time; nothing was sent externally.'
+                    );
+                  } catch (e) {
+                    setSlotError(e instanceof Error ? e.message : 'Unable to finish application');
+                  }
+                }}
+              />
+              <AppButton
+                size="sm"
+                variant="outline"
+                label="Reopen for drafting"
+                disabled={
+                  !finishReview.canTransition || !canEdit || finishReview.status === 'drafting'
+                }
+                onPress={() => {
+                  try {
+                    setWorkSlotReviewStatus(activeApp.id, 'drafting');
+                    setSlotError('');
+                    setSlotNotice('Work slot reopened to DRAFTING for further edits.');
+                  } catch (e) {
+                    setSlotError(e instanceof Error ? e.message : 'Unable to reopen application');
+                  }
+                }}
+              />
+            </View>
+          )}
           {syncLag > 0 && activeApp && (
             <View
               style={[styles.subBox, { backgroundColor: theme.subtle, borderColor: theme.border }]}
