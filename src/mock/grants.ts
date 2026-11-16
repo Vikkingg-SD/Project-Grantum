@@ -11,6 +11,14 @@ export const mockGrants: Grant[] = [
     region: 'Global · Infrastructure',
     summary:
       'Deploy flood-resilient infrastructure across 12 municipalities, pairing sensor networks with community response planning to protect climate-exposed districts.',
+    stage: 'Scaling',
+    participation: 'Consortium',
+    teamSize: '11+',
+    eligibilityCriteria: [
+      'Registered municipal consortium or deep-tech C-Corp lead',
+      'Operations in Global or East Europe climate-exposed districts',
+      'Minimum 20% confirmed utility or public co-funding envelope',
+    ],
   },
   {
     id: '2',
@@ -22,6 +30,14 @@ export const mockGrants: Grant[] = [
     region: 'East Europe · Health',
     summary:
       'Expand primary-care outreach to underserved communities through mobile clinics and telehealth kiosks, cutting preventable admissions and wait times.',
+    stage: 'Prototype / Pilot',
+    participation: 'Either',
+    teamSize: '4-10',
+    eligibilityCriteria: [
+      'Accredited nonprofit foundation or regional clinic partner',
+      'Active care delivery footprint in East Europe',
+      'Clinical lead and cold-chain or telehealth deployment plan',
+    ],
   },
   {
     id: '3',
@@ -33,5 +49,13 @@ export const mockGrants: Grant[] = [
     region: 'CIS · Technology',
     summary:
       'Publish civic datasets through an open, machine-readable platform that powers public-interest research, transparency tools, and regional innovation.',
+    stage: 'Idea / Early',
+    participation: 'Solo',
+    teamSize: '1-3',
+    eligibilityCriteria: [
+      'Independent civic tech team, research lab, or NGO in CIS',
+      'Commitment to open machine-readable licensing',
+      'Public release roadmap within 12 months',
+    ],
   },
 ];

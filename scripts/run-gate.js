@@ -31,6 +31,7 @@ const tasks = [
     'drafting-history',
     'persistence',
     'source-suggestions',
+    'eligibility-preflight',
   ].map((name) => [tsx, `scripts/verify-${name}.ts`]),
   ['scripts/verify-routes.mjs', '--static'],
   ['scripts/verify-public-release.mjs'],
