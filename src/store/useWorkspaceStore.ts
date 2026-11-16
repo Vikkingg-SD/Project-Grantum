@@ -218,6 +218,7 @@ export interface WorkspaceStoreState {
   ensureWorkSlot: (projectId: string, grantId: string, outputs?: OutputKind[]) => ApplicationBundle;
   pullWorkSlotProfile: (applicationId: string) => void;
   markWorkSlotSubmitted: (applicationId: string, receiptReference: string) => void;
+  setWorkSlotReviewStatus: (applicationId: string, status: 'drafting' | 'review' | 'ready') => void;
   setRole: (role: CoWorkRole) => void;
   setProjectRole: (projectId: string, role: CoWorkRole) => void;
   setPersonalSettings: (nickname: string, digestEnabled: boolean) => void;
@@ -404,6 +405,30 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
                   },
                 }
               : app
+          ),
+        };
+        const persistenceStatus = persistState({ workspace: nextWorkspace });
+        return { workspace: nextWorkspace, persistenceStatus };
+      }),
+
+    setWorkSlotReviewStatus: (applicationId, nextStatus) =>
+      set((state) => {
+        if (!['drafting', 'review', 'ready'].includes(nextStatus)) {
+          throw new Error('Unsupported review status.');
+        }
+        const target = state.workspace.applications.find((app) => app.id === applicationId);
+        if (!target) throw new Error('Application work slot not found.');
+        if (target.status === 'submitted') {
+          throw new Error('Submitted applications are locked to their receipt snapshot.');
+        }
+        if (target.status === 'archived') {
+          throw new Error('Archived applications cannot change review status.');
+        }
+        const now = new Date().toISOString();
+        const nextWorkspace: Workspace = {
+          ...state.workspace,
+          applications: state.workspace.applications.map((app) =>
+            app.id === applicationId ? { ...app, status: nextStatus, updatedAt: now } : app
           ),
         };
         const persistenceStatus = persistState({ workspace: nextWorkspace });
