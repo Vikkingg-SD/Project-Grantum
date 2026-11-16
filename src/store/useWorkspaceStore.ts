@@ -143,6 +143,9 @@ const INITIAL_ADMIN_QUEUE: AdminQueueItem[] = [
     status: 'pending',
     updatedAt: '2026-11-12T07:40:00Z',
     actor: 'system-worker',
+    sourceUrl: 'https://api.grantum.example.org/jobs/export-104',
+    lastCheckedAt: '2026-11-12T07:40:00Z',
+    failureContext: 'ETIMEDOUT at annex serializer step 3/4 (15,000ms budget exceeded).',
   },
   {
     id: 'adm-2',
@@ -152,6 +155,9 @@ const INITIAL_ADMIN_QUEUE: AdminQueueItem[] = [
     status: 'pending',
     updatedAt: '2026-11-12T08:05:00Z',
     actor: 'catalog-monitor',
+    sourceUrl: 'https://funding.example.org/calls/horizon-cleantech-2026',
+    lastCheckedAt: '2026-11-12T08:05:00Z',
+    failureContext: 'Cached digest differs from source ETag; manual deadline review pending.',
   },
   {
     id: 'adm-3',
@@ -161,6 +167,9 @@ const INITIAL_ADMIN_QUEUE: AdminQueueItem[] = [
     status: 'pending',
     updatedAt: '2026-11-12T08:25:00Z',
     actor: 'usr_94f8a2c1',
+    sourceUrl: 'https://danube-climate.example.org/grants/2027',
+    lastCheckedAt: '2026-11-12T08:25:00Z',
+    failureContext: 'Awaiting staff verification before catalog indexing and bounty eligibility.',
   },
 ];
 
@@ -171,6 +180,7 @@ interface PersistedSlice {
   projectRoles?: Record<string, CoWorkRole>;
   nickname: string;
   digestEnabled: boolean;
+  supportPromptDismissedAt?: string | null;
   adminQueue?: AdminQueueItem[];
   adminAuditLog?: AdminAuditEntry[];
 }
@@ -202,6 +212,7 @@ export interface WorkspaceStoreState {
   userId: string;
   nickname: string;
   digestEnabled: boolean;
+  supportPromptDismissedAt: string | null;
   persistenceStatus: PersistenceStatus;
   hydrated: boolean;
   adminQueue: AdminQueueItem[];
@@ -222,6 +233,8 @@ export interface WorkspaceStoreState {
   setRole: (role: CoWorkRole) => void;
   setProjectRole: (projectId: string, role: CoWorkRole) => void;
   setPersonalSettings: (nickname: string, digestEnabled: boolean) => void;
+  dismissSupportPrompt: (nowIso?: string) => void;
+  restoreSupportPrompt: () => void;
   resolveAdminQueueItem: (id: string, status: 'approved' | 'rejected' | 'retried') => void;
 }
 
@@ -238,6 +251,10 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
       projectRoles: next.projectRoles ?? current.projectRoles,
       nickname: next.nickname ?? current.nickname,
       digestEnabled: next.digestEnabled ?? current.digestEnabled,
+      supportPromptDismissedAt:
+        next.supportPromptDismissedAt !== undefined
+          ? next.supportPromptDismissedAt
+          : current.supportPromptDismissedAt,
       adminQueue: next.adminQueue ?? current.adminQueue,
       adminAuditLog: next.adminAuditLog ?? current.adminAuditLog,
     };
@@ -259,6 +276,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
     userId: 'usr_94f8a2c1',
     nickname: initialLoad.slice?.nickname ?? 'Founder Lead',
     digestEnabled: initialLoad.slice?.digestEnabled ?? true,
+    supportPromptDismissedAt: initialLoad.slice?.supportPromptDismissedAt ?? null,
     persistenceStatus: persistence.status,
     hydrated: persistence.hydrated,
     adminQueue:
@@ -457,6 +475,18 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
         return { nickname: cleanName, digestEnabled, persistenceStatus };
       }),
 
+    dismissSupportPrompt: (nowIso = new Date().toISOString()) =>
+      set(() => {
+        const persistenceStatus = persistState({ supportPromptDismissedAt: nowIso });
+        return { supportPromptDismissedAt: nowIso, persistenceStatus };
+      }),
+
+    restoreSupportPrompt: () =>
+      set(() => {
+        const persistenceStatus = persistState({ supportPromptDismissedAt: null });
+        return { supportPromptDismissedAt: null, persistenceStatus };
+      }),
+
     resolveAdminQueueItem: (id, status) =>
       set((state) => {
         if (ENV.DATA_SOURCE !== 'mock')
@@ -502,6 +532,7 @@ export async function hydrateWorkspace() {
       activeRole: slice.activeRole,
       nickname: slice.nickname,
       digestEnabled: slice.digestEnabled,
+      supportPromptDismissedAt: slice.supportPromptDismissedAt ?? null,
       adminQueue: slice.adminQueue ?? useWorkspaceStore.getState().adminQueue,
       adminAuditLog: slice.adminAuditLog ?? useWorkspaceStore.getState().adminAuditLog,
       projectRoles:

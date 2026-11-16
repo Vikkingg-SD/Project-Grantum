@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { useTheme } from '@/hooks/useTheme';
+import {
+  hydrateSourceSuggestions,
+  useSourceSuggestionStore,
+} from '@/store/useSourceSuggestionStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { ENV } from '@/config/env';
 import { styles } from './workspacePageStyles';
@@ -14,7 +18,11 @@ export default function AdminScreen() {
   const adminQueue = useWorkspaceStore((state) => state.adminQueue);
   const adminAuditLog = useWorkspaceStore((state) => state.adminAuditLog);
   const resolveAdminQueueItem = useWorkspaceStore((state) => state.resolveAdminQueueItem);
+  const sourceEntries = useSourceSuggestionStore((state) => state.entries);
   const [notice, setNotice] = useState('');
+  useEffect(() => {
+    void hydrateSourceSuggestions();
+  }, []);
   if (ENV.DATA_SOURCE !== 'mock')
     return (
       <ScreenContainer insetEdges={[]}>
@@ -55,6 +63,21 @@ export default function AdminScreen() {
               <AppText variant="caption" color="muted">
                 {item.detail}
               </AppText>
+              {item.sourceUrl ? (
+                <AppText variant="caption" color="muted" selectable>
+                  Source: {item.sourceUrl}
+                </AppText>
+              ) : null}
+              {item.lastCheckedAt ? (
+                <AppText variant="caption" color="muted">
+                  Last checked: {item.lastCheckedAt.slice(0, 19).replace('T', ' ')}
+                </AppText>
+              ) : null}
+              {item.failureContext ? (
+                <AppText variant="caption" color="muted">
+                  Context: {item.failureContext}
+                </AppText>
+              ) : null}
               <View style={styles.rowWrap}>
                 {item.category === 'failed-job' && (
                   <AppButton
@@ -107,6 +130,33 @@ export default function AdminScreen() {
               </AppText>
             </View>
           ))}
+        </View>
+
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <AppText variant="h3">Local device source suggestions ({sourceEntries.length})</AppText>
+          <AppText variant="caption" color="muted">
+            Entries saved locally in Discovery stay on this device until a moderation service is
+            connected.
+          </AppText>
+          {sourceEntries.length === 0 ? (
+            <AppText variant="caption" color="muted">
+              No local source suggestions saved on this device yet.
+            </AppText>
+          ) : (
+            sourceEntries.map((entry) => (
+              <View key={entry.id} style={[styles.checkItem, { borderColor: theme.border }]}>
+                <AppText variant="body">{entry.title}</AppText>
+                <AppText variant="caption" color="muted" selectable>
+                  {entry.url}
+                </AppText>
+                {entry.note ? (
+                  <AppText variant="caption" color="muted">
+                    {entry.note}
+                  </AppText>
+                ) : null}
+              </View>
+            ))
+          )}
         </View>
       </View>
     </ScreenContainer>
