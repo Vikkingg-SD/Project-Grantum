@@ -1,7 +1,7 @@
+import { SourceSuggestions } from '@/components/organisms/SourceSuggestions';
 import { useProfileReadiness } from '@/hooks/useProfileReadiness';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import { View, StyleSheet } from 'react-native';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
@@ -15,17 +15,13 @@ import { IconButton } from '@/components/atoms/IconButton';
 import { CenteredHeading } from '@/components/molecules/CenteredHeading';
 import { useTheme } from '@/hooks/useTheme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
-import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { PressableBadge } from '@/components/molecules/PressableBadge';
 import { FilterFieldGroup } from '@/components/molecules/FilterFieldGroup';
 import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
 import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSheet';
 import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import { useGrants } from '@/api/hooks/useGrants';
-import { getDataSource } from '@/api/dataSource';
 import { ENV } from '@/config/env';
-import { MAX_INPUT_CHARS } from '@/config/constants';
-import type { BountyInput } from '@/types/api';
 import { useDraftStore } from '@/store/useDraftStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { SPACING } from '@/config/theme';
@@ -48,13 +44,6 @@ export default function DiscoveryScreen() {
   const [regions, setRegions] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
-  const [bountyTitle, setBountyTitle] = useState('');
-  const bounty = useMutation({
-    mutationFn: (input: BountyInput) => getDataSource().submitBounty(input),
-  });
-  const bountyNote = `Search: ${query}; Regions: ${regions.join(', ')}; Types: ${categories.join(', ')}`;
-  const currentBounty =
-    bounty.variables?.title === bountyTitle.trim() && bounty.variables.note === bountyNote;
   const grants = useGrants({ q: query, region: regions, category: categories });
   const ensureDraft = useDraftStore((state) => state.ensureDraft);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
@@ -122,6 +111,7 @@ export default function DiscoveryScreen() {
             ) : undefined
           }
         />
+        <SourceSuggestions />
         <View style={[styles.content, wide && styles.columns]}>
           {(wide || filtersOpen) && (
             <View style={[styles.content, wide && styles.filters]}>
@@ -167,37 +157,8 @@ export default function DiscoveryScreen() {
               <View style={styles.content}>
                 <EmptyStateLayout
                   title="No grants match your exact criteria"
-                  description="Try fewer filters, or suggest an opportunity for the catalog."
+                  description="Try fewer filters, or save an official source for later."
                 />
-                <AppInput
-                  accessibilityLabel="Opportunity suggestion"
-                  label="Opportunity suggestion"
-                  value={bountyTitle}
-                  onChangeText={setBountyTitle}
-                  maxLength={MAX_INPUT_CHARS}
-                />
-                <AppButton
-                  label="Submit suggestion"
-                  variant="outline"
-                  isLoading={bounty.isPending}
-                  disabled={!bountyTitle.trim()}
-                  onPress={() => bounty.mutate({ title: bountyTitle.trim(), note: bountyNote })}
-                />
-                {currentBounty && bounty.isSuccess && (
-                  <StatusBadge
-                    label={
-                      ENV.DATA_SOURCE === 'mock'
-                        ? 'Suggestion recorded for this preview'
-                        : 'Bounty queued — we will index it'
-                    }
-                    variant="verified"
-                  />
-                )}
-                {currentBounty && bounty.isError && (
-                  <AppText color="failure" accessibilityRole="alert">
-                    {bounty.error.message}
-                  </AppText>
-                )}
               </View>
             ) : (
               <GrantDiscoveryGrid

@@ -30,6 +30,7 @@ const tasks = [
     'workspace-access',
     'drafting-history',
     'persistence',
+    'source-suggestions',
   ].map((name) => [tsx, `scripts/verify-${name}.ts`]),
   ['scripts/verify-routes.mjs', '--static'],
   ['scripts/verify-public-release.mjs'],
