@@ -198,6 +198,7 @@ function ExportSession({ grantId }: { grantId: string }) {
               accessibilityRole="radio"
               accessibilityLabel={item.label}
               accessibilityState={{ checked: format === item.id, disabled: mutation.isPending }}
+              aria-checked={format === item.id}
               disabled={mutation.isPending}
               onPress={() => {
                 setFormat(item.id);

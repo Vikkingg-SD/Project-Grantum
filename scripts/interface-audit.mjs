@@ -6,8 +6,10 @@ import { expect } from '@playwright/test';
 
 // Run against development Metro: RN Web suppresses some diagnostics in production.
 export async function auditInterfaces(browser, origin, runtime) {
-  const output = path.resolve(process.env.GRANTUM_AUDIT_OUTPUT || '.expo/interface-results');
-  fs.mkdirSync(output, { recursive: true });
+  const outputRoot = path.resolve(process.env.GRANTUM_AUDIT_OUTPUT || '.expo/interface-results');
+  fs.mkdirSync(outputRoot, { recursive: true });
+  const output = fs.mkdtempSync(path.join(outputRoot, 'audit-'));
+  process.stdout.write(`Interface evidence: ${output}\n`);
   const results = [],
     diagnostics = [];
   const routes = [

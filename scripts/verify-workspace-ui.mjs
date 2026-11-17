@@ -373,8 +373,10 @@ try {
   await browser.close();
   if (!remote) await new Promise((resolve) => server.close(resolve));
   fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(findings, null, 2));
+  fs.writeFileSync(path.join(output, 'diagnostics.json'), JSON.stringify(diagnostics, null, 2));
 }
 process.stdout.write(JSON.stringify(findings, null, 2) + '\n');
+if (diagnostics.length) process.stderr.write(JSON.stringify({ diagnostics }, null, 2) + '\n');
 assert.ok(
   findings.length === 60 && findings.every((row) => row.passed) && diagnostics.length === 0,
   'Workspace copy/layout regression; see captures and report'
