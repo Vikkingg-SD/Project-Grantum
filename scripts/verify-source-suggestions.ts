@@ -13,6 +13,16 @@ const check = (name: string, condition: boolean) => {
 
 async function main() {
   check(
+    'Given equivalent HTTPS host/default-port URLs When normalized Then canonical identity matches',
+    normalizeSourceUrl(' HTTPS://EXAMPLE.ORG:443/fund?a=1#section ') ===
+      'https://example.org/fund?a=1'
+  );
+  check(
+    'Given distinct query values When normalized Then identities remain distinct',
+    normalizeSourceUrl('https://example.org/?round=1') !==
+      normalizeSourceUrl('https://example.org/?round=2')
+  );
+  check(
     'Given valid HTTPS URL with fragment When normalized Then fragment is stripped and query preserved',
     normalizeSourceUrl('  https://example.org/grants?round=2#apply ') ===
       'https://example.org/grants?round=2'
@@ -20,6 +30,7 @@ async function main() {
   check(
     'Given non-HTTPS, credentialed, or malformed URLs When normalized Then they are rejected',
     normalizeSourceUrl('http://example.org/grants') === undefined &&
+      normalizeSourceUrl('https://user:pass@example.org/grants') === undefined &&
       normalizeSourceUrl('https://localhost/grants') === undefined &&
       normalizeSourceUrl('https://example.org/has space') === undefined &&
       normalizeSourceUrl('javascript:alert(1)') === undefined
@@ -82,6 +93,23 @@ async function main() {
     status === 'device-saved' &&
       restored.length === 1 &&
       restored[0].url === 'https://ec.europa.eu/funding'
+  );
+
+  const { hydrateSourceSuggestions, useSourceSuggestionStore } =
+    await import('../src/store/useSourceSuggestionStore');
+  await hydrateSourceSuggestions();
+  check(
+    'Given a hydrated empty source history When a valid source is added Then it is accepted',
+    useSourceSuggestionStore.getState().add('Fund', 'https://example.org#first', 'Reason') ===
+      undefined
+  );
+  const duplicateError = useSourceSuggestionStore
+    .getState()
+    .add('Again', 'HTTPS://EXAMPLE.ORG:443/#second', '');
+  check(
+    'Given a saved canonical URL When an equivalent source is added Then duplicate is rejected without adding an entry',
+    Boolean(duplicateError?.includes('already')) &&
+      useSourceSuggestionStore.getState().entries.length === 1
   );
 }
 
