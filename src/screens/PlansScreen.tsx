@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { workspaceReturnPath } from '@/utils/workspaceReturn';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppText } from '@/components/atoms/AppText';
@@ -33,6 +34,8 @@ const MONTH_PRESETS = [0, 1, 2, 6] as const;
 export default function PlansScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
+  const returnPath = workspaceReturnPath(returnTo);
   const [region, setRegion] = useState<BillingRegion>('cis');
   const [invitedCount, setInvitedCount] = useState<number>(5);
   const [currentTier, setCurrentTier] = useState<AffiliateTierChoice>('t3');
@@ -241,12 +244,14 @@ export default function PlansScreen() {
           <AppButton
             label="Back to workspace"
             variant="primary"
-            onPress={() => router.push('/dashboard')}
+            onPress={() => router.replace(returnPath)}
           />
           <AppButton
             label="Open public roadmap"
             variant="outline"
-            onPress={() => router.push('/roadmap')}
+            onPress={() =>
+              router.push({ pathname: '/roadmap', params: { returnTo: String(returnPath) } })
+            }
           />
         </View>
       </View>

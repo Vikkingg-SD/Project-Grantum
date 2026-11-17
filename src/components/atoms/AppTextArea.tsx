@@ -26,7 +26,7 @@ export function AppTextArea({
   const isOver = charLimit !== undefined && count > charLimit;
   return (
     <View style={styles.container}>
-      {label && (
+      {Boolean(label) && (
         <AppText variant="caption" color="muted" style={styles.label}>
           {label}
         </AppText>

@@ -15,7 +15,7 @@ export function Loader({ label = 'Calibrating instrument…' }: LoaderProps) {
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" color={theme.primary} />
-      {label && (
+      {Boolean(label) && (
         <AppText variant="caption" color="muted" style={styles.label}>
           {label}
         </AppText>

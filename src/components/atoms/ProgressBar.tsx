@@ -34,7 +34,7 @@ export function ProgressBar({ percent, label }: ProgressBarProps) {
 
   return (
     <View style={styles.container}>
-      {label && (
+      {Boolean(label) && (
         <View style={styles.labelRow}>
           <AppText variant="label" style={styles.label}>
             {label}

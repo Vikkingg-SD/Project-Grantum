@@ -8,7 +8,9 @@ const require = createRequire(import.meta.url);
 const { chromium, expect } = require('@playwright/test');
 const remote = process.argv[2]?.startsWith('https://') ? new URL(process.argv[2]).origin : null;
 const build = remote ? null : path.resolve(process.argv[2] || '.expo/workspace-ui');
-const output = path.resolve(process.argv[3] || '.expo/workspace-ui-results');
+const output = path.resolve(
+  (process.argv[3]?.startsWith('--') ? undefined : process.argv[3]) || '.expo/workspace-ui-results'
+);
 fs.mkdirSync(output, { recursive: true });
 if (!remote) assert.ok(fs.existsSync(path.join(build, 'index.html')), 'Export the web build first');
 const mime = {
@@ -44,6 +46,7 @@ const prohibited = [
 ];
 const origin = remote || `http://127.0.0.1:${server.address().port}`;
 const diagnostics = [];
+const focusOnly = process.argv.includes('--focus-only');
 try {
   for (const width of [320, 390, 1440])
     for (const theme of ['light', 'dark']) {
@@ -61,15 +64,44 @@ try {
           return route.continue();
         });
       }
-      await context.addInitScript((mode) => {
-        globalThis.localStorage.setItem(
-          'grantum-theme-storage',
-          JSON.stringify({ state: { mode, hasExplicitChoice: true }, version: 0 })
-        );
-      }, theme);
+      await context.addInitScript(
+        ({ mode, expectedOrigin }) => {
+          if (globalThis.location.origin !== expectedOrigin) return;
+          globalThis.localStorage.setItem(
+            'grantum-theme-storage',
+            JSON.stringify({ state: { mode, hasExplicitChoice: true }, version: 0 })
+          );
+        },
+        { mode: theme, expectedOrigin: origin }
+      );
       const page = await context.newPage();
       page.setDefaultTimeout(15000);
       page.on('pageerror', (error) => diagnostics.push(error.message));
+      context.on('page', (opened) => {
+        opened.on('pageerror', (error) => diagnostics.push(error.message));
+        opened.on('console', (message) => {
+          if (message.type() === 'error') diagnostics.push(message.text());
+        });
+      });
+      page.on('console', (message) => {
+        if (message.type() === 'error') diagnostics.push(message.text());
+      });
+      if (focusOnly) {
+        await page.goto(`${origin}/project-profile`);
+        await page.getByRole('button', { name: /^Fix Project lead/ }).click();
+        const lead = page.getByRole('textbox', { name: 'Project lead', exact: true });
+        await expect(lead).toBeFocused();
+        const bounds = await lead.boundingBox();
+        assert.ok(bounds.y >= 0 && bounds.y + bounds.height <= 900, 'Fix action must reveal input');
+        findings.push({
+          name: 'readiness fix reveals and focuses input',
+          width,
+          theme,
+          passed: true,
+        });
+        await context.close();
+        continue;
+      }
       await page.goto(`${origin}/onboarding`);
       await expect(page.getByText('Explore funding opportunities.', { exact: true })).toBeVisible();
       await expect(page.getByText(/Scores do not verify eligibility or evidence/)).toBeVisible();
@@ -364,9 +396,13 @@ try {
   await browser.close();
   if (!remote) await new Promise((resolve) => server.close(resolve));
   fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(findings, null, 2));
+  fs.writeFileSync(path.join(output, 'diagnostics.json'), JSON.stringify(diagnostics, null, 2));
 }
 process.stdout.write(JSON.stringify(findings, null, 2) + '\n');
+if (diagnostics.length) process.stderr.write(JSON.stringify({ diagnostics }, null, 2) + '\n');
 assert.ok(
-  findings.length === 60 && findings.every((row) => row.passed) && diagnostics.length === 0,
+  findings.length === (focusOnly ? 6 : 60) &&
+    findings.every((row) => row.passed) &&
+    diagnostics.length === 0,
   'Workspace copy/layout regression; see captures and report'
 );

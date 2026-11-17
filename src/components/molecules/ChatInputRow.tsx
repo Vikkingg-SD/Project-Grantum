@@ -59,7 +59,7 @@ export function ChatInputRow({
           onPress={onOptions}
         />
       )}
-      {grantId && <LocalAttachments grantId={grantId} />}
+      {!!grantId && <LocalAttachments grantId={grantId} />}
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -76,6 +76,7 @@ export function ChatInputRow({
           styles.input,
           desktop && DESKTOP_TYPOGRAPHY.body,
           {
+            height: desktop ? 80 : 72,
             color: theme.textMain,
             backgroundColor: theme.subtle,
             borderColor: theme.inputBorder,
@@ -106,7 +107,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     minHeight: LAYOUT.minTouchTarget,
-    height: 48,
     maxHeight: SPACING['4xl'] * 4,
     borderRadius: RADIUS.sm,
     borderWidth: 1,

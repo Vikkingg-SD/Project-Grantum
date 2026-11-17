@@ -98,6 +98,9 @@ try {
       page.setDefaultTimeout(runtime.expectMs);
       page.setDefaultNavigationTimeout(runtime.navigationMs);
       page.on('pageerror', (e) => diagnostics.push(e.message));
+      page.on('console', (message) => {
+        if (message.type() === 'error') diagnostics.push(message.text());
+      });
       for (const [route, title] of routes) {
         await page.goto(`${origin}/grants/1/${route}`);
         const heading = page.getByRole('heading', {
@@ -192,6 +195,9 @@ try {
   page.setDefaultTimeout(runtime.expectMs);
   page.setDefaultNavigationTimeout(runtime.navigationMs);
   page.on('pageerror', (e) => diagnostics.push(e.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') diagnostics.push(message.text());
+  });
   await page.goto(`${origin}/grants/1/dashboard`);
   await page.getByRole('heading', { name: 'Your workspace', exact: true }).waitFor();
   await check(

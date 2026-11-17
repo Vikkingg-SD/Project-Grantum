@@ -18,7 +18,7 @@ export function AppInput({ label, error, icon, style, inputRef, ...props }: AppI
   const { desktop } = useLayoutMetrics();
   return (
     <View style={styles.container}>
-      {label && (
+      {Boolean(label) && (
         <AppText variant="caption" color="muted" style={styles.label}>
           {label}
         </AppText>
@@ -32,7 +32,7 @@ export function AppInput({ label, error, icon, style, inputRef, ...props }: AppI
           },
         ]}
       >
-        {icon && <View style={styles.iconContainer}>{icon}</View>}
+        {Boolean(icon) && <View style={styles.iconContainer}>{icon}</View>}
         <TextInput
           ref={inputRef}
           accessibilityLabel={label ?? props.placeholder}
@@ -49,7 +49,7 @@ export function AppInput({ label, error, icon, style, inputRef, ...props }: AppI
           {...props}
         />
       </View>
-      {error && (
+      {Boolean(error) && (
         <AppText variant="caption" color="failureText" style={styles.error}>
           {error}
         </AppText>

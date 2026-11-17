@@ -12,6 +12,9 @@ const recover = process.argv.includes('--recover-timeouts');
 const tsx = require.resolve('tsx/cli');
 const tasks = [
   [require.resolve('typescript/bin/tsc'), '--noEmit'],
+  ['scripts/verify-input-render.cjs'],
+  ['scripts/verify-native-children.cjs'],
+  [require.resolve('tsx/cli'), 'scripts/verify-workspace-return.ts'],
   ['scripts/lint-project.js', '--max-warnings=0'],
   [
     require('node:path').join(require.resolve('prettier/package.json'), '..', 'bin/prettier.cjs'),

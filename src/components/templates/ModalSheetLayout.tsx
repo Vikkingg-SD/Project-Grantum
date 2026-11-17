@@ -15,6 +15,7 @@ export interface ModalSheetLayoutProps {
   onClose: () => void;
   accessibilityLabel: string;
   children: React.ReactNode;
+  size?: 'compact' | 'workspace';
 }
 
 export function ModalSheetLayout({
@@ -22,6 +23,7 @@ export function ModalSheetLayout({
   onClose,
   accessibilityLabel,
   children,
+  size = 'compact',
 }: ModalSheetLayoutProps) {
   const theme = useTheme();
   const reduceMotion = useReduceMotion();
@@ -49,9 +51,11 @@ export function ModalSheetLayout({
           style={[styles.position, wide && styles.centered]}
         >
           <View
+            testID={size === 'workspace' ? 'workspace-sheet' : 'modal-sheet'}
             style={[
               styles.sheet,
               wide && styles.dialog,
+              wide && size === 'workspace' && styles.workspace,
               {
                 maxHeight: (height - insets.top - insets.bottom) * LAYOUT.modalMaxHeightRatio,
                 backgroundColor: theme.surface,
@@ -92,5 +96,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   dialog: { maxWidth: LAYOUT.modalMaxWidth, borderRadius: RADIUS.lg },
+  workspace: { maxWidth: 1120 },
   closeRow: { alignItems: 'flex-end', paddingHorizontal: SPACING.lg, paddingTop: SPACING.sm },
 });

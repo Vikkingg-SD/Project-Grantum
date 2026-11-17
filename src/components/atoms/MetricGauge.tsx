@@ -56,7 +56,7 @@ export function MetricGauge({ value, tier, label = 'confidence', size = 128 }: M
         <AppText variant="metric-lg" color={tier}>
           {clamped}
         </AppText>
-        {label && (
+        {Boolean(label) && (
           <AppText variant="caption" color="muted" align="center">
             {label}
           </AppText>

@@ -119,6 +119,7 @@ export function DraftWorkbenchPanel({
       visible={visible}
       onClose={onClose}
       accessibilityLabel="Form templates and drafting"
+      size="workspace"
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"
