@@ -230,7 +230,9 @@ export default function ProjectProfileScreen() {
                           variant="ghost"
                           label={`Fix ${item.label}`}
                           disabled={!canEdit}
-                          onPress={() => inputs.current[item.key]?.focus()}
+                          onPress={() => {
+                            requestAnimationFrame(() => inputs.current[item.key]?.focus());
+                          }}
                         />
                       </>
                     )}

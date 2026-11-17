@@ -43,12 +43,16 @@ export async function auditInterfaces(browser, origin, runtime) {
       colorScheme: theme,
       reducedMotion: 'reduce',
     });
-    await context.addInitScript((mode) => {
-      globalThis.localStorage.setItem(
-        'grantum-theme-storage',
-        JSON.stringify({ state: { mode, hasExplicitChoice: true }, version: 0 })
-      );
-    }, theme);
+    await context.addInitScript(
+      ({ mode, expectedOrigin }) => {
+        if (globalThis.location.origin !== expectedOrigin) return;
+        globalThis.localStorage.setItem(
+          'grantum-theme-storage',
+          JSON.stringify({ state: { mode, hasExplicitChoice: true }, version: 0 })
+        );
+      },
+      { mode: theme, expectedOrigin: origin }
+    );
     await context.tracing.start({ screenshots: true, snapshots: true });
     const page = await context.newPage();
     page.setDefaultTimeout(runtime.expectMs);
