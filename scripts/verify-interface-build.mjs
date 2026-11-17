@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createServer } from 'node:http';
+import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { chromium, expect } from '@playwright/test';
 import { auditInterfaces } from './interface-audit.mjs';
@@ -32,6 +33,24 @@ const server = createServer((request, response) => {
       : path.join(build, 'index.html');
   response.setHeader('Content-Type', types[path.extname(file)] || 'application/octet-stream');
   response.end(fs.readFileSync(file));
+});
+// A development export includes HMR clients. Supply an idle transport, since this
+// isolated fixture has no Metro process; application diagnostics remain unfiltered.
+const sockets = new Set();
+server.on('upgrade', (request, socket) => {
+  if (!['/hot', '/message'].includes(request.url)) return socket.destroy();
+  const accept = createHash('sha1')
+    .update(request.headers['sec-websocket-key'] + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
+    .digest('base64');
+  socket.write(
+    `HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`
+  );
+  sockets.add(socket);
+  socket.on('data', (buffer) => {
+    if ((buffer[0] & 15) === 8) socket.end();
+  });
+  socket.on('close', () => sockets.delete(socket));
+  socket.on('error', () => sockets.delete(socket));
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
@@ -85,5 +104,6 @@ try {
   if (!process.argv.includes('--source-only')) await auditInterfaces(browser, origin, runtime);
 } finally {
   if (browser) await browser.close();
+  for (const socket of sockets) socket.destroy();
   await new Promise((resolve) => server.close(resolve));
 }

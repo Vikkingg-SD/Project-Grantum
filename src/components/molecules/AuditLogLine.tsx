@@ -45,7 +45,7 @@ export const AuditLogLine = memo(function AuditLogLine({
         <AppText variant="body" style={desktop && styles.message}>
           {message}
         </AppText>
-        {Boolean(timestamp) && (
+        {!!timestamp && (
           <AppText variant="caption" color="muted" style={!desktop && styles.timestamp}>
             {formatEventDate(timestamp)}
           </AppText>

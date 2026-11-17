@@ -59,7 +59,7 @@ export function ChatInputRow({
           onPress={onOptions}
         />
       )}
-      {Boolean(grantId) && <LocalAttachments grantId={grantId} />}
+      {!!grantId && <LocalAttachments grantId={grantId} />}
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     minHeight: LAYOUT.minTouchTarget,
-    height: 48,
+    height: 72,
     maxHeight: SPACING['4xl'] * 4,
     borderRadius: RADIUS.sm,
     borderWidth: 1,

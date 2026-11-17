@@ -24,7 +24,7 @@ export function EmptyStateLayout({
       <AppText variant="body" color="muted" align="center" style={styles.desc}>
         {description}
       </AppText>
-      {Boolean(ctaLabel) && onCtaPress && (
+      {!!ctaLabel && onCtaPress && (
         <View style={styles.cta}>
           <AppButton label={ctaLabel} variant="primary" onPress={onCtaPress} />
         </View>

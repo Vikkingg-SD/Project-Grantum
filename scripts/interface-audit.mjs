@@ -1,4 +1,4 @@
-/* global document, innerWidth */
+/* global document, innerWidth, getComputedStyle */
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -59,12 +59,65 @@ export async function auditInterfaces(browser, origin, runtime) {
       diagnostics.push({ width, url: page.url(), error: error.message })
     );
     let sequence = 0;
+    async function capture(name) {
+      const scroller = await page.evaluateHandle(() => {
+        const scope = document.querySelector('[role="dialog"]') || document;
+        return (
+          [...scope.querySelectorAll('*')]
+            .filter((el) => {
+              const rect = el.getBoundingClientRect();
+              return (
+                rect.width > 100 &&
+                rect.height > 150 &&
+                el.scrollHeight > el.clientHeight + 2 &&
+                /auto|scroll/.test(getComputedStyle(el).overflowY) &&
+                el.tagName !== 'TEXTAREA'
+              );
+            })
+            .sort((a, b) => b.clientWidth * b.clientHeight - a.clientWidth * a.clientHeight)[0] ||
+          null
+        );
+      });
+      const dimensions = await scroller.evaluate((el) =>
+        el
+          ? { height: el.clientHeight, max: el.scrollHeight - el.clientHeight, top: el.scrollTop }
+          : null
+      );
+      const captures = [];
+      try {
+        const steps = dimensions ? Math.ceil(dimensions.max / (dimensions.height * 0.8)) + 1 : 1;
+        assert.ok(steps <= 30, 'Scrollable content exceeds bounded capture coverage');
+        for (let index = 0; index < steps; index++) {
+          const top = dimensions ? Math.min(dimensions.max, index * dimensions.height * 0.8) : 0;
+          if (dimensions)
+            await scroller.evaluate((el, offset) => {
+              el.scrollTop = offset;
+            }, top);
+          await page.evaluate(
+            () =>
+              new Promise((resolve) =>
+                globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve))
+              )
+          );
+          const file = `${name}${index ? `-scroll-${index}` : ''}.png`;
+          await page.screenshot({ path: path.join(output, file), fullPage: true });
+          captures.push({ file, top });
+        }
+      } finally {
+        if (dimensions)
+          await scroller.evaluate((el, top) => {
+            el.scrollTop = top;
+          }, dimensions.top);
+        await scroller.dispose();
+      }
+      return captures;
+    }
     async function record(name, action) {
       const file = `${width}-${theme}-${++sequence}.png`;
       try {
         await action();
-        await page.screenshot({ path: path.join(output, file), fullPage: true });
-        results.push({ width, theme, name, passed: true, screenshot: file });
+        const captures = await capture(file.replace('.png', ''));
+        results.push({ width, theme, name, passed: true, screenshot: file, captures });
       } catch (error) {
         results.push({ width, theme, name, passed: false, error: error.message });
         await page.screenshot({ path: path.join(output, `failed-${file}`) }).catch(() => {});
@@ -94,6 +147,9 @@ export async function auditInterfaces(browser, origin, runtime) {
       };
       await expect(page).toHaveURL(`${origin}${route}`);
       await page.getByRole('heading', { name: titles[route], exact: true }).first().waitFor();
+      if (['/discover', '/grants/1/discovery-studio', '/grants/1/dashboard'].includes(route))
+        await button('View details').first().waitFor();
+      if (route === '/my-works') await button('Open in Drafting Studio').first().waitFor();
       await page.evaluate(() => document.fonts.ready);
     };
     const dismiss = async () => {
@@ -147,6 +203,7 @@ export async function auditInterfaces(browser, origin, runtime) {
           await goto('/discover');
           await button('Account menu').click();
           await expect(page.getByRole('dialog')).toBeVisible();
+          await capture(`${width}-account-menu`);
           await page.getByRole('dialog').getByRole('button', { name: label, exact: true }).click();
           await expect(page).toHaveURL((url) => url.pathname === route);
           await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -172,6 +229,28 @@ export async function auditInterfaces(browser, origin, runtime) {
         await button('Reset').click();
         await expect(search).toHaveValue('');
         await expect(button('View details').first()).toBeVisible();
+      });
+      await record('Workspace activity submenu opens every destination and closes', async () => {
+        for (const [label, route] of [
+          ['Open My Works', '/my-works'],
+          ['Open Project Profile', '/project-profile'],
+          ['Open project team', '/project-profile'],
+          ['View deadlines', '/grants/1/discovery-studio'],
+        ]) {
+          await goto('/grants/1/dashboard');
+          await button('Notifications').click();
+          await expect(
+            page.getByRole('dialog', { name: 'Workspace activity', exact: true })
+          ).toBeVisible();
+          await capture(`${width}-activity-menu`);
+          await button(label).click();
+          await expect(page).toHaveURL(`${origin}${route}`);
+          await expect(page.getByRole('dialog')).toHaveCount(0);
+        }
+        await goto('/grants/1/dashboard');
+        await button('Notifications').click();
+        await button('Close activity').click();
+        await expect(page.getByRole('dialog')).toHaveCount(0);
       });
       await record('Grant detail preflight choices and profile navigation work', async () => {
         await goto('/discover');
@@ -208,16 +287,36 @@ export async function auditInterfaces(browser, origin, runtime) {
       );
       await record('Drafting options and each workbench tab opens and dismisses', async () => {
         await goto('/grants/1/drafting');
+        const composer = page.getByRole('textbox', { name: 'Chat with agent', exact: true });
+        assert.ok(
+          await composer.evaluate((el) => {
+            const style = getComputedStyle(el);
+            return (
+              el.clientHeight >=
+              parseFloat(style.lineHeight) * 2 +
+                parseFloat(style.paddingTop) +
+                parseFloat(style.paddingBottom)
+            );
+          }),
+          'Composer must display at least two lines without clipping'
+        );
         await button('Drafting options').click();
         await expect(page.getByRole('dialog')).toBeVisible();
         await button('Tab 2: Quick Convenience Prompts').click();
+        await capture(`${width}-drafting-quick-prompts`);
         await button('Tab 1: Form & Track Templates').click();
+        await capture(`${width}-drafting-templates-menu`);
         await button('Form templates').click();
         const dialog = page.getByRole('dialog', {
           name: 'Form templates and drafting',
           exact: true,
         });
         await expect(dialog).toBeVisible();
+        if (width >= 1024)
+          assert.ok(
+            (await page.getByTestId('workspace-sheet').boundingBox()).width >= 1000,
+            'Workbench requires room for desktop columns'
+          );
         for (const label of [
           'Templates',
           'Sections',
@@ -230,11 +329,59 @@ export async function auditInterfaces(browser, origin, runtime) {
             'aria-pressed',
             'true'
           );
-          await page.screenshot({
-            path: path.join(output, `${width}-studio-${label.replaceAll(/[^a-z]/gi, '')}.png`),
-          });
+          await capture(`${width}-studio-${label.replaceAll(/[^a-z]/gi, '')}`);
         }
         await dismiss();
+      });
+      await record('File-reference submenu supports each chooser and removal', async () => {
+        await goto('/grants/1/drafting');
+        await button('File references').click();
+        await expect(
+          page.getByRole('dialog', { name: 'File references', exact: true })
+        ).toBeVisible();
+        for (const [label, name, mimeType] of [
+          ['Choose document', 'evidence.txt', 'text/plain'],
+          ['Choose spreadsheet', 'budget.csv', 'text/csv'],
+          ['Choose photos & videos', 'image.png', 'image/png'],
+        ]) {
+          const chooser = page.waitForEvent('filechooser');
+          await button(label).click();
+          await (
+            await chooser
+          ).setFiles({ name, mimeType, buffer: Buffer.from('local reference fixture') });
+          await expect(button(`Remove ${name}`)).toBeVisible();
+        }
+        await capture(`${width}-file-references`);
+        for (const name of ['evidence.txt', 'budget.csv', 'image.png']) {
+          await button(`Remove ${name}`).click();
+          await expect(button(`Remove ${name}`)).toHaveCount(0);
+        }
+        await dismiss();
+      });
+      await record('Writing and audit prompt submenus update their composers', async () => {
+        for (const [route, toggle, prompts] of [
+          [
+            '/grants/1/drafting',
+            'Writing prompts',
+            [
+              'Tighten the mission statement',
+              'Align budget to funder cap',
+              'Add evidence references',
+            ],
+          ],
+          ['/grants/1/audit-studio', 'Audit prompts', ['Budget', 'Eligibility', 'Evidence']],
+        ]) {
+          await goto(route);
+          if (await button(toggle).count()) await button(toggle).click();
+          for (const prompt of prompts) {
+            await button(prompt).click();
+            await expect(
+              page.getByRole('textbox', { name: 'Chat with agent', exact: true })
+            ).toHaveValue(prompt);
+          }
+          await capture(`${width}-${toggle.replaceAll(' ', '-')}`);
+          if (await button(toggle).count()) await button(toggle).click();
+        }
       });
       await record('Required-section deletion can be cancelled', async () => {
         await goto('/grants/1/drafting');
@@ -291,6 +438,34 @@ export async function auditInterfaces(browser, origin, runtime) {
         await expect(page.getByRole('alert')).toHaveCount(0);
         await page.reload();
         await expect(date).toHaveValue('2027-01-20');
+      });
+      await record('Budget line editing persists and each export format selects', async () => {
+        await goto('/grants/1/audit-studio');
+        await page
+          .getByRole('textbox', { name: 'Line item description', exact: true })
+          .fill('Browser audit line');
+        await page.getByRole('textbox', { name: 'Quantity', exact: true }).fill('2');
+        await page.getByRole('textbox', { name: 'Unit rate (USD)', exact: true }).fill('25');
+        await button('Add budget line item').click();
+        await expect(button('Remove budget row: Browser audit line')).toBeVisible();
+        await page.reload();
+        await expect(button('Remove budget row: Browser audit line')).toBeVisible();
+        await button('Remove budget row: Browser audit line').click();
+        await expect(button('Remove budget row: Browser audit line')).toHaveCount(0);
+        await goto('/grants/1/export-humanizer');
+        for (const label of ['Word (.docx)', 'Notebook (.ipynb)', 'PDF (.pdf)', 'Markdown (.md)']) {
+          const choice = page.getByRole('radio', { name: label, exact: true });
+          await choice.click();
+          await expect(choice).toHaveAttribute('aria-checked', 'true');
+        }
+        await page
+          .getByRole('textbox', { name: 'Application narrative', exact: true })
+          .fill('Local audit export narrative.');
+        for (const extension of ['txt', 'md']) {
+          const pending = page.waitForEvent('download');
+          await button(`Download .${extension} on this device`).click();
+          assert.ok((await pending).suggestedFilename().endsWith(`.${extension}`));
+        }
       });
       await record('Plans simulator and roadmap links respond', async () => {
         await goto('/plans');
