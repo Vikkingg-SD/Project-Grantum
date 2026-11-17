@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { workspaceReturnPath } from '@/utils/workspaceReturn';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
@@ -28,6 +29,8 @@ const milestones = [
 export default function RoadmapScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
+  const returnPath = workspaceReturnPath(returnTo);
   const [notice, setNotice] = useState('');
   const [opening, setOpening] = useState(false);
   return (
@@ -82,7 +85,9 @@ export default function RoadmapScreen() {
         <AppButton
           label="View proposed subscriptions & pricing"
           variant="outline"
-          onPress={() => router.push('/plans')}
+          onPress={() =>
+            router.push({ pathname: '/plans', params: { returnTo: String(returnPath) } })
+          }
         />
         <AppButton
           label="Explore the sample workspace"

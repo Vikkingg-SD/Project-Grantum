@@ -7,6 +7,7 @@ import { createRequire } from 'node:module';
 import { URL, fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium, expect } from '@playwright/test';
+import { auditInterfaces } from './interface-audit.mjs';
 
 const root = process.cwd();
 const require = createRequire(path.join(root, 'package.json'));
@@ -267,9 +268,40 @@ try {
       false
     );
   });
+  await check(
+    'Given a source form, when errors clear, then inputs render without runtime errors',
+    async () => {
+      await page.goto(`${origin}/discover`);
+      await page.getByRole('button', { name: 'Suggest a source', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'Suggest a source', exact: true });
+      await expect(dialog).toBeVisible();
+      await dialog.getByRole('button', { name: 'Save on this device', exact: true }).click();
+      await expect(
+        dialog.getByRole('textbox', { name: 'Source title (required)', exact: true })
+      ).toHaveAttribute('aria-invalid', 'true');
+      await dialog
+        .getByRole('textbox', { name: 'Source title (required)', exact: true })
+        .fill('Official funding opportunities');
+      await dialog
+        .getByRole('textbox', { name: 'Official source URL (required)', exact: true })
+        .fill('https://example.org/funding');
+      await dialog.getByRole('button', { name: 'Save on this device', exact: true }).click();
+      await expect(dialog).toBeHidden();
+      await expect(page.getByText('Official funding opportunities', { exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Suggest a source', exact: true }).click();
+      await expect(dialog).toBeVisible();
+      await expect(
+        dialog.getByRole('textbox', { name: 'Source title (required)', exact: true })
+      ).toHaveValue('');
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+    }
+  );
   await check('development navigation emits no unexpected runtime errors', () => {
     assert.deepEqual(diagnostics, []);
   });
+  await context.close();
+  await auditInterfaces(browser, origin, runtime);
 } finally {
   if (browser) await browser.close();
   fs.mkdirSync(path.join(root, '.expo/s8'), { recursive: true });

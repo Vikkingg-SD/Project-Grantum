@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, Pressable, View, StyleSheet, useWindowDimensions } from 'react-native';
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
@@ -15,11 +15,13 @@ export function AccountMenu() {
   const nickname = useWorkspaceStore((state) => state.nickname);
   const theme = useTheme();
   const router = useRouter();
+  const pathname = usePathname();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const navigate = (path: '/settings' | '/project-profile' | '/admin' | '/plans') => {
     setOpen(false);
-    router.push(path);
+    if (path === '/plans') router.push({ pathname: '/plans', params: { returnTo: pathname } });
+    else router.push(path);
   };
   return (
     <>

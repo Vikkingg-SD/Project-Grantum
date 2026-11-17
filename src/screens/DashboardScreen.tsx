@@ -1,5 +1,5 @@
 import { useProfileReadiness } from '@/hooks/useProfileReadiness';
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Bell from 'lucide-react-native/icons/bell';
@@ -34,6 +34,7 @@ import type { Grant } from '@/types/grant';
 export default function DashboardScreen() {
   const navigation = useAppNavigation();
   const router = useRouter();
+  const pathname = usePathname();
   const profileReadiness = useProfileReadiness();
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
@@ -204,7 +205,7 @@ export default function DashboardScreen() {
                 size="sm"
                 variant="outline"
                 label="Subscriptions & plans"
-                onPress={() => router.push('/plans')}
+                onPress={() => router.push({ pathname: '/plans', params: { returnTo: pathname } })}
               />
               <AppButton
                 size="sm"
@@ -234,7 +235,7 @@ export default function DashboardScreen() {
                 size="sm"
                 label="Subscriptions & plans"
                 variant="ghost"
-                onPress={() => router.push('/plans')}
+                onPress={() => router.push({ pathname: '/plans', params: { returnTo: pathname } })}
               />
               <AppButton
                 size="sm"

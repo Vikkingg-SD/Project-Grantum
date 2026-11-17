@@ -59,7 +59,7 @@ export function ChatInputRow({
           onPress={onOptions}
         />
       )}
-      {grantId && <LocalAttachments grantId={grantId} />}
+      {Boolean(grantId) && <LocalAttachments grantId={grantId} />}
       <TextInput
         value={value}
         onChangeText={onChangeText}

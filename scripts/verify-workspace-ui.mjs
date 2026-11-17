@@ -70,6 +70,15 @@ try {
       const page = await context.newPage();
       page.setDefaultTimeout(15000);
       page.on('pageerror', (error) => diagnostics.push(error.message));
+      context.on('page', (opened) => {
+        opened.on('pageerror', (error) => diagnostics.push(error.message));
+        opened.on('console', (message) => {
+          if (message.type() === 'error') diagnostics.push(message.text());
+        });
+      });
+      page.on('console', (message) => {
+        if (message.type() === 'error') diagnostics.push(message.text());
+      });
       await page.goto(`${origin}/onboarding`);
       await expect(page.getByText('Explore funding opportunities.', { exact: true })).toBeVisible();
       await expect(page.getByText(/Scores do not verify eligibility or evidence/)).toBeVisible();
