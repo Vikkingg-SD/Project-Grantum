@@ -33,19 +33,20 @@ import type { ExportFormat } from '@/types/api';
 
 export default function ExportScreen() {
   const grantId = useActiveGrantId();
-  return <ExportSession key={grantId} grantId={grantId} />;
+  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const slotKey = grantId ? workSlotKey(activeProjectId, grantId) : '';
+  return <ExportSession key={slotKey} grantId={grantId} slotKey={slotKey} />;
 }
 
-function ExportSession({ grantId }: { grantId: string }) {
+function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string }) {
   const theme = useTheme();
   const { effectiveWidth } = useLayoutMetrics();
   const serviceAvailable = ENV.DATA_SOURCE !== 'mock';
-  const local = useDraftStore((state) => state.drafts[grantId] ?? EMPTY_DRAFT);
+  const local = useDraftStore((state) => state.drafts[slotKey] ?? EMPTY_DRAFT);
   const setDocument = useDraftStore((state) => state.setExportDocument);
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const activeRole = useWorkspaceStore((state) => state.activeRole);
-  const slotKey = workSlotKey(activeProjectId, grantId);
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
   const draft = useProposalDraft(grantId);
   const mutation = useExportBundle(grantId);
@@ -158,7 +159,7 @@ function ExportSession({ grantId }: { grantId: string }) {
             disabled={!canEdit}
             onPress={() => {
               const serialized = fullArtifactBundleText(work, activeProjectName, activeRevisionId);
-              setDocument(grantId, serialized);
+              setDocument(slotKey, serialized);
               setBundleNotice(
                 'Loaded Narrative, Pitch Deck Slide Outline, and Requirement Compliance Annex into Export.'
               );
@@ -228,7 +229,7 @@ function ExportSession({ grantId }: { grantId: string }) {
           value={documentBody}
           onChangeText={(text) => {
             if (!canEdit) return;
-            setDocument(grantId, text);
+            setDocument(slotKey, text);
           }}
           charLimit={MAX_INPUT_CHARS}
         />

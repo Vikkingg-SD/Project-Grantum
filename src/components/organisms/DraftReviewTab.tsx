@@ -18,7 +18,6 @@ import { RADIUS, SPACING } from '@/config/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 export interface DraftReviewTabProps {
-  grantId: string;
   slotKey: string;
   work: DraftWorkbench;
   activeProjectId: string;
@@ -31,14 +30,13 @@ export interface DraftReviewTabProps {
   canSubmit: boolean;
   act: (action: () => void, message?: string) => void;
   update: (key: string, fn: (current: DraftWorkbench) => DraftWorkbench) => void;
-  setExport: (grantId: string, text: string) => void;
+  setExport: (draftKey: string, text: string) => void;
   setWorkSlotReviewStatus: (applicationId: string, status: EditableReviewStatus) => void;
   markWorkSlotSubmitted: (applicationId: string, receipt: string) => void;
   onError: (msg: string) => void;
 }
 
 export function DraftReviewTab({
-  grantId,
   slotKey,
   work,
   activeProjectName,
@@ -181,7 +179,7 @@ export function DraftReviewTab({
           act(
             () =>
               setExport(
-                grantId,
+                slotKey,
                 fullArtifactBundleText(work, activeProjectName, activeProfileRevisionId)
               ),
             'Review text copied to Export. Download requires a connected service; nothing was submitted.'

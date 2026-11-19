@@ -22,7 +22,6 @@ import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSh
 import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import { useGrants } from '@/api/hooks/useGrants';
 import { ENV } from '@/config/env';
-import { useDraftStore } from '@/store/useDraftStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { filterGrants } from '@/utils/filters';
 import { SPACING } from '@/config/theme';
@@ -58,7 +57,6 @@ export default function DiscoveryScreen() {
   );
   const activeFilterCount =
     regions.length + categories.length + stages.length + participations.length + teamSizes.length;
-  const ensureDraft = useDraftStore((state) => state.ensureDraft);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
   const toggleRegion = useCallback(
@@ -83,12 +81,11 @@ export default function DiscoveryScreen() {
   );
   const openDraftById = useCallback(
     (grantId: string, projectId = activeProjectId) => {
-      ensureDraft(grantId);
       ensureWorkSlot(projectId, grantId);
       setSelectedGrant(null);
       navigation.navigateTo('drafting', grantId);
     },
-    [activeProjectId, ensureDraft, ensureWorkSlot, navigation]
+    [activeProjectId, ensureWorkSlot, navigation]
   );
   const openDraft = useCallback((grant: Grant) => openDraftById(grant.id), [openDraftById]);
   return (

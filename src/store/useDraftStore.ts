@@ -11,13 +11,13 @@ export interface GrantDraftState {
 }
 interface DraftStoreState {
   drafts: Record<string, GrantDraftState>;
-  ensureDraft: (grantId: string, grantTitle?: string, funder?: string) => void;
-  getDraft: (grantId: string) => GrantDraftState;
-  addDraftingMessage: (grantId: string, text: string, variant: ChatEntry['variant']) => void;
-  addAuditMessage: (grantId: string, text: string, variant: ChatEntry['variant']) => void;
-  setExportDocument: (grantId: string, doc: string) => void;
-  setAttachments: (grantId: string, attachments: LocalAttachment[]) => void;
-  resetDraftForGrant: (grantId: string, grantTitle: string, funder: string) => void;
+  ensureDraft: (draftKey: string, grantTitle?: string, funder?: string) => void;
+  getDraft: (draftKey: string) => GrantDraftState;
+  addDraftingMessage: (draftKey: string, text: string, variant: ChatEntry['variant']) => void;
+  addAuditMessage: (draftKey: string, text: string, variant: ChatEntry['variant']) => void;
+  setExportDocument: (draftKey: string, doc: string) => void;
+  setAttachments: (draftKey: string, attachments: LocalAttachment[]) => void;
+  resetDraftForGrant: (draftKey: string, grantTitle: string, funder: string) => void;
 }
 const empty = (): GrantDraftState => ({
   draftingMessages: [],
@@ -28,49 +28,49 @@ const empty = (): GrantDraftState => ({
 export const EMPTY_DRAFT: GrantDraftState = Object.freeze(empty());
 export const useDraftStore = create<DraftStoreState>((set, get) => ({
   drafts: {},
-  ensureDraft: (grantId) => {
-    if (!grantId || get().drafts[grantId]) return;
-    set((state) => ({ drafts: { ...state.drafts, [grantId]: empty() } }));
+  ensureDraft: (draftKey) => {
+    if (!draftKey || get().drafts[draftKey]) return;
+    set((state) => ({ drafts: { ...state.drafts, [draftKey]: empty() } }));
   },
-  getDraft: (grantId) => get().drafts[grantId] ?? EMPTY_DRAFT,
-  addDraftingMessage: (grantId, text, variant) => {
-    if (!grantId || !text.trim()) return;
-    const draft = get().getDraft(grantId);
+  getDraft: (draftKey) => get().drafts[draftKey] ?? EMPTY_DRAFT,
+  addDraftingMessage: (draftKey, text, variant) => {
+    if (!draftKey || !text.trim()) return;
+    const draft = get().getDraft(draftKey);
     set((state) => ({
       drafts: {
         ...state.drafts,
-        [grantId]: {
+        [draftKey]: {
           ...draft,
           draftingMessages: [...draft.draftingMessages, { id: generateId('msg'), text, variant }],
         },
       },
     }));
   },
-  addAuditMessage: (grantId, text, variant) => {
-    if (!grantId || !text.trim()) return;
-    const draft = get().getDraft(grantId);
+  addAuditMessage: (draftKey, text, variant) => {
+    if (!draftKey || !text.trim()) return;
+    const draft = get().getDraft(draftKey);
     set((state) => ({
       drafts: {
         ...state.drafts,
-        [grantId]: {
+        [draftKey]: {
           ...draft,
           auditMessages: [...draft.auditMessages, { id: generateId('msg'), text, variant }],
         },
       },
     }));
   },
-  setExportDocument: (grantId, exportDocument) => {
-    if (!grantId) return;
-    const draft = get().getDraft(grantId);
-    set((state) => ({ drafts: { ...state.drafts, [grantId]: { ...draft, exportDocument } } }));
+  setExportDocument: (draftKey, exportDocument) => {
+    if (!draftKey) return;
+    const draft = get().getDraft(draftKey);
+    set((state) => ({ drafts: { ...state.drafts, [draftKey]: { ...draft, exportDocument } } }));
   },
-  setAttachments: (grantId, attachments) => {
-    if (!grantId) return;
-    const draft = get().getDraft(grantId);
-    set((state) => ({ drafts: { ...state.drafts, [grantId]: { ...draft, attachments } } }));
+  setAttachments: (draftKey, attachments) => {
+    if (!draftKey) return;
+    const draft = get().getDraft(draftKey);
+    set((state) => ({ drafts: { ...state.drafts, [draftKey]: { ...draft, attachments } } }));
   },
-  resetDraftForGrant: (grantId) => {
-    if (!grantId) return;
-    set((state) => ({ drafts: { ...state.drafts, [grantId]: empty() } }));
+  resetDraftForGrant: (draftKey) => {
+    if (!draftKey) return;
+    set((state) => ({ drafts: { ...state.drafts, [draftKey]: empty() } }));
   },
 }));

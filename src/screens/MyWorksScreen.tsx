@@ -12,7 +12,6 @@ import { hydrateMilestones, useMilestonesStore } from '@/store/useMilestonesStor
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { styles } from './workspacePageStyles';
 import { useGrants } from '@/api/hooks/useGrants';
-import { useDraftStore } from '@/store/useDraftStore';
 import {
   canRolePerform,
   computeProfileReadiness,
@@ -29,9 +28,7 @@ export default function MyWorksScreen() {
   const router = useRouter();
   const grantsQuery = useGrants();
   const grants = useMemo(() => grantsQuery.data ?? [], [grantsQuery.data]);
-  const ensureDraft = useDraftStore((state) => state.ensureDraft);
   const onOpenGrantDraft = (grantId: string, projectId: string) => {
-    ensureDraft(grantId);
     ensureWorkSlot(projectId, grantId);
     router.navigate({ pathname: '/grants/[grantID]/drafting', params: { grantID: grantId } });
   };

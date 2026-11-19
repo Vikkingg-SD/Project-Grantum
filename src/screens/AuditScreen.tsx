@@ -30,10 +30,12 @@ import { canRolePerform, getProfileSyncLag, workSlotKey } from '@/utils/workspac
 
 export default function AuditScreen() {
   const grantId = useActiveGrantId();
-  return <AuditSession key={grantId} grantId={grantId} />;
+  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const slotKey = grantId ? workSlotKey(activeProjectId, grantId) : '';
+  return <AuditSession key={slotKey} grantId={grantId} slotKey={slotKey} />;
 }
 
-function AuditSession({ grantId }: { grantId: string }) {
+function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }) {
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
   const [promptsOpen, setPromptsOpen] = useState(false);
@@ -45,14 +47,13 @@ function AuditSession({ grantId }: { grantId: string }) {
   const draft = useProposalDraft(grantId);
   const scan = useAuditStatus(grantId);
   const trigger = useTriggerAuditScan(grantId);
-  const local = useDraftStore((state) => state.drafts[grantId] ?? EMPTY_DRAFT);
+  const local = useDraftStore((state) => state.drafts[slotKey] ?? EMPTY_DRAFT);
   const addNote = useDraftStore((state) => state.addAuditMessage);
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const activeRole = useWorkspaceStore((state) => state.activeRole);
   const pullWorkSlotProfile = useWorkspaceStore((state) => state.pullWorkSlotProfile);
   const setWorkSlotReviewStatus = useWorkspaceStore((state) => state.setWorkSlotReviewStatus);
-  const slotKey = workSlotKey(activeProjectId, grantId);
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
   const updateWorkbench = useWorkbenchStore((state) => state.update);
   const [message, setMessage] = useState('');
@@ -411,11 +412,11 @@ function AuditSession({ grantId }: { grantId: string }) {
       <ChatInputRow
         value={message}
         onChangeText={setMessage}
-        grantId={grantId}
+        draftKey={slotKey}
         onSend={() => {
           if (!message.trim()) return;
           scrollAfterNote.current = true;
-          addNote(grantId, message.trim(), 'user');
+          addNote(slotKey, message.trim(), 'user');
           setMessage('');
         }}
       />

@@ -71,7 +71,7 @@ export function DraftWorkbenchPanel({
   const update = useWorkbenchStore((state) => state.update);
   const saveLibrarySection = useProposalLibraryStore((state) => state.saveSection);
   const setExport = useDraftStore((state) => state.setExportDocument);
-  const localDraft = useDraftStore((state) => state.drafts[grantId] ?? EMPTY_DRAFT);
+  const localDraft = useDraftStore((state) => state.drafts[key] ?? EMPTY_DRAFT);
 
   const activeProject =
     workspace.projects.find((p) => p.id === activeProjectId) ?? workspace.projects[0];
@@ -687,7 +687,6 @@ export function DraftWorkbenchPanel({
 
             {tab === 'review' && (
               <DraftReviewTab
-                grantId={grantId}
                 slotKey={key}
                 work={work}
                 activeProjectId={activeProjectId}
