@@ -55,7 +55,7 @@ export default function PersonalSettingsScreen() {
             />
           </View>
           <AppText variant="caption" color="muted">
-            Your preferences are saved locally. Notification delivery is not connected.
+            Preferences save automatically. Push notification delivery will activate once connected.
           </AppText>
           <AppButton
             label="Save settings"
@@ -63,7 +63,7 @@ export default function PersonalSettingsScreen() {
             disabled={!validName}
             onPress={() => {
               setPersonalSettings(name, digest);
-              setNotice('Settings updated. Check storage status below.');
+              setNotice('Settings updated.');
             }}
           />
           {Boolean(notice) && (
@@ -73,10 +73,10 @@ export default function PersonalSettingsScreen() {
           )}
           <AppText variant="caption" color="muted">
             {persistenceStatus === 'device-saved'
-              ? 'Saved on this device.'
+              ? 'Preferences saved.'
               : persistenceStatus === 'saving'
-                ? 'Saving on this device…'
-                : 'Available for this session only; device storage could not be used.'}
+                ? 'Saving preferences…'
+                : 'Storage unavailable; preferences apply to the current session.'}
           </AppText>
           <AppButton
             label="Replay onboarding tour"

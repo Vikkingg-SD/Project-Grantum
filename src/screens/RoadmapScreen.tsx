@@ -10,9 +10,9 @@ import { SPACING } from '@/config/theme';
 
 const milestones = [
   {
-    status: 'Available in the sample',
+    status: 'Available in Beta',
     title: 'Your application workspace',
-    body: 'Explore sample opportunities, maintain project profiles, write and restore proposal sections, and organize application handoffs. Work can be saved on this device when local storage is available.',
+    body: 'Explore funding opportunities, maintain project profiles, write and restore proposal sections, and organize application handoffs.',
   },
   {
     status: 'Next',
@@ -90,7 +90,7 @@ export default function RoadmapScreen() {
           }
         />
         <AppButton
-          label="Explore the sample workspace"
+          label="Open workspace"
           variant="primary"
           onPress={() => router.push('/dashboard')}
         />

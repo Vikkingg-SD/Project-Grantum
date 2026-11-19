@@ -1,4 +1,5 @@
 import { DraftWorkbenchPanel } from '@/components/organisms/DraftWorkbenchPanel';
+import { EligibilityPreflightPanel } from '@/components/organisms/EligibilityPreflightPanel';
 import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import ArrowLeft from 'lucide-react-native/icons/arrow-left';
 import ArrowRight from 'lucide-react-native/icons/arrow-right';
@@ -52,9 +53,19 @@ function DraftingSession({ grantId, slotKey }: { grantId: string; slotKey: strin
   const local = useDraftStore((state) => state.drafts[slotKey] ?? EMPTY_DRAFT);
   const addNote = useDraftStore((state) => state.addDraftingMessage);
   const updateWorkbench = useWorkbenchStore((state) => state.update);
+  const workspace = useWorkspaceStore((state) => state.workspace);
+  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const [message, setMessage] = useState('');
   const [sectionName, setSectionName] = useState('');
   const detail = useGrantDetail(grantId);
+  const activeProject =
+    workspace.projects.find((p) => p.id === activeProjectId) ?? workspace.projects[0];
+  const activeApp = workspace.applications.find(
+    (app) => app.projectId === activeProjectId && app.grantId === grantId
+  );
+  const activeRevision = workspace.revisions.find(
+    (r) => r.id === (activeApp?.profileRevisionId ?? activeProject?.currentRevisionId)
+  );
   if (!grantId || query.isPending || query.isError || !query.data) {
     return (
       <ScreenContainer>
@@ -111,6 +122,15 @@ function DraftingSession({ grantId, slotKey }: { grantId: string; slotKey: strin
         </View>
         <GrantContext grantId={grantId} />
         <WorkspaceStudioBar />
+        {detail.data ? (
+          <EligibilityPreflightPanel
+            grant={detail.data}
+            requirements={trackReqs}
+            project={activeProject}
+            revision={activeRevision}
+            onApplyToChat={(brief) => setMessage(brief)}
+          />
+        ) : null}
         <View>
           <AppButton
             label={`Required sections (${completedSections.length}/${requiredSections.length})`}
@@ -218,7 +238,7 @@ function DraftingSession({ grantId, slotKey }: { grantId: string; slotKey: strin
         </AppText>
         {local.draftingMessages.length === 0 && detail.data && (
           <AppText color="muted" align="center">
-            Agent offline - messages stay in this session.
+            Grantum uses an LLM assistant when connected — double-check drafted answers.
           </AppText>
         )}
         {mobile && (

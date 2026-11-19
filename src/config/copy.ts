@@ -57,8 +57,8 @@ export const MODAL_COPY = {
   deadline: 'Deadline',
   region: 'Region',
   record: 'Record',
-  mockRecord: 'Indexed · mock',
-  apiRecord: 'API response',
+  mockRecord: 'Catalog record',
+  apiRecord: 'Live catalog',
   apply: 'Help me apply',
 } as const;
 
@@ -78,5 +78,5 @@ export const AUDIT_COPY = {
   title: 'Application check',
   chips: ['Budget', 'Eligibility', 'Evidence'],
   welcome:
-    'Run a check to find missing sections. This preview checks section presence; it does not validate budget math, eligibility, or evidence. Notes stay in this session.',
+    'Run a check to find missing sections. Section presence checks do not validate budget math, eligibility, or evidence.',
 } as const;

@@ -37,8 +37,7 @@ export default function AdminScreen() {
       <View style={styles.pageContent}>
         <AppText variant="h1">Staff administration</AppText>
         <AppText color="muted">
-          Sample workspace · changes are saved on this device. Live jobs and catalog publishing are
-          unavailable.
+          Staff queue updates locally until live publishing services connect.
         </AppText>
         {notice ? (
           <AppText accessibilityLiveRegion="polite" color="verified">
@@ -48,8 +47,7 @@ export default function AdminScreen() {
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <AppText variant="h3">Needs attention</AppText>
           <AppText variant="caption" color="muted">
-            Review sample jobs and catalog requests. Actions update this local queue and activity
-            log.
+            Review pending jobs and catalog requests. Actions update the queue and activity log.
           </AppText>
           {adminQueue.map((item) => (
             <View key={item.id} style={[styles.checkItem, { borderColor: theme.border }]}>
@@ -86,7 +84,7 @@ export default function AdminScreen() {
                     disabled={item.status !== 'pending'}
                     onPress={() => {
                       resolveAdminQueueItem(item.id, 'retried');
-                      setNotice('Sample job marked for retry.');
+                      setNotice('Job marked for retry.');
                     }}
                   />
                 )}
@@ -98,7 +96,7 @@ export default function AdminScreen() {
                       disabled={item.status !== 'pending'}
                       onPress={() => {
                         resolveAdminQueueItem(item.id, 'approved');
-                        setNotice('Sample request approved.');
+                        setNotice('Request approved.');
                       }}
                     />
                     <AppButton
@@ -133,14 +131,13 @@ export default function AdminScreen() {
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <AppText variant="h3">Local device source suggestions ({sourceEntries.length})</AppText>
+          <AppText variant="h3">Saved source suggestions ({sourceEntries.length})</AppText>
           <AppText variant="caption" color="muted">
-            Entries saved locally in Discovery stay on this device until a moderation service is
-            connected.
+            Entries saved in Discovery wait here until a moderation service connects.
           </AppText>
           {sourceEntries.length === 0 ? (
             <AppText variant="caption" color="muted">
-              No local source suggestions saved on this device yet.
+              No source suggestions saved yet.
             </AppText>
           ) : (
             sourceEntries.map((entry) => (

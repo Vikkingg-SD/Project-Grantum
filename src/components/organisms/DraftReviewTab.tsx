@@ -84,8 +84,8 @@ export function DraftReviewTab({
           />
         </View>
         <AppText variant="caption" color="muted">
-          {finishReview.passedCount}/{finishReview.totalCount} local preparation checks met. Does
-          not submit to an external funder.
+          {finishReview.passedCount}/{finishReview.totalCount} preparation checks met. Does not
+          submit to an external funder.
         </AppText>
         <AppButton
           size="sm"
@@ -124,7 +124,7 @@ export function DraftReviewTab({
               onPress={() =>
                 act(
                   () => setWorkSlotReviewStatus(activeApp.id, 'review'),
-                  'Work slot marked IN REVIEW on this device. Editing remains reversible.'
+                  'Application marked IN REVIEW. Editing remains reversible.'
                 )
               }
             />
@@ -141,7 +141,7 @@ export function DraftReviewTab({
               onPress={() =>
                 act(
                   () => setWorkSlotReviewStatus(activeApp.id, 'ready'),
-                  'Application marked READY on this device. You can reopen it at any time; nothing was sent externally.'
+                  'Application marked READY. You can reopen it at any time; nothing was sent externally.'
                 )
               }
             />
@@ -231,7 +231,7 @@ export function DraftReviewTab({
             if (activeApp) {
               markWorkSlotSubmitted(activeApp.id, receipt.trim());
             }
-          }, 'Receipt recorded in this session; snapshot preserved.')
+          }, 'Receipt recorded; submission snapshot preserved.')
         }
       />
       {work.submissions.map((item) => (

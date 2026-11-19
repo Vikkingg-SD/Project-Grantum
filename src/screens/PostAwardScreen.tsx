@@ -135,7 +135,7 @@ export default function PostAwardScreen() {
         <InfoCard tone="surface">
           <AppText color="muted" align="center">
             {ENV.DATA_SOURCE === 'mock'
-              ? 'Sample award record. Confirm reporting dates and submission status with your funder.'
+              ? 'Confirm reporting dates and submission status against your funder portal.'
               : 'Review your next reporting date and application history.'}
           </AppText>
         </InfoCard>
@@ -232,12 +232,12 @@ export default function PostAwardScreen() {
           </AppText>
           <AppText variant="caption" color="muted" align="center">
             {!hasSavedMilestones
-              ? 'Starter deliverable schedule loaded. Edit dates or milestone statuses below to save on this device.'
+              ? 'Edit key dates or milestone statuses below to save updates.'
               : milestonePersistenceStatus === 'saving'
-                ? 'Saving milestones on this device…'
+                ? 'Saving milestones…'
                 : milestonePersistenceStatus === 'session-only'
-                  ? 'Milestones kept for this session only; device storage is unavailable.'
-                  : 'Milestones and dates saved on this device.'}
+                  ? 'Storage unavailable; milestone updates apply to the current session.'
+                  : 'Milestones and dates saved.'}
           </AppText>
           <View style={[styles.milestoneRow, { borderColor: theme.border }]}>
             <AppText variant="label">Application outcome &amp; key dates</AppText>
@@ -299,7 +299,7 @@ export default function PostAwardScreen() {
                   );
                   setEdits({ slotKey });
                   setMilestoneError('');
-                  setMilestoneNotice('Key application dates and outcome saved on this device.');
+                  setMilestoneNotice('Key application dates and outcome saved.');
                 } catch (e) {
                   setMilestoneError(
                     e instanceof Error ? e.message : 'Unable to save milestone dates'

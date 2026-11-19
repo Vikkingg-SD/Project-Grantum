@@ -1,4 +1,5 @@
 import {
+  deadlineMetricColor,
   progressLabel,
   reportUrgency,
   formatEventDate,
@@ -66,4 +67,14 @@ assert.ok(!formatEventDate('2026-05-18T14:30:00Z').includes('T14:'));
 assert.equal(formatEventDate('Date unavailable'), 'Date unavailable');
 console.info(
   'PASS Given machine and missing dates When formatted Then human-readable dates preserve unknown values'
+);
+assert.equal(deadlineMetricColor('today', now), 'failure');
+assert.equal(deadlineMetricColor('5 days', now), 'failure');
+assert.equal(deadlineMetricColor('28 days', now), 'pending');
+assert.equal(deadlineMetricColor('41 days', now), 'verified');
+assert.equal(deadlineMetricColor('56 days', now), 'verified');
+assert.equal(deadlineMetricColor('2026-12-15', now), 'verified');
+assert.equal(deadlineMetricColor('Rolling', now), 'main');
+console.info(
+  'PASS Given relative and calendar deadlines When classified Then semantic metric colors match design tiers'
 );

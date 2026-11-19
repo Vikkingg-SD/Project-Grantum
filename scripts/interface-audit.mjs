@@ -244,49 +244,79 @@ export async function auditInterfaces(browser, origin, runtime) {
         await expect(search).toHaveValue('');
         await expect(button('View details').first()).toBeVisible();
       });
-      await record('Workspace activity submenu opens every destination and closes', async () => {
-        for (const [label, route] of [
-          ['Open My Works', '/my-works'],
-          ['Open Project Profile', '/project-profile'],
-          ['Open project team', '/project-profile'],
-          ['View deadlines', '/grants/1/discovery-studio'],
-        ]) {
+      await record(
+        'Workspace activity submenu opens every destination and clears badge on click-through',
+        async () => {
+          const bell = page.getByRole('button', { name: /^Notifications/ });
+          const badge = page.getByTestId('notification-badge');
           await goto('/grants/1/dashboard');
-          await button('Notifications').click();
+          await expect(badge).toHaveText('4');
+          await bell.click();
           await expect(
             page.getByRole('dialog', { name: 'Workspace activity', exact: true })
           ).toBeVisible();
-          await capture(`${width}-activity-menu`);
-          await button(label).click();
-          await expect(page).toHaveURL(`${origin}${route}`);
+          await button('Close activity').click();
           await expect(page.getByRole('dialog')).toHaveCount(0);
+          await expect(badge).toHaveText('4');
+          const destinations = [
+            ['Open My Works', '/my-works', '3'],
+            ['Open Project Profile', '/project-profile', '2'],
+            ['Open project team', '/project-profile', '1'],
+            ['View deadlines', '/grants/1/discovery-studio', null],
+          ];
+          for (const [label, route, remaining] of destinations) {
+            await goto('/grants/1/dashboard');
+            await bell.click();
+            await expect(
+              page.getByRole('dialog', { name: 'Workspace activity', exact: true })
+            ).toBeVisible();
+            await capture(`${width}-activity-menu`);
+            await button(label).click();
+            await expect(page).toHaveURL(`${origin}${route}`);
+            await expect(page.getByRole('dialog')).toHaveCount(0);
+            await goto('/grants/1/dashboard');
+            if (remaining) {
+              await expect(badge).toHaveText(remaining);
+            } else {
+              await expect(badge).toHaveCount(0);
+            }
+          }
         }
-        await goto('/grants/1/dashboard');
-        await button('Notifications').click();
-        await button('Close activity').click();
-        await expect(page.getByRole('dialog')).toHaveCount(0);
-      });
-      await record('Grant detail preflight choices and profile navigation work', async () => {
-        await goto('/discover');
-        await button('View details').first().click();
-        await expect(page.getByRole('dialog')).toBeVisible();
-        const confirmed = page.getByRole('button', { name: /: Confirmed$/ }).first();
-        await confirmed.click();
-        await expect(confirmed).toHaveAttribute('aria-pressed', 'true');
-        await button('Reset preflight checklist').click();
-        await expect(confirmed).toHaveAttribute('aria-pressed', 'false');
-        await page.screenshot({ path: path.join(output, `${width}-grant-detail.png`) });
-        await button('Open Project Profile Dossier to Address Gaps').click();
-        await expect(page).toHaveURL(`${origin}/project-profile`);
-        await expect(page.getByRole('dialog')).toHaveCount(0);
-      });
+      );
+      await record(
+        'Grant detail omits preflight and Drafting preflight interview works',
+        async () => {
+          await goto('/discover');
+          await button('View details').first().click();
+          await expect(page.getByRole('dialog')).toBeVisible();
+          await expect(
+            page.getByText(/Interactive eligibility preflight|Pre-flight interview/)
+          ).toHaveCount(0);
+          await page.screenshot({ path: path.join(output, `${width}-grant-detail.png`) });
+          await button('Open Project Profile Dossier to Address Gaps').click();
+          await expect(page).toHaveURL(`${origin}/project-profile`);
+          await expect(page.getByRole('dialog')).toHaveCount(0);
+          await goto('/grants/1/drafting');
+          const panel = page.getByTestId('drafting-preflight-panel');
+          await expect(panel).toBeVisible();
+          const confirmed = panel.getByRole('button', { name: /^Confirmed: / }).first();
+          await confirmed.click();
+          await expect(confirmed).toHaveAttribute('aria-pressed', 'true');
+          await panel.getByRole('button', { name: 'Empty template', exact: true }).click();
+          await expect(
+            panel.getByText('No pre-flight questions in this template yet.', { exact: true })
+          ).toBeVisible();
+          await panel.getByRole('button', { name: 'Scan grant & profile', exact: true }).click();
+          await expect(panel.getByRole('button', { name: /^Confirmed: / }).first()).toBeVisible();
+        }
+      );
       await record(
         'Source modal supports validation, cancel and saved-history expansion',
         async () => {
           await goto('/discover');
           await button('Suggest a source').click();
           await expect(page.getByRole('dialog')).toBeVisible();
-          await button('Save on this device').click();
+          await button('Save source').click();
           await expect(
             page.getByRole('textbox', { name: 'Source title (required)', exact: true })
           ).toHaveAttribute('aria-invalid', 'true');
@@ -477,7 +507,7 @@ export async function auditInterfaces(browser, origin, runtime) {
           .fill('Local audit export narrative.');
         for (const extension of ['txt', 'md']) {
           const pending = page.waitForEvent('download');
-          await button(`Download .${extension} on this device`).click();
+          await button(`Download .${extension}`).click();
           assert.ok((await pending).suggestedFilename().endsWith(`.${extension}`));
         }
       });

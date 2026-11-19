@@ -32,7 +32,7 @@ export const useSourceSuggestionStore = create<State>((set, get) => ({
     const url = normalizeSourceUrl(inputUrl)!;
     if (get().entries.some((entry) => entry.url === url))
       return 'This source URL is already in your saved sources.';
-    if (get().entries.length >= 200) return 'This device has reached the 200-source limit.';
+    if (get().entries.length >= 200) return 'You have reached the 200-source limit.';
     const createdAt = new Date().toISOString();
     const entries = [
       {

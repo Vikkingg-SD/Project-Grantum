@@ -47,8 +47,8 @@ export function FileReferencePanel({
             File references
           </AppText>
           <AppText variant="caption" color="muted" align="center">
-            Keep up to 5 file references for this session. Only names, types, and sizes are kept;
-            files are not uploaded, read, or included in exports.
+            Attach up to 5 file references to keep alongside your draft. Only names, types, and
+            sizes are stored until file upload connects.
           </AppText>
           <AttachmentOptionGrid onChoose={onChoose} disabled={busy || files.length >= 5} />
           {busy && (

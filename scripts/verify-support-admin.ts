@@ -13,6 +13,13 @@ import {
   getCoveredProgressRatio,
   getDefaultRoadmapStageId,
 } from '../src/utils/productRoadmap';
+import {
+  acknowledgeNotificationId,
+  countUnreadNotifications,
+  deriveWorkspaceNotifications,
+  formatNotificationBadge,
+  isNotificationReadIdList,
+} from '../src/utils/notifications';
 
 const check = (name: string, condition: boolean) => {
   if (!condition) throw new Error(`FAIL: ${name}`);
@@ -94,9 +101,76 @@ function main() {
 
   const queue = useWorkspaceStore.getState().adminQueue;
   check(
-    'Given sample admin queue When inspecting items Then sourceUrl, lastCheckedAt, and failureContext are present',
+    'Given staff admin queue When inspecting items Then sourceUrl, lastCheckedAt, and failureContext are present',
     queue.length >= 3 &&
       queue.every((item) => Boolean(item.sourceUrl && item.lastCheckedAt && item.failureContext))
+  );
+
+  check(
+    'Given notification counts 0, 1, 99, 100 When formatting badge Then 0 hides badge and 100 saturates to 99+',
+    formatNotificationBadge(-2) === null &&
+      formatNotificationBadge(0) === null &&
+      formatNotificationBadge(1) === '1' &&
+      formatNotificationBadge(99) === '99' &&
+      formatNotificationBadge(100) === '99+' &&
+      formatNotificationBadge(240) === '99+'
+  );
+
+  const notifEvents = deriveWorkspaceNotifications({
+    activeProjectId: 'project-1',
+    outOfSyncCount: 1,
+    profileReadinessScore: 92,
+    grantCount: 3,
+  });
+  let readIds: string[] = [];
+  check(
+    'Given 4 workspace notifications When unread Then count is 4 and acknowledging each idempotently reaches 0',
+    notifEvents.length === 4 && countUnreadNotifications(notifEvents, readIds) === 4
+  );
+  readIds = acknowledgeNotificationId(readIds, notifEvents[0].id);
+  readIds = acknowledgeNotificationId(readIds, notifEvents[0].id);
+  check(
+    'Given duplicate acknowledgement When processed Then unread count decrements exactly once',
+    readIds.length === 1 && countUnreadNotifications(notifEvents, readIds) === 3
+  );
+  for (const evt of notifEvents) readIds = acknowledgeNotificationId(readIds, evt.id);
+  check(
+    'Given all notifications clicked through When counted Then unread count reaches 0 and badge hides',
+    countUnreadNotifications(notifEvents, readIds) === 0 &&
+      formatNotificationBadge(countUnreadNotifications(notifEvents, readIds)) === null &&
+      isNotificationReadIdList(readIds)
+  );
+
+  store.acknowledgeNotification(notifEvents[0].id);
+  store.acknowledgeNotification(notifEvents[0].id);
+  check(
+    'Given workspace store When acknowledging a notification event Then readNotificationIds stores it idempotently',
+    useWorkspaceStore.getState().readNotificationIds.filter((id) => id === notifEvents[0].id)
+      .length === 1
+  );
+
+  // Regression: global sync notification ID must stay stable when switching active project.
+  const notifProject2 = deriveWorkspaceNotifications({
+    activeProjectId: 'project-2',
+    outOfSyncCount: 1,
+    profileReadinessScore: 100,
+    grantCount: 3,
+  });
+  check(
+    'Given global sync notification When switching active project Then sync event ID stays workspace-scoped',
+    notifEvents[0].id === 'notif:workspace:sync:1' && notifProject2[0].id === notifEvents[0].id
+  );
+
+  // Regression: acknowledging a 201st notification must still record and roll the 200-item history window.
+  for (let i = 0; i < 205; i++) {
+    useWorkspaceStore.getState().acknowledgeNotification(`notif:history:${i}`);
+  }
+  const latestReadIds = useWorkspaceStore.getState().readNotificationIds;
+  check(
+    'Given 200 acknowledged notifications When acknowledging the 205th Then the new ID is recorded and list stays capped at 200',
+    latestReadIds.length === 200 &&
+      latestReadIds[0] === 'notif:history:204' &&
+      isNotificationReadIdList(latestReadIds)
   );
 }
 

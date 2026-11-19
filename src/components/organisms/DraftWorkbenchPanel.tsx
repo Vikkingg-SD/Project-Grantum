@@ -128,7 +128,7 @@ export function DraftWorkbenchPanel({
         <View style={styles.headerRow}>
           <AppText variant="h2">Form templates and drafting</AppText>
           <StatusBadge
-            label={`${activeRole.toUpperCase()} · ${persistenceStatus === 'device-saved' ? 'Saved on device' : persistenceStatus === 'saving' ? 'Saving on device…' : 'Edits may be session-only'}`}
+            label={`${activeRole.toUpperCase()} · ${persistenceStatus === 'device-saved' ? 'Saved' : persistenceStatus === 'saving' ? 'Saving…' : 'Session only'}`}
             variant={persistenceStatus === 'device-saved' ? 'verified' : 'neutral'}
           />
         </View>
@@ -199,7 +199,7 @@ export function DraftWorkbenchPanel({
             )}
 
             <AppText variant="caption" color="muted">
-              Local file references: {localDraft.attachments.length} · Profile Vault Docs:{' '}
+              File references: {localDraft.attachments.length} · Profile Vault Docs:{' '}
               {vaultDocs.length} · Saved versions: {work.versions.length}
             </AppText>
             {vaultDocs.length > 0 && (
@@ -284,7 +284,7 @@ export function DraftWorkbenchPanel({
                       act(() => {
                         update(key, (current) => applyTemplate(current, kind, outputs));
                         setTab('edit');
-                      }, 'Template applied in this session.')
+                      }, 'Template applied.')
                     }
                   />
                   {grantRequirements.length > 0 && (
@@ -375,7 +375,7 @@ export function DraftWorkbenchPanel({
                     <AppButton
                       size="sm"
                       variant="ghost"
-                      label={`Preview template suggestion for ${section.title}`}
+                      label={`Draft suggestion for ${section.title}`}
                       disabled={!canEdit}
                       onPress={() =>
                         setLocalSuggestion(
@@ -404,7 +404,7 @@ export function DraftWorkbenchPanel({
                               grantId,
                               tags: [work.kind],
                             }),
-                          `Saved "${section.title}" to reusable library on this device.`
+                          `Saved "${section.title}" to reusable library.`
                         )
                       }
                     />
@@ -468,7 +468,7 @@ export function DraftWorkbenchPanel({
                   maxLength={200}
                 />
                 <AppButton
-                  label="Save session version"
+                  label="Save draft version"
                   disabled={!canEdit || !work.sections.length || !summary.trim()}
                   onPress={() =>
                     act(() => {
@@ -482,7 +482,7 @@ export function DraftWorkbenchPanel({
                         )
                       );
                       setSummary('');
-                    }, 'Version saved in this session.')
+                    }, 'Version saved.')
                   }
                 />
                 <AppText color="muted">
@@ -559,9 +559,7 @@ export function DraftWorkbenchPanel({
               >
                 <AppText variant="h3">Review suggested change</AppText>
                 <AppText>Original: {activeSuggestion.original}</AppText>
-                <AppText>
-                  Template preview (no AI or evidence verification): {activeSuggestion.proposed}
-                </AppText>
+                <AppText>Suggested template (not AI-verified): {activeSuggestion.proposed}</AppText>
                 {activeSuggestion.sources.map((source) => (
                   <AppButton
                     key={source}

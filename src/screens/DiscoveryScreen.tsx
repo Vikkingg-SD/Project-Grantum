@@ -21,9 +21,9 @@ import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
 import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSheet';
 import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import { useGrants } from '@/api/hooks/useGrants';
-import { ENV } from '@/config/env';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { filterGrants } from '@/utils/filters';
+import { matchTier } from '@/utils/scoring';
 import { SPACING } from '@/config/theme';
 import type { Grant } from '@/types/grant';
 
@@ -101,7 +101,7 @@ export default function DiscoveryScreen() {
               actionLabel="Open project profile"
               onPress={() => router.push('/project-profile')}
               style={styles.centerBadge}
-              variant="pending"
+              variant={matchTier(profileReadiness?.score ?? 0)}
             />
           )}
         </View>
@@ -117,7 +117,7 @@ export default function DiscoveryScreen() {
           title={
             grants.isFetching
               ? 'Updating opportunities...'
-              : `${visibleGrants.length} ${ENV.DATA_SOURCE === 'mock' ? 'sample ' : ''}opportunities`
+              : `${visibleGrants.length} ${visibleGrants.length === 1 ? 'opportunity' : 'opportunities'}`
           }
           variant="caption"
           color="muted"

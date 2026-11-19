@@ -48,10 +48,10 @@ export function WorkspaceStudioBar() {
         <StatusBadge
           label={
             persistenceStatus === 'device-saved'
-              ? 'Saved on this device'
+              ? 'Saved'
               : persistenceStatus === 'saving'
-                ? 'Saving on device…'
-                : 'Edits may be session-only'
+                ? 'Saving…'
+                : 'Session only'
           }
           variant={persistenceStatus === 'device-saved' ? 'verified' : 'neutral'}
         />

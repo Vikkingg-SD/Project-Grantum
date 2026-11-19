@@ -198,7 +198,7 @@ export default function ProjectProfileScreen() {
               <View style={styles.checklistGrid}>
                 {unsaved && (
                   <AppText variant="caption" color="gold">
-                    Unsaved preview · save to update linked badges.
+                    Unsaved changes · save to update linked badges.
                   </AppText>
                 )}
                 {previewReadiness.checklist.map((item) => (
@@ -255,7 +255,7 @@ export default function ProjectProfileScreen() {
               />
               <AppText variant="caption" color="muted">
                 {ENV.DATA_SOURCE === 'mock'
-                  ? 'Sample workspace: preview each role for this project. Other projects keep their own roles.'
+                  ? 'Choose your active role for this project. Other projects keep their own roles.'
                   : 'Team membership and role changes require your connected service.'}
               </AppText>
             </View>
@@ -315,8 +315,7 @@ export default function ProjectProfileScreen() {
               <View style={[styles.checkItem, { borderColor: theme.border }]}>
                 <AppText variant="label">Reference documents</AppText>
                 <AppText variant="caption" color="muted">
-                  Choose sample references for linked applications. This preview saves document
-                  names; it does not upload files.
+                  Attach or select reference documents relevant to this project.
                 </AppText>
                 <View style={styles.rowWrap}>
                   {[
@@ -348,7 +347,7 @@ export default function ProjectProfileScreen() {
               </View>
               <AppInput
                 label="Change summary"
-                placeholder="e.g., Added utility co-funding letter and updated problem metrics"
+                placeholder="Added utility co-funding letter and updated problem metrics"
                 value={summary}
                 editable={canEdit}
                 onChangeText={setSummary}

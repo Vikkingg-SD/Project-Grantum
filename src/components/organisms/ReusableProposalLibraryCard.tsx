@@ -46,12 +46,12 @@ export function ReusableProposalLibraryCard({
       </View>
       <AppText variant="caption" color="muted">
         {!hasSaved
-          ? 'Starter examples loaded. Save any section above to store your own library on this device.'
+          ? 'Save any drafted section above to build your reusable library.'
           : status === 'saving'
-            ? 'Saving library on this device…'
+            ? 'Saving library…'
             : status === 'session-only'
-              ? 'Library updates kept for this session only; device storage is unavailable.'
-              : 'Library sections saved on this device with project provenance.'}
+              ? 'Storage unavailable; library changes apply to the current session.'
+              : 'Library sections saved with project provenance.'}
       </AppText>
       <AppInput
         label="Search reusable sections"

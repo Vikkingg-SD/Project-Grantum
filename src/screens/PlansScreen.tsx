@@ -53,8 +53,8 @@ export default function PlansScreen() {
         <AppText variant="h1">Subscriptions, regional pricing &amp; token economics</AppText>
         <AppText color="muted">
           Proposed B2B2C subscription tiers, GT referral mechanics, lifetime affiliate rules, and
-          platform unit economics. Checkout, token enforcement, and USDT payouts are not connected
-          in this sample preview.
+          platform unit economics. Checkout, token enforcement, and USDT payouts activate once
+          billing services connect.
         </AppText>
 
         <InfoCard tone="surface">
@@ -149,7 +149,7 @@ export default function PlansScreen() {
 
           <View style={[styles.section, { borderTopColor: theme.border }]}>
             <View style={styles.rowBetween}>
-              <AppText variant="label">Affiliate eligibility simulator (sample check)</AppText>
+              <AppText variant="label">Affiliate eligibility calculator</AppText>
               <StatusBadge
                 label={affiliateStatus.eligible ? 'ELIGIBLE' : 'NOT ELIGIBLE'}
                 variant={affiliateStatus.eligible ? 'verified' : 'pending'}

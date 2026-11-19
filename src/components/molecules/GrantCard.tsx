@@ -8,6 +8,8 @@ import { PALETTE, RADIUS, SPACING } from '@/config/theme';
 import { BREAKPOINTS } from '@/config/layout';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { GRANT_CARD_COPY } from '@/config/copy';
+import { matchTier } from '@/utils/scoring';
+import { deadlineMetricColor } from '@/utils/presentation';
 import type { Grant } from '@/types/grant';
 
 export interface GrantCardProps {
@@ -35,7 +37,7 @@ export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: G
         </AppText>
         <PressableBadge
           label={GRANT_CARD_COPY.matchLabel(grant.matchPct)}
-          variant="neutral"
+          variant={matchTier(grant.matchPct)}
           actionLabel="Open profile comparison"
           onPress={() => onSelect(grant)}
         />
@@ -48,7 +50,7 @@ export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: G
           <AppText variant="caption" color="muted">
             {GRANT_CARD_COPY.funding}
           </AppText>
-          <AppText variant="metric-sm" color="main">
+          <AppText variant="metric-sm" color="verified">
             {grant.amount}
           </AppText>
         </View>
@@ -56,7 +58,7 @@ export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: G
           <AppText variant="caption" color="muted">
             {GRANT_CARD_COPY.deadline}
           </AppText>
-          <AppText variant="metric-sm" color="main">
+          <AppText variant="metric-sm" color={deadlineMetricColor(grant.deadline)}>
             {grant.deadline}
           </AppText>
         </View>

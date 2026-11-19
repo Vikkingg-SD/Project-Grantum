@@ -10,6 +10,11 @@ export function scoreTier(
   return 'failure';
 }
 
+export function matchTier(pct: number): ScoreTier | 'neutral' {
+  if (!Number.isFinite(pct) || pct < 0 || pct > 100) return 'neutral';
+  return scoreTier(pct, TIERS.match);
+}
+
 export function isExportUnlocked(score: number): boolean {
   return score >= TIERS.confidence.pass;
 }
