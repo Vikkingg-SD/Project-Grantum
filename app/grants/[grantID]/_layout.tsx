@@ -1,13 +1,11 @@
 import React from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme } from '@/hooks/useTheme';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
 import { useActiveView } from '@/hooks/useActiveView';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
-import { AppHeader } from '@/components/templates/AppHeader';
-import { WorkspaceNavigation } from '@/components/organisms/WorkspaceNavigation';
+import { WorkspaceShell } from '@/components/templates/WorkspaceShell';
+import { useRememberLifecycle } from '@/hooks/useWorkspaceNavigation';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 import { ROUTE_COPY } from '@/config/copy';
@@ -23,32 +21,19 @@ export const unstable_settings = { screenErrorBoundary: AppScreenErrorBoundary }
 export default function GrantLayout() {
   // Preserve the existing layout-level recovery probe across the route flip.
   useRecoveryProbe('tab');
-  const theme = useTheme();
   const grantID = useActiveGrantId();
   const grant = useGrantDetail(grantID);
   const router = useRouter();
   const selectedName = useActiveView();
   const navigation = useAppNavigation();
+  useRememberLifecycle(grant.data && !grant.isError ? grantID : '');
   const items = navigationItemsForGrant(grantID).map((item) => ({
     ...item,
     disabled: item.disabled || !grant.data || grant.isError,
   }));
   const onSelect = (item: NavigationItem) => navigation.navigateTo(item.name);
   return (
-    <SafeAreaView
-      edges={['top', 'left', 'right', 'bottom']}
-      style={{ flex: 1, backgroundColor: theme.background }}
-    >
-      <AppHeader
-        title={items.find((item) => item.name === selectedName)?.label}
-        canGoBack={navigation.canGoBack}
-        onBack={navigation.goBack}
-        onHome={() => {
-          if (grant.data && !grant.isError) navigation.navigateTo('index');
-          else router.replace('/dashboard');
-        }}
-      />
-      <WorkspaceNavigation />
+    <WorkspaceShell>
       <TopTabNavigation items={items} selectedName={selectedName} onSelect={onSelect} />
       <View style={{ flex: 1 }}>
         <Stack
@@ -73,6 +58,6 @@ export default function GrantLayout() {
           ))}
         </Stack>
       </View>
-    </SafeAreaView>
+    </WorkspaceShell>
   );
 }

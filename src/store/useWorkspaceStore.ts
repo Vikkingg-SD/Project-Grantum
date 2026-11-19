@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { createDevicePersistence, type PersistenceStatus } from './devicePersistence';
 import { getDeviceStorage } from './deviceStorage';
 import { ENV } from '@/config/env';
+import { hasAuthoredDraft } from '@/utils/drafting';
+import { useWorkbenchStore } from './useWorkbenchStore';
 import type {
   AdminAuditEntry,
   AdminQueueItem,
@@ -13,9 +15,11 @@ import type {
 import {
   addApplication,
   archiveProject,
+  canRolePerform,
   emptyWorkspace,
   pullProfileRevision,
   saveProject,
+  workSlotKey,
   type Workspace,
 } from '@/utils/workspace';
 
@@ -180,6 +184,7 @@ interface PersistedSlice {
   projectRoles?: Record<string, CoWorkRole>;
   nickname: string;
   digestEnabled: boolean;
+  launchTourCompleted?: boolean;
   supportPromptDismissedAt?: string | null;
   adminQueue?: AdminQueueItem[];
   adminAuditLog?: AdminAuditEntry[];
@@ -212,6 +217,7 @@ export interface WorkspaceStoreState {
   userId: string;
   nickname: string;
   digestEnabled: boolean;
+  launchTourCompleted: boolean;
   supportPromptDismissedAt: string | null;
   persistenceStatus: PersistenceStatus;
   hydrated: boolean;
@@ -233,6 +239,7 @@ export interface WorkspaceStoreState {
   setRole: (role: CoWorkRole) => void;
   setProjectRole: (projectId: string, role: CoWorkRole) => void;
   setPersonalSettings: (nickname: string, digestEnabled: boolean) => void;
+  completeLaunchTour: () => void;
   dismissSupportPrompt: (nowIso?: string) => void;
   restoreSupportPrompt: () => void;
   resolveAdminQueueItem: (id: string, status: 'approved' | 'rejected' | 'retried') => void;
@@ -251,6 +258,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
       projectRoles: next.projectRoles ?? current.projectRoles,
       nickname: next.nickname ?? current.nickname,
       digestEnabled: next.digestEnabled ?? current.digestEnabled,
+      launchTourCompleted: next.launchTourCompleted ?? current.launchTourCompleted,
       supportPromptDismissedAt:
         next.supportPromptDismissedAt !== undefined
           ? next.supportPromptDismissedAt
@@ -276,6 +284,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
     userId: 'usr_94f8a2c1',
     nickname: initialLoad.slice?.nickname ?? 'Founder Lead',
     digestEnabled: initialLoad.slice?.digestEnabled ?? true,
+    launchTourCompleted: initialLoad.slice?.launchTourCompleted === true,
     supportPromptDismissedAt: initialLoad.slice?.supportPromptDismissedAt ?? null,
     persistenceStatus: persistence.status,
     hydrated: persistence.hydrated,
@@ -407,6 +416,18 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
 
     markWorkSlotSubmitted: (applicationId, receiptReference) =>
       set((state) => {
+        const target = state.workspace.applications.find((app) => app.id === applicationId);
+        if (!target) throw new Error('Application work slot not found.');
+        if (target.submittedSnapshot || target.status === 'submitted') {
+          throw new Error('A receipt is already recorded for this application.');
+        }
+        if (target.status === 'archived')
+          throw new Error('Archived applications cannot record a receipt.');
+        if (!canRolePerform(state.projectRoles[target.projectId] ?? 'owner', 'submit')) {
+          throw new Error('Only the project owner can record a submission receipt.');
+        }
+        const receipt = receiptReference.trim();
+        if (!receipt) throw new Error('Enter a submission receipt reference.');
         const now = new Date().toISOString();
         const nextWorkspace: Workspace = {
           ...state.workspace,
@@ -420,7 +441,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
                     profileRevisionId: app.profileRevisionId,
                     artifactRevisionIds: app.artifacts.map((a) => a.revisionId),
                     submittedAt: now,
-                    receiptReference,
+                    receiptReference: receipt,
                   },
                 }
               : app
@@ -443,6 +464,18 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
         if (target.status === 'archived') {
           throw new Error('Archived applications cannot change review status.');
         }
+        const action = nextStatus === 'drafting' ? 'edit' : 'review';
+        if (!canRolePerform(state.projectRoles[target.projectId] ?? 'owner', action)) {
+          throw new Error('Your project role cannot change this review status.');
+        }
+        if (nextStatus === 'ready') {
+          const slot = workSlotKey(target.projectId, target.grantId);
+          const work = useWorkbenchStore.getState().work[slot];
+          if (!hasAuthoredDraft(work)) {
+            throw new Error('Write each draft section before marking the application ready.');
+          }
+        }
+        if (target.status === nextStatus) return state;
         const now = new Date().toISOString();
         const nextWorkspace: Workspace = {
           ...state.workspace,
@@ -474,6 +507,13 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
         const cleanName = nickname.trim() || 'Founder Lead';
         const persistenceStatus = persistState({ nickname: cleanName, digestEnabled });
         return { nickname: cleanName, digestEnabled, persistenceStatus };
+      }),
+
+    completeLaunchTour: () =>
+      set((state) => {
+        if (state.launchTourCompleted) return state;
+        const persistenceStatus = persistState({ launchTourCompleted: true });
+        return { launchTourCompleted: true, persistenceStatus };
       }),
 
     dismissSupportPrompt: (nowIso = new Date().toISOString()) =>
@@ -533,6 +573,7 @@ export async function hydrateWorkspace() {
       activeRole: slice.activeRole,
       nickname: slice.nickname,
       digestEnabled: slice.digestEnabled,
+      launchTourCompleted: slice.launchTourCompleted === true,
       supportPromptDismissedAt: slice.supportPromptDismissedAt ?? null,
       adminQueue: slice.adminQueue ?? useWorkspaceStore.getState().adminQueue,
       adminAuditLog: slice.adminAuditLog ?? useWorkspaceStore.getState().adminAuditLog,

@@ -249,6 +249,10 @@ export function fullArtifactBundleText(
   return parts.join('\n\n');
 }
 
+export function hasAuthoredDraft(work: Pick<DraftWorkbench, 'sections'> | undefined): boolean {
+  return Boolean(work?.sections.length && work.sections.every((section) => section.text.trim()));
+}
+
 export function evaluateWorkSlotAudit(work: DraftWorkbench, syncLag: number): WorkSlotAuditSummary {
   const totalSections = work.sections.length;
   const filledSections = work.sections.filter((s) => s.text.trim().length > 0).length;

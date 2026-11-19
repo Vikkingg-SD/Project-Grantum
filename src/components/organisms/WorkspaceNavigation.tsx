@@ -35,7 +35,7 @@ export function WorkspaceNavigation() {
                 : 'transparent',
           }}
           onPress={() => {
-            if (pathname !== href) router.navigate(href);
+            if (pathname !== href) router.push(href);
           }}
         />
       ))}

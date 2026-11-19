@@ -238,7 +238,9 @@ try {
       await expect(page.getByRole('button', { name: 'Next navigation tabs' })).toBeDisabled();
       await page.getByRole('tab', { name: 'Post-award', exact: true }).click();
       await expect(page.getByRole('heading', { name: 'Reporting & activity' })).toBeVisible();
-      await page.getByRole('button', { name: 'Go to dashboard' }).click();
+      await page.getByRole('button', { name: 'Previous navigation tabs' }).click();
+      await page.getByRole('button', { name: 'Previous navigation tabs' }).click();
+      await page.getByRole('tab', { name: 'Dashboard', exact: true }).click();
     }
   );
   await check(
@@ -356,7 +358,9 @@ try {
   await check(
     'Given a modal, when opened with keyboard and dismissed, then focus returns to its trigger',
     async () => {
-      await page.getByRole('button', { name: 'Go to dashboard' }).click();
+      await page.getByRole('button', { name: 'Previous navigation tabs' }).click();
+      await page.getByRole('button', { name: 'Previous navigation tabs' }).click();
+      await page.getByRole('tab', { name: 'Dashboard', exact: true }).click();
       const trigger = page.getByRole('button', { name: 'Notifications', exact: true });
       await trigger.focus();
       await page.keyboard.press('Enter');

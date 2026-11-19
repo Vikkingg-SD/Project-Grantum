@@ -10,6 +10,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { LAYOUT } from '@/config/layout';
 import { RADIUS, SPACING } from '@/config/theme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
+import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 
 const slides = [
   {
@@ -32,8 +33,21 @@ export default function OnboardingScreen() {
   const { mobile } = useLayoutMetrics();
   const router = useRouter();
   const grants = useGrants();
+  const completeLaunchTour = useWorkspaceStore((state) => state.completeLaunchTour);
   const slide = slides[index];
   const final = index === slides.length - 1;
+  const finish = () => {
+    completeLaunchTour();
+    const grant = grants.data?.[0];
+    if (grant) {
+      router.replace({
+        pathname: '/grants/[grantID]/dashboard',
+        params: { grantID: grant.id },
+      });
+    } else {
+      router.replace('/dashboard');
+    }
+  };
   return (
     <ScreenContainer>
       <View style={styles.content}>
@@ -79,13 +93,7 @@ export default function OnboardingScreen() {
                   setIndex((current) => current + 1);
                   return;
                 }
-                const grant = grants.data?.[0];
-                if (!grant) return;
-                // Onboarding navigates directly, outside instrument history/context.
-                router.push({
-                  pathname: '/grants/[grantID]/dashboard',
-                  params: { grantID: grant.id },
-                });
+                finish();
               }}
             />
           </View>
@@ -106,6 +114,7 @@ export default function OnboardingScreen() {
             variant="ghost"
             onPress={() => router.push('/roadmap')}
           />
+          {!final && <AppButton label="Skip tour" variant="ghost" onPress={finish} />}
         </View>
       </View>
     </ScreenContainer>

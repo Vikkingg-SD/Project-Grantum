@@ -37,7 +37,7 @@ await check('route tree uses six pure screen re-exports and no legacy tabs', () 
       /^export \{ default \} from '@\/screens\/\w+Screen';\s*$/
     );
   }
-  assert.match(read('app/index.tsx'), /Redirect href="\/onboarding"/);
+  assert.match(read('app/index.tsx'), /tourCompleted \? '\/dashboard' : '\/onboarding'/);
   assert.match(read('app/grants/[grantID]/index.tsx'), /Redirect/);
   assert.match(read('app/dashboard.tsx'), /useGrants/);
   assert.match(read('src/screens/NotFoundScreen.tsx'), /router.replace\('\/dashboard'\)/);
@@ -208,6 +208,93 @@ try {
     await page.goForward();
     await page.waitForURL(url('2', 'audit-studio'));
   });
+  await check('cross-shell Back and Escape restore the exact visible grant view', async () => {
+    await page.goto(url('2', 'drafting'));
+    const back = page.getByRole('button', { name: 'Go back', exact: true });
+    await page.getByRole('tab', { name: 'Audit', exact: true }).click();
+    await page.getByRole('button', { name: 'My Works', exact: true }).click();
+    await expect(page).toHaveURL(`${origin}/my-works`);
+    const search = page.getByRole('textbox', { name: /search/i }).first();
+    await search.focus();
+    await page.keyboard.press('Escape');
+    await expect(search).not.toBeFocused();
+    await expect(page).toHaveURL(`${origin}/my-works`);
+    await page.keyboard.press('Escape');
+    await expect(page).toHaveURL(url('2', 'audit-studio'));
+    await expect(page.getByRole('tab', { name: 'Audit', exact: true })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    await page.goForward();
+    await expect(page).toHaveURL(`${origin}/my-works`);
+    await back.click();
+    await expect(page).toHaveURL(url('2', 'audit-studio'));
+  });
+  await check('brand resumes grant 2, then Back reaches the actual workspace origin', async () => {
+    await page.goto(url('2', 'drafting'));
+    await visible('Community Health Access');
+    await page.getByRole('button', { name: 'My Works', exact: true }).click();
+    await page.getByRole('button', { name: 'Project Profile', exact: true }).click();
+    await page.getByRole('button', { name: 'Resume last grant view', exact: true }).click();
+    await expect(page).toHaveURL(url('2', 'drafting'));
+    await visible('Community Health Access');
+    await page.getByRole('button', { name: 'Go back', exact: true }).click();
+    await expect(page).toHaveURL(`${origin}/project-profile`);
+    await expect(page.getByText('Staff administration', { exact: true })).toBeHidden();
+  });
+  await check('cold workspace Back is disabled and Plans shares the referring route', async () => {
+    await page.goto(`${origin}/my-works`);
+    const back = page.getByRole('button', { name: 'Go back', exact: true });
+    await expect(back).toBeDisabled();
+    await page.goto(url('2', 'drafting'));
+    await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+    const menu = page.getByRole('dialog', { name: 'Account menu' });
+    await expect(menu).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(page).toHaveURL(url('2', 'drafting'));
+    await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+    await menu.getByRole('button', { name: 'Subscriptions & plans', exact: true }).click();
+    await expect(page).toHaveURL(/\/plans\?/);
+    await expect(back).toBeEnabled();
+    await page.keyboard.press('Escape');
+    await expect(page).toHaveURL(url('2', 'drafting'));
+    await visible('Community Health Access');
+    await page.goto(`${origin}/plans`);
+    await expect(back).toBeDisabled();
+    await page.getByRole('button', { name: 'Open public roadmap', exact: true }).click();
+    await expect(page).toHaveURL(/\/roadmap\?/);
+    await page
+      .getByRole('button', { name: 'View proposed subscriptions & pricing', exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/plans\?/);
+    await page.getByRole('button', { name: 'Back to workspace', exact: true }).click();
+    await expect(page).toHaveURL(url('1', 'dashboard'));
+  });
+  await check('in-app history is bounded and selected tabs do not duplicate entries', async () => {
+    await page.goto(url('2', 'dashboard'));
+    const back = page.getByRole('button', { name: 'Go back', exact: true });
+    const dashboard = page.getByRole('tab', { name: 'Dashboard', exact: true });
+    await expect(back).toBeDisabled();
+    const initialLength = await page.evaluate(() => window.history.length);
+    await dashboard.click();
+    await dashboard.click();
+    assert.equal(await page.evaluate(() => window.history.length), initialLength);
+    const destinations = [
+      ['Drafting', 'drafting'],
+      ['Audit', 'audit-studio'],
+    ];
+    for (let index = 0; index < 12; index++) {
+      const [name, leaf] = destinations[index % 2];
+      await page.getByRole('tab', { name, exact: true }).click();
+      await expect(page).toHaveURL(url('2', leaf));
+    }
+    for (let index = 10; index >= 1; index--) {
+      await back.click();
+      await expect(page).toHaveURL(url('2', destinations[index % 2][1]));
+    }
+    await expect(back).toBeDisabled();
+  });
   await check('explicit Dashboard application selection changes the grant URL', async () => {
     await page.goto(url('2', 'dashboard'));
     await page.getByRole('button', { name: 'Help me apply', exact: true }).first().click();
@@ -224,6 +311,7 @@ try {
     await visible('Welcome back, Alex.');
   });
   await check('root opens onboarding, which hands off a queried grant', async () => {
+    await page.goto(url('2', 'drafting'));
     await page.goto(origin);
     await page.waitForURL(`${origin}/onboarding`);
     await visible('Explore funding opportunities.');
@@ -234,6 +322,12 @@ try {
     await page.getByRole('button', { name: 'Get started', exact: true }).click();
     await page.waitForURL(url('1', 'dashboard'));
     await visible('Welcome back, Alex.');
+    await expect(page.getByRole('button', { name: 'Go back', exact: true })).toBeDisabled();
+    await page.goBack();
+    await expect(page).toHaveURL(url('2', 'drafting'));
+    await page.goto(origin);
+    await expect(page).toHaveURL(url('1', 'dashboard'));
+    await expect(page.getByText('Explore funding opportunities.', { exact: true })).toBeHidden();
   });
   await check('dashboard recovery entry selects an actual queried grant', async () => {
     await page.goto(`${origin}/dashboard`);
@@ -301,7 +395,7 @@ try {
     assert.deepEqual(diagnostics, []);
   });
   await context.close();
-  await auditInterfaces(browser, origin, runtime);
+  if (!process.argv.includes('--navigation-only')) await auditInterfaces(browser, origin, runtime);
 } finally {
   if (browser) await browser.close();
   fs.mkdirSync(path.join(root, '.expo/s8'), { recursive: true });

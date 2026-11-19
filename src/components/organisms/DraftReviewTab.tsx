@@ -7,6 +7,7 @@ import { StatusBadge } from '../atoms/StatusBadge';
 import {
   bundleText,
   fullArtifactBundleText,
+  hasAuthoredDraft,
   recordSubmission,
   validSource,
   type DraftWorkbench,
@@ -134,6 +135,7 @@ export function DraftReviewTab({
               disabled={
                 !finishReview.canTransition ||
                 (!canEdit && !canReview) ||
+                !hasAuthoredDraft(work) ||
                 finishReview.status === 'ready'
               }
               onPress={() =>
