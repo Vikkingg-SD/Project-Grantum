@@ -321,6 +321,66 @@ try {
       );
       assert.ok(stored.includes('Authored narrative survives a reload'));
       assert.ok(!stored.includes('grants.example.org'));
+      if (!remote && width === 1440 && theme === 'light') {
+        await page.keyboard.press('Escape');
+        const tab = (name) => page.getByRole('tab', { name, exact: true });
+        const chat = page.getByRole('textbox', { name: 'Chat with agent', exact: true });
+        const narrative = page.getByRole('textbox', {
+          name: 'Application narrative',
+          exact: true,
+        });
+        const fileDialog = page.getByRole('dialog', { name: 'File references' });
+        const openFiles = async () => {
+          await page.getByRole('button', { name: 'File references', exact: true }).click();
+          await expect(fileDialog).toBeVisible();
+        };
+        const closeFiles = async () => {
+          await fileDialog.getByRole('button', { name: 'Close', exact: true }).click();
+          await expect(fileDialog).toBeHidden();
+        };
+        await chat.fill('Project A drafting note');
+        await page.getByRole('button', { name: 'Send message', exact: true }).click();
+        await openFiles();
+        await page.locator('input[type=file]').setInputFiles({
+          name: 'project-a.pdf',
+          mimeType: 'application/pdf',
+          buffer: Buffer.from('%PDF-1.4 fixture'),
+        });
+        const file = page.getByRole('button', { name: 'Remove project-a.pdf', exact: true });
+        await expect(file).toBeVisible();
+        await closeFiles();
+        await tab('Export').click();
+        await narrative.fill('Project A private application narrative');
+        await tab('Drafting').click();
+        await chat.fill('Unsent note for project A');
+        await openWorkbench();
+        const switchProject = async (name) => {
+          const dialog = page.getByRole('dialog', { name: 'Form templates and drafting' });
+          await dialog.getByRole('button', { name, exact: true }).click();
+          await expect(dialog).toBeHidden();
+        };
+        await switchProject('Community Health & STEM Lab');
+        await expect(chat).toHaveValue('');
+        const note = page
+          .getByText('Project A drafting note', { exact: true })
+          .filter({ visible: true });
+        await expect(note).toHaveCount(0);
+        await openFiles();
+        await expect(file).toHaveCount(0);
+        await closeFiles();
+        await tab('Export').click();
+        await expect(narrative).not.toHaveValue('Project A private application narrative');
+        await narrative.fill('Project B application narrative');
+        await tab('Drafting').click();
+        await openWorkbench();
+        await switchProject('Saved workspace project');
+        await expect(note.first()).toBeVisible();
+        await openFiles();
+        await expect(file).toBeVisible();
+        await closeFiles();
+        await tab('Export').click();
+        await expect(narrative).toHaveValue('Project A private application narrative');
+      }
       await page.goto(`${origin}/discover`);
       await expect(
         page

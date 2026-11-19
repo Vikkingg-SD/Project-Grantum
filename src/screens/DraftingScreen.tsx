@@ -30,10 +30,12 @@ import { workSlotKey } from '@/utils/workspace';
 
 export default function DraftingScreen() {
   const grantId = useActiveGrantId();
-  return <DraftingSession key={grantId} grantId={grantId} />;
+  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const slotKey = grantId ? workSlotKey(activeProjectId, grantId) : '';
+  return <DraftingSession key={slotKey} grantId={grantId} slotKey={slotKey} />;
 }
 
-function DraftingSession({ grantId }: { grantId: string }) {
+function DraftingSession({ grantId, slotKey }: { grantId: string; slotKey: string }) {
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -47,10 +49,9 @@ function DraftingSession({ grantId }: { grantId: string }) {
   const [deleteSection, setDeleteSection] = useState<string | null>(null);
   const query = useProposalDraft(grantId);
   const mutation = useMutateProposalSections(grantId);
-  const local = useDraftStore((state) => state.drafts[grantId] ?? EMPTY_DRAFT);
+  const local = useDraftStore((state) => state.drafts[slotKey] ?? EMPTY_DRAFT);
   const addNote = useDraftStore((state) => state.addDraftingMessage);
   const updateWorkbench = useWorkbenchStore((state) => state.update);
-  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const [message, setMessage] = useState('');
   const [sectionName, setSectionName] = useState('');
   const detail = useGrantDetail(grantId);
@@ -246,7 +247,6 @@ function DraftingSession({ grantId }: { grantId: string }) {
         ))}
       </ScrollView>
       <DraftWorkbenchPanel
-        key={`${activeProjectId}:${grantId}`}
         grantId={grantId}
         grantRequirements={trackReqs}
         visible={workbenchOpen}
@@ -294,8 +294,7 @@ function DraftingSession({ grantId }: { grantId: string }) {
                   label={`Copy ${trackReqs.length} catalog requirements into Studio`}
                   variant="outline"
                   onPress={() => {
-                    const slot = workSlotKey(activeProjectId, grantId);
-                    updateWorkbench(slot, (current) =>
+                    updateWorkbench(slotKey, (current) =>
                       syncGrantRequirements(current, trackReqs, '')
                     );
                     setOptionsOpen(false);
@@ -338,13 +337,13 @@ function DraftingSession({ grantId }: { grantId: string }) {
       </ModalSheetLayout>
       <ChatInputRow
         onOptions={() => setOptionsOpen(true)}
-        grantId={grantId}
+        draftKey={slotKey}
         value={message}
         onChangeText={setMessage}
         onSend={() => {
           if (!message.trim()) return;
           scrollAfterNote.current = true;
-          addNote(grantId, message.trim(), 'user');
+          addNote(slotKey, message.trim(), 'user');
           setMessage('');
         }}
       />

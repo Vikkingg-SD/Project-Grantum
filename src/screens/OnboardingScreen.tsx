@@ -6,7 +6,6 @@ import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
 import { useGrants } from '@/api/hooks/useGrants';
-import { useDraftStore } from '@/store/useDraftStore';
 import { useTheme } from '@/hooks/useTheme';
 import { LAYOUT } from '@/config/layout';
 import { RADIUS, SPACING } from '@/config/theme';
@@ -33,7 +32,6 @@ export default function OnboardingScreen() {
   const { mobile } = useLayoutMetrics();
   const router = useRouter();
   const grants = useGrants();
-  const ensureDraft = useDraftStore((state) => state.ensureDraft);
   const slide = slides[index];
   const final = index === slides.length - 1;
   return (
@@ -83,7 +81,6 @@ export default function OnboardingScreen() {
                 }
                 const grant = grants.data?.[0];
                 if (!grant) return;
-                ensureDraft(grant.id);
                 // Onboarding navigates directly, outside instrument history/context.
                 router.push({
                   pathname: '/grants/[grantID]/dashboard',

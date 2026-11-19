@@ -4,13 +4,13 @@ import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { ATTACHMENT_ACCEPT, attachmentError } from '@/utils/attachments';
 import { generateId } from '@/utils/uuid';
 
-export function LocalAttachments({ grantId }: { grantId: string }) {
+export function LocalAttachments({ draftKey }: { draftKey: string }) {
   const input = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   return (
     <>
       <FileReferencePanel
-        grantId={grantId}
+        draftKey={draftKey}
         error={error}
         onChoose={(category) => {
           setError('');
@@ -31,12 +31,12 @@ export function LocalAttachments({ grantId }: { grantId: string }) {
           if (!file) return;
           const invalid = attachmentError(file);
           const store = useDraftStore.getState();
-          const files = (store.drafts[grantId] ?? EMPTY_DRAFT).attachments;
+          const files = (store.drafts[draftKey] ?? EMPTY_DRAFT).attachments;
           if (invalid || files.length >= 5) {
             setError(invalid ?? 'Remove a reference before adding another.');
             return;
           }
-          store.setAttachments(grantId, [
+          store.setAttachments(draftKey, [
             ...files,
             { id: generateId('file'), name: file.name, type: file.type, size: file.size },
           ]);

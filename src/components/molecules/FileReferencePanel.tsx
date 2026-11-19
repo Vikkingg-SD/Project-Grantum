@@ -12,19 +12,19 @@ import { useTheme } from '@/hooks/useTheme';
 import { SPACING } from '@/config/theme';
 
 export function FileReferencePanel({
-  grantId,
+  draftKey,
   onChoose,
   busy = false,
   error,
 }: {
-  grantId: string;
+  draftKey: string;
   onChoose: (category: keyof typeof ATTACHMENT_ACCEPT) => void;
   busy?: boolean;
   error: string;
 }) {
   const [open, setOpen] = useState(false);
   const theme = useTheme();
-  const files = useDraftStore((s) => (s.drafts[grantId] ?? EMPTY_DRAFT).attachments);
+  const files = useDraftStore((s) => (s.drafts[draftKey] ?? EMPTY_DRAFT).attachments);
   const setFiles = useDraftStore((s) => s.setAttachments);
   return (
     <View style={styles.group}>
@@ -73,7 +73,7 @@ export function FileReferencePanel({
                 style={styles.removeButton}
                 onPress={() =>
                   setFiles(
-                    grantId,
+                    draftKey,
                     files.filter((item) => item.id !== file.id)
                   )
                 }

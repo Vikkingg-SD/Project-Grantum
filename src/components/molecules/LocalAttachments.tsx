@@ -16,7 +16,7 @@ const MIME_TYPES: Record<keyof typeof ATTACHMENT_ACCEPT, string[]> = {
   Media: ['image/png', 'image/jpeg', 'image/webp', 'video/mp4'],
 };
 
-export function LocalAttachments({ grantId }: { grantId: string }) {
+export function LocalAttachments({ draftKey }: { draftKey: string }) {
   const [busy, setBusy] = useState(false);
   const picking = useRef(false);
   const [error, setError] = useState('');
@@ -39,12 +39,12 @@ export function LocalAttachments({ grantId }: { grantId: string }) {
       }
       const invalid = attachmentError({ name: asset.name, size: asset.size });
       const store = useDraftStore.getState();
-      const files = (store.drafts[grantId] ?? EMPTY_DRAFT).attachments;
+      const files = (store.drafts[draftKey] ?? EMPTY_DRAFT).attachments;
       if (invalid || files.length >= 5) {
         setError(invalid ?? 'Remove a reference before adding another.');
         return;
       }
-      store.setAttachments(grantId, [
+      store.setAttachments(draftKey, [
         ...files,
         {
           id: generateId('file'),
@@ -62,7 +62,7 @@ export function LocalAttachments({ grantId }: { grantId: string }) {
   };
   return (
     <FileReferencePanel
-      grantId={grantId}
+      draftKey={draftKey}
       onChoose={(category) => {
         void choose(category);
       }}

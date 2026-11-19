@@ -13,7 +13,7 @@ import { CHAT_COPY } from '@/config/copy';
 import { canSendMessage, composerKeyAction } from '@/utils/composer';
 
 export interface ChatInputRowProps {
-  grantId?: string;
+  draftKey?: string;
   onOptions?: () => void;
   value: string;
   onChangeText: (text: string) => void;
@@ -23,7 +23,7 @@ export interface ChatInputRowProps {
 }
 
 export function ChatInputRow({
-  grantId,
+  draftKey,
   onOptions,
   value,
   onChangeText,
@@ -59,7 +59,7 @@ export function ChatInputRow({
           onPress={onOptions}
         />
       )}
-      {!!grantId && <LocalAttachments grantId={grantId} />}
+      {!!draftKey && <LocalAttachments draftKey={draftKey} />}
       <TextInput
         value={value}
         onChangeText={onChangeText}
