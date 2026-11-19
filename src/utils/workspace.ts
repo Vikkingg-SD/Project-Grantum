@@ -28,6 +28,25 @@ function required(value: string, label: string) {
   return text;
 }
 
+export function hasProfileChanges(
+  project: ProjectProfile | undefined,
+  revision: ProfileRevision | undefined,
+  draft: { name: string; kind: ProjectKind; fields: Record<string, string> }
+): boolean {
+  if (
+    !project ||
+    !revision ||
+    project.name.trim() !== draft.name.trim() ||
+    project.kind !== draft.kind
+  ) {
+    return true;
+  }
+  const keys = Object.keys({ ...revision.fields, ...draft.fields });
+  return keys.some(
+    (key) => (revision.fields[key] ?? '').trim() !== (draft.fields[key] ?? '').trim()
+  );
+}
+
 export function saveProject(
   workspace: Workspace,
   input: {
@@ -48,6 +67,10 @@ export function saveProject(
   if (existing?.archivedAt) throw new Error('Restore the project before editing');
   if (workspace.revisions.some((revision) => revision.id === revisionId))
     throw new Error('Revision already exists');
+  const currentRevision = workspace.revisions.find(
+    (revision) => revision.id === existing?.currentRevisionId && revision.projectId === id
+  );
+  if (!hasProfileChanges(existing, currentRevision, input)) return workspace;
   const revision: ProfileRevision = {
     id: revisionId,
     projectId: id,

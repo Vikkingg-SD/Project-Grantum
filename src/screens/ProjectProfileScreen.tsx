@@ -16,6 +16,7 @@ import {
   canRolePerform,
   PROFILE_FIELD_DEFINITIONS,
   computeProfileReadiness,
+  hasProfileChanges,
   parseVaultDocs,
   toggleVaultDoc,
 } from '@/utils/workspace';
@@ -126,10 +127,7 @@ export default function ProjectProfileScreen() {
     [editingProjectId, workspace.revisions]
   );
 
-  const unsaved =
-    name !== (currentProject?.name ?? '') ||
-    kind !== currentProject?.kind ||
-    JSON.stringify(fields) !== JSON.stringify(currentRevision?.fields ?? {});
+  const unsaved = hasProfileChanges(currentProject, currentRevision, { name, kind, fields });
   const canEdit =
     canRolePerform(activeRole, 'manage-project') || canRolePerform(activeRole, 'edit');
 
@@ -314,13 +312,6 @@ export default function ProjectProfileScreen() {
                 )
               )}
 
-              <AppInput
-                label="Change summary"
-                placeholder="e.g., Added utility co-funding letter and updated problem metrics"
-                value={summary}
-                editable={canEdit}
-                onChangeText={setSummary}
-              />
               <View style={[styles.checkItem, { borderColor: theme.border }]}>
                 <AppText variant="label">Reference documents</AppText>
                 <AppText variant="caption" color="muted">
@@ -355,11 +346,18 @@ export default function ProjectProfileScreen() {
                   })}
                 </View>
               </View>
+              <AppInput
+                label="Change summary"
+                placeholder="e.g., Added utility co-funding letter and updated problem metrics"
+                value={summary}
+                editable={canEdit}
+                onChangeText={setSummary}
+              />
               <View style={styles.rowWrap}>
                 <AppButton
                   label="Save profile"
                   variant="primary"
-                  disabled={!canEdit}
+                  disabled={!canEdit || !unsaved || !name.trim()}
                   onPress={() => {
                     try {
                       saveProjectProfile({
