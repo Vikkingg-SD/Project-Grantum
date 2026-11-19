@@ -1,10 +1,11 @@
 import type { ViewStyle } from 'react-native';
 
-// One motion vocabulary for pressable feedback. Only transform and opacity ever animate.
+// One motion vocabulary for pressable feedback and progress waves. Only transform and opacity animate.
 export const MOTION = {
   easeOut: 'cubic-bezier(0.23, 1, 0.32, 1)',
   pressMs: 120,
   stateMs: 160,
+  roadmapPulseMs: 5000,
   pressScale: 0.97,
   pressScaleLarge: 0.98,
 } as const;
@@ -22,6 +23,15 @@ export const webStateTransition = {
   transitionDuration: `${MOTION.stateMs}ms`,
   transitionTimingFunction: MOTION.easeOut,
 } as ViewStyle;
+
+// GPU-composited CSS keyframes for the 5-second covered roadmap wave on web (compiled via StyleSheet.create).
+// Must use CSS string transforms because react-native-web does not preprocess RN array transforms inside keyframes.
+export const ROADMAP_WAVE_KEYFRAMES = {
+  '0%': { transform: 'translateX(-120%)', opacity: 0 },
+  '15%': { opacity: 0.88 },
+  '75%': { opacity: 0.88 },
+  '100%': { transform: 'translateX(240%)', opacity: 0 },
+};
 
 // Scale only when the user allows movement; opacity feedback is always kept.
 export function pressScale(

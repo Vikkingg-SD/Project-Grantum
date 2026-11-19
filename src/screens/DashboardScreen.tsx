@@ -1,5 +1,5 @@
 import { useProfileReadiness } from '@/hooks/useProfileReadiness';
-import { usePathname, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Bell from 'lucide-react-native/icons/bell';
@@ -19,35 +19,61 @@ import { PipelineFunnelBar } from '@/components/organisms/PipelineFunnelBar';
 import { GrantDiscoveryGrid } from '@/components/organisms/GrantDiscoveryGrid';
 import { GrantDetailModalSheet } from '@/components/organisms/GrantDetailModalSheet';
 import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
+import { ProductRoadmapTrack } from '@/components/organisms/ProductRoadmapTrack';
+import { FeedbackAboutModal } from '@/components/organisms/FeedbackAboutModal';
+import { SupportGrantumModal } from '@/components/organisms/SupportGrantumModal';
 import { useGrants } from '@/api/hooks/useGrants';
 import { useDashboardSummary } from '@/api/hooks/useDashboardSummary';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useTheme } from '@/hooks/useTheme';
-import { RADIUS, SPACING } from '@/config/theme';
+import { SPACING } from '@/config/theme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { ENV } from '@/config/env';
 import { DASHBOARD_COPY } from '@/config/copy';
-import { formatCooldownRemaining, isSupportPromptVisible } from '@/utils/supportPrompt';
+import { shouldShowSupportPopup } from '@/utils/supportPrompt';
 import type { Grant } from '@/types/grant';
 
 export default function DashboardScreen() {
   const navigation = useAppNavigation();
   const router = useRouter();
-  const pathname = usePathname();
   const profileReadiness = useProfileReadiness();
   const theme = useTheme();
-  const { mobile } = useLayoutMetrics();
+  const { mobile, effectiveWidth } = useLayoutMetrics();
   const [query, setQuery] = useState('');
   const [activityOpen, setActivityOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [focusNowMs, setFocusNowMs] = useState(() => Date.now());
   const grants = useGrants();
   const summary = useDashboardSummary();
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
+  const hydrated = useWorkspaceStore((state) => state.hydrated);
   const supportPromptDismissedAt = useWorkspaceStore((state) => state.supportPromptDismissedAt);
+  const supportPromptSeenInSession = useWorkspaceStore((state) => state.supportPromptSeenInSession);
+  const markSupportPromptSeenInSession = useWorkspaceStore(
+    (state) => state.markSupportPromptSeenInSession
+  );
   const dismissSupportPrompt = useWorkspaceStore((state) => state.dismissSupportPrompt);
-  const restoreSupportPrompt = useWorkspaceStore((state) => state.restoreSupportPrompt);
-  const [cooldownNowMs, setCooldownNowMs] = useState(() => Date.now());
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      setFocusNowMs(Date.now());
+    }, [])
+  );
+  const ready =
+    hydrated && !summary.isPending && !grants.isPending && !summary.isError && !grants.isError;
+  const supportOpen =
+    ready &&
+    Boolean(summary.data) &&
+    !activityOpen &&
+    !feedbackOpen &&
+    !selectedGrant &&
+    shouldShowSupportPopup({
+      dismissedAtIso: supportPromptDismissedAt,
+      seenInSession: supportPromptSeenInSession,
+      nowMs: focusNowMs,
+    });
+
   const openDraft = useCallback(
     (grantId: string, projectId = activeProjectId) => {
       ensureWorkSlot(projectId, grantId);
@@ -63,6 +89,7 @@ export default function DashboardScreen() {
       `${grant.title} ${grant.funder}`.toLowerCase().includes(normalized)
     );
   }, [grants.data, query]);
+
   if (summary.isPending || grants.isPending || summary.isError || grants.isError || !summary.data) {
     const error = summary.error ?? grants.error;
     return (
@@ -79,7 +106,9 @@ export default function DashboardScreen() {
       </ScreenContainer>
     );
   }
+
   const active = summary.data.activeDraft;
+  const greetingText = 'Welcome back, ' + summary.data.greetingName + '.';
   const inboxItems = [
     {
       key: 'sync',
@@ -110,20 +139,39 @@ export default function DashboardScreen() {
       run: () => navigation.navigateTo('discovery'),
     },
   ];
+
+  const bellButton = (
+    <IconButton
+      label={DASHBOARD_COPY.notifications}
+      onPress={() => setActivityOpen(true)}
+      icon={<Bell size={SPACING.lg} color={theme.textMuted} />}
+    />
+  );
+
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <CenteredHeading
-          title={mobile ? 'Your workspace' : 'Welcome back, ' + summary.data.greetingName + '.'}
-          variant={mobile ? 'h1' : 'display'}
-          leading={
-            <IconButton
-              label={DASHBOARD_COPY.notifications}
-              onPress={() => setActivityOpen(true)}
-              icon={<Bell size={SPACING.lg} color={theme.textMuted} />}
-            />
-          }
-        />
+        {mobile ? (
+          <View style={styles.mobileHeaderStack}>
+            <CenteredHeading title="Your workspace" variant="h1" leading={bellButton} />
+            <ProductRoadmapTrack compact />
+          </View>
+        ) : (
+          <View testID="dashboard-hero-band" style={styles.heroBand}>
+            <View style={styles.greetingColumn}>
+              {bellButton}
+              <AppText
+                variant={effectiveWidth >= 1024 ? 'display' : 'h1'}
+                style={styles.greetingHeading}
+              >
+                {greetingText}
+              </AppText>
+            </View>
+            <View style={styles.roadmapColumn}>
+              <ProductRoadmapTrack />
+            </View>
+          </View>
+        )}
         {active ? (
           <HeroContinueCard
             projectTitle={active.title}
@@ -176,73 +224,14 @@ export default function DashboardScreen() {
           />
         </View>
         <GrantDiscoveryGrid grants={filtered} onSelect={setSelectedGrant} onApply={applyGrant} />
-        {isSupportPromptVisible(supportPromptDismissedAt, cooldownNowMs) ? (
-          <View
-            style={[
-              styles.supportCard,
-              { backgroundColor: theme.surface, borderColor: theme.border },
-            ]}
-          >
-            <AppText variant="h3">Support &amp; shape Grantum</AppText>
-            <AppText variant="caption" color="muted">
-              Tell us what slows your applications down, inspect our roadmap, or review proposed
-              plans. No subscription is required to browse sample grants.
-            </AppText>
-            <AppText variant="caption" selectable>
-              suggestions_grantum@gmail.com
-            </AppText>
-            <View style={styles.supportActions}>
-              <AppButton
-                size="sm"
-                variant="outline"
-                label="Roadmap and feedback"
-                onPress={() => router.push('/roadmap')}
-              />
-              <AppButton
-                size="sm"
-                variant="outline"
-                label="Subscriptions & plans"
-                onPress={() => router.push({ pathname: '/plans', params: { returnTo: pathname } })}
-              />
-              <AppButton
-                size="sm"
-                variant="ghost"
-                label="Remind me in 7 days"
-                onPress={() => {
-                  const now = Date.now();
-                  setCooldownNowMs(now);
-                  dismissSupportPrompt(new Date(now).toISOString());
-                }}
-              />
-            </View>
-          </View>
-        ) : (
-          <View style={styles.supportSnoozed}>
-            <AppText variant="caption" color="muted" align="center">
-              {formatCooldownRemaining(supportPromptDismissedAt, cooldownNowMs)}
-            </AppText>
-            <View style={styles.supportActions}>
-              <AppButton
-                size="sm"
-                label="Roadmap and feedback"
-                variant="ghost"
-                onPress={() => router.push('/roadmap')}
-              />
-              <AppButton
-                size="sm"
-                label="Subscriptions & plans"
-                variant="ghost"
-                onPress={() => router.push({ pathname: '/plans', params: { returnTo: pathname } })}
-              />
-              <AppButton
-                size="sm"
-                label="Show support note"
-                variant="ghost"
-                onPress={restoreSupportPrompt}
-              />
-            </View>
-          </View>
-        )}
+        <View testID="dashboard-footer" style={[styles.footer, { borderTopColor: theme.border }]}>
+          <AppButton
+            size="sm"
+            variant="ghost"
+            label="Feedback | About us"
+            onPress={() => setFeedbackOpen(true)}
+          />
+        </View>
       </View>
       <ModalSheetLayout
         visible={activityOpen}
@@ -305,11 +294,44 @@ export default function DashboardScreen() {
           }}
         />
       </ModalSheetLayout>
+      <FeedbackAboutModal visible={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+      <SupportGrantumModal
+        visible={supportOpen}
+        onClose={() => markSupportPromptSeenInSession()}
+        onRemindLater={() => {
+          dismissSupportPrompt(new Date().toISOString());
+        }}
+      />
     </ScreenContainer>
   );
 }
+
 const styles = StyleSheet.create({
   content: { gap: SPACING.lg },
+  mobileHeaderStack: { gap: SPACING.md },
+  heroBand: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.xl,
+  },
+  greetingColumn: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  greetingHeading: {
+    flex: 1,
+    minWidth: 0,
+  },
+  roadmapColumn: {
+    flex: 1.25,
+    minWidth: 320,
+    maxWidth: 600,
+  },
   modalBody: { padding: SPACING.lg, gap: SPACING.lg },
   inbox: { alignSelf: 'stretch' },
   inboxRow: {
@@ -327,20 +349,11 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   profile: { alignSelf: 'center', flexShrink: 1 },
-  supportCard: {
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    gap: SPACING.sm,
-  },
-  supportSnoozed: {
+  footer: {
     alignItems: 'center',
-    gap: SPACING.xs,
-  },
-  supportActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: SPACING.sm,
+    borderTopWidth: 1,
+    paddingTop: SPACING.md,
+    marginTop: SPACING.sm,
   },
 });

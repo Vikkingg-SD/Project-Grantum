@@ -105,7 +105,36 @@ try {
       await page.goto(`${origin}/onboarding`);
       await expect(page.getByText('Explore funding opportunities.', { exact: true })).toBeVisible();
       await expect(page.getByText(/Scores do not verify eligibility or evidence/)).toBeVisible();
+      await expect(
+        page.getByRole('button', { name: 'Roadmap and feedback', exact: true })
+      ).toHaveCount(0);
+      const card = page.getByTestId('onboarding-card');
+      const actions = page.getByTestId('onboarding-actions');
+      const cardBox1 = await card.boundingBox();
+      const actionsBox1 = await actions.boundingBox();
       await page.screenshot({ path: path.join(output, `onboarding-${width}-${theme}.png`) });
+      await page.getByRole('button', { name: 'Next', exact: true }).click();
+      await expect(
+        page.getByText('Give every requirement a place in your draft.', { exact: true })
+      ).toBeVisible();
+      const cardBox2 = await card.boundingBox();
+      const actionsBox2 = await actions.boundingBox();
+      await page.getByRole('button', { name: 'Next', exact: true }).click();
+      await expect(
+        page.getByText('Check your sections before the final review.', { exact: true })
+      ).toBeVisible();
+      const cardBox3 = await card.boundingBox();
+      const actionsBox3 = await actions.boundingBox();
+      assert.ok(
+        Math.abs(cardBox1.height - cardBox2.height) <= 1 &&
+          Math.abs(cardBox1.height - cardBox3.height) <= 1,
+        `Onboarding card height drifted across slides: ${JSON.stringify([cardBox1.height, cardBox2.height, cardBox3.height])}`
+      );
+      assert.ok(
+        Math.abs(actionsBox1.y - actionsBox2.y) <= 1 &&
+          Math.abs(actionsBox1.y - actionsBox3.y) <= 1,
+        `Onboarding action row shifted vertically across slides: ${JSON.stringify([actionsBox1.y, actionsBox2.y, actionsBox3.y])}`
+      );
       await page.goto(`${origin}/dev-gallery`);
       await expect(page.getByRole('heading', { name: 'Signal lost', exact: true })).toBeVisible();
       findings.push({
@@ -203,6 +232,10 @@ try {
         });
       }
       await page.goto(`${origin}/grants/1/dashboard`);
+      const firstSupport = page.getByRole('dialog', { name: 'Support Grantum', exact: true });
+      await expect(firstSupport).toBeVisible();
+      await firstSupport.getByRole('button', { name: 'Not now', exact: true }).click();
+      await expect(firstSupport).toHaveCount(0);
       await expect(page.getByRole('button', { name: /^Profile 92% done/ })).toBeVisible();
       await page.getByRole('button', { name: /^Project:/ }).click();
       await expect(page).toHaveURL(/project-profile$/);
@@ -247,8 +280,31 @@ try {
       await expect(saveProfile).toBeDisabled();
       await expect(page.getByText('Readiness and route regression', { exact: true })).toBeVisible();
       await page.goto(`${origin}/grants/1/dashboard`);
+      const supportDialog = page.getByRole('dialog', { name: 'Support Grantum', exact: true });
+      await expect(supportDialog).toBeVisible();
+      await supportDialog.getByRole('button', { name: 'Remind me in 3 days', exact: true }).click();
+      await expect(supportDialog).toHaveCount(0);
       await expect(page.getByRole('button', { name: /^Profile 100% done/ })).toBeVisible();
       await expect(page.getByRole('button', { name: /^Project:.*100% ready/ })).toBeVisible();
+      await expect(
+        page.getByText('Beta is conducted, release coming soon', { exact: true })
+      ).toBeVisible();
+      await page.getByRole('button', { name: /Release.*Upcoming/ }).click();
+      await expect(page.getByText('Public release upcoming', { exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Beta — Current stage', exact: true }).click();
+      await expect(
+        page.getByText('Beta is conducted, release coming soon', { exact: true })
+      ).toBeVisible();
+      await page.getByRole('button', { name: 'Feedback | About us', exact: true }).click();
+      const feedbackDialog = page.getByRole('dialog', {
+        name: 'Feedback and About Grantum',
+        exact: true,
+      });
+      await expect(feedbackDialog).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(feedbackDialog).toHaveCount(0);
+      await page.reload();
+      await expect(supportDialog).toHaveCount(0);
       await page.goto(`${origin}/discover`);
       await expect(page.getByRole('button', { name: /^Project Profile 100% Done/ })).toBeVisible();
       findings.push({
@@ -422,6 +478,9 @@ try {
       await expect(page).toHaveURL(/settings$/);
       await page.getByRole('textbox', { name: 'Display name', exact: true }).fill('Updated name');
       await page.getByRole('switch', { name: 'Deadline and sync digest', exact: true }).click();
+      await page
+        .getByRole('switch', { name: 'Show onboarding slides at launch', exact: true })
+        .click();
       await page.getByRole('button', { name: 'Save settings', exact: true }).click();
       await page.reload();
       await expect(page.getByRole('textbox', { name: 'Display name', exact: true })).toHaveValue(
@@ -429,6 +488,9 @@ try {
       );
       await expect(
         page.getByRole('switch', { name: 'Deadline and sync digest', exact: true })
+      ).not.toBeChecked();
+      await expect(
+        page.getByRole('switch', { name: 'Show onboarding slides at launch', exact: true })
       ).not.toBeChecked();
       await page.getByRole('button', { name: 'Account menu', exact: true }).click();
       await expect(page.getByRole('dialog')).toBeVisible();

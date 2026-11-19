@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
 import { useGrants } from '@/api/hooks/useGrants';
 import { useTheme } from '@/hooks/useTheme';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { LAYOUT } from '@/config/layout';
+import { MOTION } from '@/config/motion';
 import { RADIUS, SPACING } from '@/config/theme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
@@ -30,14 +32,42 @@ const slides = [
 export default function OnboardingScreen() {
   const [index, setIndex] = useState(0);
   const theme = useTheme();
-  const { mobile } = useLayoutMetrics();
+  const reduceMotion = useReduceMotion();
+  const { mobile, effectiveWidth } = useLayoutMetrics();
   const router = useRouter();
+  const { replay } = useLocalSearchParams<{ replay?: string | string[] }>();
+  const isReplay = replay === '1' || (Array.isArray(replay) && replay[0] === '1');
   const grants = useGrants();
   const completeLaunchTour = useWorkspaceStore((state) => state.completeLaunchTour);
+  const [slideOpacity] = useState(() => new Animated.Value(1));
+  const mounted = useRef(false);
   const slide = slides[index];
   const final = index === slides.length - 1;
+  const compactPhone = effectiveWidth < 380;
+  const stageHeight = compactPhone ? 320 : mobile ? 284 : 236;
+
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    if (reduceMotion) {
+      slideOpacity.setValue(1);
+      return;
+    }
+    slideOpacity.setValue(0.65);
+    const animation = Animated.timing(slideOpacity, {
+      toValue: 1,
+      duration: MOTION.stateMs,
+      easing: Easing.bezier(0.23, 1, 0.32, 1),
+      useNativeDriver: Platform.OS !== 'web',
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [index, reduceMotion, slideOpacity]);
+
   const finish = () => {
-    completeLaunchTour();
+    if (!isReplay) completeLaunchTour();
     const grant = grants.data?.[0];
     if (grant) {
       router.replace({
@@ -48,10 +78,12 @@ export default function OnboardingScreen() {
       router.replace('/dashboard');
     }
   };
+
   return (
     <ScreenContainer>
       <View style={styles.content}>
         <View
+          testID="onboarding-card"
           style={[
             styles.card,
             mobile && styles.mobileCard,
@@ -59,13 +91,44 @@ export default function OnboardingScreen() {
           ]}
         >
           <View style={styles.brandRow}>
-            <AppText variant="h2">Grantum</AppText>
-            <AppText variant="metric-sm" color="primary">
-              {String(index + 1).padStart(2, '0')} / 03
-            </AppText>
+            <View style={styles.brandIdentity}>
+              <AppText variant={compactPhone ? 'h3' : 'h2'} numberOfLines={1}>
+                Grantum
+              </AppText>
+              <AppText
+                variant={compactPhone ? 'label' : 'metric-sm'}
+                color="primary"
+                numberOfLines={1}
+              >
+                {String(index + 1).padStart(2, '0')} / 03
+              </AppText>
+            </View>
+            <View style={styles.skipSlot}>
+              {!final && (
+                <AppButton
+                  size="sm"
+                  label="Skip tour"
+                  variant="ghost"
+                  onPress={finish}
+                  style={styles.skipButton}
+                />
+              )}
+            </View>
           </View>
-          <AppText variant="display">{slide.title}</AppText>
-          <AppText>{slide.body}</AppText>
+
+          <ScrollView
+            testID="onboarding-slide-stage"
+            nestedScrollEnabled
+            style={{ height: stageHeight }}
+            contentContainerStyle={styles.slideStageContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Animated.View style={[styles.slideCopy, { opacity: slideOpacity }]}>
+              <AppText variant={compactPhone ? 'h1' : 'display'}>{slide.title}</AppText>
+              <AppText>{slide.body}</AppText>
+            </Animated.View>
+          </ScrollView>
+
           <View style={styles.steps} accessibilityLabel={`Step ${index + 1} of ${slides.length}`}>
             {slides.map((_, step) => (
               <View
@@ -77,7 +140,8 @@ export default function OnboardingScreen() {
               />
             ))}
           </View>
-          <View style={styles.actions}>
+
+          <View testID="onboarding-actions" style={styles.actions}>
             <AppButton
               label="Back"
               disabled={index === 0}
@@ -97,6 +161,7 @@ export default function OnboardingScreen() {
               }}
             />
           </View>
+
           {(grants.isError || (!grants.isPending && !grants.data?.length)) && (
             <EmptyStateLayout
               title={grants.isError ? 'Instrument fault' : 'No opportunities found'}
@@ -109,17 +174,12 @@ export default function OnboardingScreen() {
               }}
             />
           )}
-          <AppButton
-            label="Roadmap and feedback"
-            variant="ghost"
-            onPress={() => router.push('/roadmap')}
-          />
-          {!final && <AppButton label="Skip tour" variant="ghost" onPress={finish} />}
         </View>
       </View>
     </ScreenContainer>
   );
 }
+
 const styles = StyleSheet.create({
   content: {
     flex: 1,
@@ -129,12 +189,42 @@ const styles = StyleSheet.create({
     maxWidth: LAYOUT.onboardingMaxWidth,
     alignSelf: 'center',
   },
-  card: { padding: SPACING['4xl'], borderWidth: 1, borderRadius: RADIUS.lg, gap: SPACING['2xl'] },
-  mobileCard: { padding: SPACING.xl },
+  card: {
+    padding: SPACING['4xl'],
+    borderWidth: 1,
+    borderRadius: RADIUS.lg,
+    gap: SPACING['2xl'],
+  },
+  mobileCard: { padding: SPACING.xl, gap: SPACING.xl },
   brandRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    minHeight: LAYOUT.minTouchTarget,
+    gap: SPACING.sm,
+  },
+  brandIdentity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    flexShrink: 1,
+  },
+  skipSlot: {
+    minHeight: LAYOUT.minTouchTarget,
+    flexShrink: 0,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    marginRight: -SPACING.sm,
+  },
+  skipButton: {
+    paddingHorizontal: SPACING.sm,
+    flexShrink: 0,
+  },
+  slideStageContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-start',
+  },
+  slideCopy: {
     gap: SPACING.lg,
   },
   steps: { flexDirection: 'row', gap: SPACING.sm },

@@ -16,8 +16,10 @@ export default function PersonalSettingsScreen() {
   const nickname = useWorkspaceStore((state) => state.nickname);
   const userId = useWorkspaceStore((state) => state.userId);
   const digestEnabled = useWorkspaceStore((state) => state.digestEnabled);
+  const launchTourCompleted = useWorkspaceStore((state) => state.launchTourCompleted);
   const persistenceStatus = useWorkspaceStore((state) => state.persistenceStatus);
   const setPersonalSettings = useWorkspaceStore((state) => state.setPersonalSettings);
+  const setLaunchTourEnabled = useWorkspaceStore((state) => state.setLaunchTourEnabled);
   const [name, setName] = useState(nickname);
   const [digest, setDigest] = useState(digestEnabled);
   const [notice, setNotice] = useState('');
@@ -26,7 +28,7 @@ export default function PersonalSettingsScreen() {
     <ScreenContainer insetEdges={[]}>
       <View style={styles.pageContent}>
         <AppText variant="h1">Personal settings</AppText>
-        <AppText color="muted">Manage your display name and notification preferences.</AppText>
+        <AppText color="muted">Manage your display name and workspace preferences.</AppText>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <AppText color="muted" selectable>
             User ID: {userId}
@@ -42,8 +44,18 @@ export default function PersonalSettingsScreen() {
             <AppText>Deadline and sync digest</AppText>
             <ToggleSwitch label="Deadline and sync digest" checked={digest} onChange={setDigest} />
           </View>
+          <View style={styles.rowBetween}>
+            <AppText>Show onboarding slides at launch</AppText>
+            <ToggleSwitch
+              label="Show onboarding slides at launch"
+              checked={!launchTourCompleted}
+              onChange={(next) => {
+                setLaunchTourEnabled(next);
+              }}
+            />
+          </View>
           <AppText variant="caption" color="muted">
-            Your preference is saved locally. Notification delivery is not connected.
+            Your preferences are saved locally. Notification delivery is not connected.
           </AppText>
           <AppButton
             label="Save settings"
@@ -54,11 +66,11 @@ export default function PersonalSettingsScreen() {
               setNotice('Settings updated. Check storage status below.');
             }}
           />
-          {notice ? (
+          {Boolean(notice) && (
             <AppText accessibilityLiveRegion="polite" color="verified">
               {notice}
             </AppText>
-          ) : null}
+          )}
           <AppText variant="caption" color="muted">
             {persistenceStatus === 'device-saved'
               ? 'Saved on this device.'
@@ -66,6 +78,11 @@ export default function PersonalSettingsScreen() {
                 ? 'Saving on this device…'
                 : 'Available for this session only; device storage could not be used.'}
           </AppText>
+          <AppButton
+            label="Replay onboarding tour"
+            variant="outline"
+            onPress={() => router.push({ pathname: '/onboarding', params: { replay: '1' } })}
+          />
           <AppButton
             label="Subscriptions & plans overview"
             variant="outline"

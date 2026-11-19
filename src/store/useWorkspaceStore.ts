@@ -219,6 +219,7 @@ export interface WorkspaceStoreState {
   digestEnabled: boolean;
   launchTourCompleted: boolean;
   supportPromptDismissedAt: string | null;
+  supportPromptSeenInSession: boolean;
   persistenceStatus: PersistenceStatus;
   hydrated: boolean;
   adminQueue: AdminQueueItem[];
@@ -240,6 +241,9 @@ export interface WorkspaceStoreState {
   setProjectRole: (projectId: string, role: CoWorkRole) => void;
   setPersonalSettings: (nickname: string, digestEnabled: boolean) => void;
   completeLaunchTour: () => void;
+  setLaunchTourEnabled: (enabled: boolean) => void;
+  markSupportPromptSeenInSession: () => void;
+  resetSupportPromptSession: () => void;
   dismissSupportPrompt: (nowIso?: string) => void;
   restoreSupportPrompt: () => void;
   resolveAdminQueueItem: (id: string, status: 'approved' | 'rejected' | 'retried') => void;
@@ -286,6 +290,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
     digestEnabled: initialLoad.slice?.digestEnabled ?? true,
     launchTourCompleted: initialLoad.slice?.launchTourCompleted === true,
     supportPromptDismissedAt: initialLoad.slice?.supportPromptDismissedAt ?? null,
+    supportPromptSeenInSession: false,
     persistenceStatus: persistence.status,
     hydrated: persistence.hydrated,
     adminQueue:
@@ -516,16 +521,39 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
         return { launchTourCompleted: true, persistenceStatus };
       }),
 
+    setLaunchTourEnabled: (enabled) =>
+      set((state) => {
+        const launchTourCompleted = !enabled;
+        if (state.launchTourCompleted === launchTourCompleted) return state;
+        const persistenceStatus = persistState({ launchTourCompleted });
+        return { launchTourCompleted, persistenceStatus };
+      }),
+
+    markSupportPromptSeenInSession: () =>
+      set((state) =>
+        state.supportPromptSeenInSession ? state : { supportPromptSeenInSession: true }
+      ),
+
+    resetSupportPromptSession: () => set({ supportPromptSeenInSession: false }),
+
     dismissSupportPrompt: (nowIso = new Date().toISOString()) =>
       set(() => {
         const persistenceStatus = persistState({ supportPromptDismissedAt: nowIso });
-        return { supportPromptDismissedAt: nowIso, persistenceStatus };
+        return {
+          supportPromptDismissedAt: nowIso,
+          supportPromptSeenInSession: true,
+          persistenceStatus,
+        };
       }),
 
     restoreSupportPrompt: () =>
       set(() => {
         const persistenceStatus = persistState({ supportPromptDismissedAt: null });
-        return { supportPromptDismissedAt: null, persistenceStatus };
+        return {
+          supportPromptDismissedAt: null,
+          supportPromptSeenInSession: false,
+          persistenceStatus,
+        };
       }),
 
     resolveAdminQueueItem: (id, status) =>

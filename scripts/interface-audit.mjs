@@ -153,6 +153,14 @@ export async function auditInterfaces(browser, origin, runtime) {
       };
       await expect(page).toHaveURL(`${origin}${route}`);
       await page.getByRole('heading', { name: titles[route], exact: true }).first().waitFor();
+      if (route === '/grants/1/dashboard') {
+        const support = page.getByRole('dialog', { name: 'Support Grantum', exact: true });
+        await support.waitFor({ state: 'visible', timeout: 800 }).catch(() => {});
+        if (await support.isVisible().catch(() => false)) {
+          await support.getByRole('button', { name: 'Remind me in 3 days', exact: true }).click();
+          await expect(support).toHaveCount(0);
+        }
+      }
       if (['/discover', '/grants/1/discovery-studio', '/grants/1/dashboard'].includes(route))
         await button('View details').first().waitFor();
       if (route === '/my-works') await button('Open in Drafting Studio').first().waitFor();

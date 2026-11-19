@@ -103,6 +103,14 @@ try {
       });
       for (const [route, title] of routes) {
         await page.goto(`${origin}/grants/1/${route}`);
+        if (route === 'dashboard') {
+          const supportDialog = page.getByRole('dialog', { name: 'Support Grantum', exact: true });
+          await expect(supportDialog).toBeVisible();
+          await supportDialog
+            .getByRole('button', { name: 'Remind me in 3 days', exact: true })
+            .click();
+          await expect(supportDialog).toHaveCount(0);
+        }
         const heading = page.getByRole('heading', {
           name: route === 'dashboard' && width >= 768 ? 'Welcome back, Alex.' : title,
           exact: true,
@@ -118,12 +126,27 @@ try {
           `Given ${width}px ${theme} ${route}, when rendered, then centered and contained`,
           async () => {
             const bounds = await target.boundingBox();
-            const alignment = await target.evaluate((el) => getComputedStyle(el).textAlign);
-            assert.equal(alignment, 'center');
-            assert.ok(
-              Math.abs(bounds.x + bounds.width / 2 - width / 2) < 2,
-              JSON.stringify(bounds)
-            );
+            if (route === 'dashboard' && width >= 768) {
+              const roadmap = await page.getByTestId('product-roadmap-track').boundingBox();
+              assert.ok(
+                roadmap && roadmap.width > 200,
+                'Product roadmap must render beside greeting'
+              );
+              assert.ok(
+                roadmap.x >= bounds.x + bounds.width - 2,
+                `Roadmap must sit next to greeting: ${JSON.stringify({ bounds, roadmap })}`
+              );
+              await expect(
+                page.getByText('Beta is conducted, release coming soon', { exact: true })
+              ).toBeVisible();
+            } else {
+              const alignment = await target.evaluate((el) => getComputedStyle(el).textAlign);
+              assert.equal(alignment, 'center');
+              assert.ok(
+                Math.abs(bounds.x + bounds.width / 2 - width / 2) < 2,
+                JSON.stringify(bounds)
+              );
+            }
             assert.ok(
               await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
               'document overflow'
@@ -165,6 +188,15 @@ try {
               await expect(
                 page.getByRole('button', { name: 'New application', exact: true })
               ).toHaveCount(0);
+              await expect(
+                page.getByRole('button', { name: 'Feedback | About us', exact: true })
+              ).toBeVisible();
+              await expect(
+                page.getByRole('button', { name: 'Remind me in 7 days', exact: true })
+              ).toHaveCount(0);
+              await expect(
+                page.getByRole('button', { name: 'Roadmap and feedback', exact: true })
+              ).toHaveCount(0);
               const badge = await page.getByText(/^Profile \d+% done$/).boundingBox();
               const button = await page
                 .getByRole('button', { name: 'Show all', exact: true })
@@ -199,22 +231,57 @@ try {
     if (message.type() === 'error') diagnostics.push(message.text());
   });
   await page.goto(`${origin}/grants/1/dashboard`);
+  const firstSupport = page.getByRole('dialog', { name: 'Support Grantum', exact: true });
+  await expect(firstSupport).toBeVisible();
+  await firstSupport.getByRole('button', { name: 'Remind me in 3 days', exact: true }).click();
+  await expect(firstSupport).toHaveCount(0);
   await page.getByRole('heading', { name: 'Your workspace', exact: true }).waitFor();
   await check(
-    'Given motion preferences, when changed live, then button feedback respects reduced motion',
+    'Given motion preferences, when changed live, then button feedback and 5s roadmap pulse respect reduced motion',
     async () => {
       const button = page.getByRole('button', { name: 'Continue drafting', exact: true });
+      const pulse = page.getByTestId('roadmap-covered-pulse');
       await expect
         .poll(() => button.evaluate((el) => getComputedStyle(el).transitionDuration))
         .toBe('0.12s');
+      await expect
+        .poll(() => pulse.evaluate((el) => getComputedStyle(el).animationDuration))
+        .toBe('5s');
+      const keyframeCss = await pulse.evaluate((el) => {
+        const animName = getComputedStyle(el).animationName;
+        for (const sheet of Array.from(document.styleSheets)) {
+          let rules;
+          try {
+            rules = sheet.cssRules;
+          } catch {
+            continue;
+          }
+          for (const rule of Array.from(rules)) {
+            if (rule.type === 7 && rule.name === animName) return rule.cssText;
+          }
+        }
+        return '';
+      });
+      assert.ok(
+        keyframeCss.includes('translateX(-120%)') &&
+          keyframeCss.includes('translateX(240%)') &&
+          !keyframeCss.includes('[object Object]'),
+        `Expected valid translateX @keyframes rule, got: ${keyframeCss}`
+      );
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await expect
         .poll(() => button.evaluate((el) => getComputedStyle(el).transitionDuration))
         .toBe('0s');
+      await expect
+        .poll(() => pulse.evaluate((el) => getComputedStyle(el).animationName))
+        .toBe('none');
       await page.emulateMedia({ reducedMotion: 'no-preference' });
       await expect
         .poll(() => button.evaluate((el) => getComputedStyle(el).transitionDuration))
         .toBe('0.12s');
+      await expect
+        .poll(() => pulse.evaluate((el) => getComputedStyle(el).animationDuration))
+        .toBe('5s');
     }
   );
   await check(
