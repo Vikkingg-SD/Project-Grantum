@@ -240,6 +240,11 @@ try {
       await page.screenshot({ path: path.join(output, `profile-editor-${width}-${theme}.png`) });
       await page.reload();
       await expect(projectName).toHaveValue('Saved workspace project');
+      const saveProfile = page.getByRole('button', { name: 'Save profile', exact: true });
+      await expect(saveProfile).toBeDisabled();
+      const changeSummary = page.getByRole('textbox', { name: 'Change summary', exact: true });
+      await changeSummary.fill('A note without a profile change');
+      await expect(saveProfile).toBeDisabled();
       await expect(page.getByText('Readiness and route regression', { exact: true })).toBeVisible();
       await page.goto(`${origin}/grants/1/dashboard`);
       await expect(page.getByRole('button', { name: /^Profile 100% done/ })).toBeVisible();

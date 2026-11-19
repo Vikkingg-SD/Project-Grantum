@@ -81,7 +81,25 @@ assert.throws(
 console.info(
   'PASS Given two projects When applying to one grant Then bundles retain distinct identity and valid revision ownership'
 );
-workspace = saveProject(workspace, { ...input, revisionId: 'r3', summary: 'Edit profile' });
+assert.equal(
+  saveProject(workspace, {
+    ...input,
+    revisionId: 'r3',
+    name: ' ' + input.name + ' ',
+    summary: 'Note without a profile edit',
+    fields: { ...input.fields, mission: ' Teach ', optional: '' },
+  }),
+  workspace
+);
+console.info(
+  'PASS Given unchanged profile content When saving a different note Then no revision is created'
+);
+workspace = saveProject(workspace, {
+  ...input,
+  revisionId: 'r3',
+  summary: 'Edit profile',
+  fields: { ...input.fields, mission: 'Teach at three schools' },
+});
 assert.equal(workspace.applications[0].profileRevisionId, 'r1');
 assert.equal(getProfileSyncLag(workspace, 'a1'), 1);
 assert.equal(workspace.revisions[2].parentRevisionId, 'r1');

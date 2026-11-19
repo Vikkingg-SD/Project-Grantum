@@ -318,6 +318,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
           summary: input.summary,
           fields: input.fields,
         });
+        if (nextWorkspace === state.workspace) return state;
         const persistenceStatus = persistState({
           workspace: nextWorkspace,
           activeProjectId: input.projectId,
