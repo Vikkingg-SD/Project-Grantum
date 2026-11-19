@@ -311,7 +311,7 @@ export default function MyWorksScreen() {
                                 setWorkSlotReviewStatus(app.id, 'ready');
                                 setError('');
                                 setNotice(
-                                  `Marked "${proj?.name ?? app.projectId}" READY on this device. ${FINISH_REVERSIBILITY_NOTE}`
+                                  `Marked "${proj?.name ?? app.projectId}" READY. ${FINISH_REVERSIBILITY_NOTE}`
                                 );
                               } catch (e) {
                                 setError(

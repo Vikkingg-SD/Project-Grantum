@@ -155,7 +155,7 @@ export function saveVersion(
   id: string,
   createdAt: string,
   summary: string,
-  author = 'You (this session)'
+  author = 'You'
 ): DraftWorkbench {
   if (!summary.trim()) throw new Error('Describe the change');
   if (work.versions.some((version) => version.id === id)) throw new Error('Version already exists');

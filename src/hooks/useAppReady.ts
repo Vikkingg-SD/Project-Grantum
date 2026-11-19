@@ -3,29 +3,37 @@ import { useFonts } from 'expo-font';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useWorkspaceStore, hydrateWorkspace } from '@/store/useWorkspaceStore';
 import { useWorkbenchStore, hydrateWorkbench } from '@/store/useWorkbenchStore';
+import {
+  useEligibilityPreflightStore,
+  hydrateEligibilityPreflight,
+} from '@/store/useEligibilityPreflightStore';
 
 function subscribeToHydration(notify: () => void) {
   const start = useThemeStore.persist.onHydrate(notify);
   const finish = useThemeStore.persist.onFinishHydration(notify);
   const workspace = useWorkspaceStore.subscribe(notify);
   const workbench = useWorkbenchStore.subscribe(notify);
+  const preflight = useEligibilityPreflightStore.subscribe(notify);
   return () => {
     start();
     finish();
     workspace();
     workbench();
+    preflight();
   };
 }
 const hydrationSnapshot = () =>
   useThemeStore.persist.hasHydrated() &&
   useWorkspaceStore.getState().hydrated &&
-  useWorkbenchStore.getState().hydrated;
+  useWorkbenchStore.getState().hydrated &&
+  useEligibilityPreflightStore.getState().hydrated;
 const serverHydrationSnapshot = () => false;
 
 export function useAppReady(): boolean {
   useEffect(() => {
     void hydrateWorkspace();
     void hydrateWorkbench();
+    void hydrateEligibilityPreflight();
   }, []);
   const [fontsLoaded] = useFonts({
     Inter_400Regular: require('@expo-google-fonts/inter/Inter_400Regular.ttf'),

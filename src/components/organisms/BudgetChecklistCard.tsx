@@ -57,17 +57,16 @@ export function BudgetChecklistCard({ slotKey, canEdit }: BudgetChecklistCardPro
         <StatusBadge label={evaluation.statusLabel} variant={evaluation.statusVariant} />
       </View>
       <AppText variant="caption" color="muted">
-        Local deterministic arithmetic only · Does not verify regional market prices or funder
-        approval.
+        Does not verify regional market prices or funder approval — check against funder terms.
       </AppText>
       <AppText variant="caption" color="muted">
         {!hasSaved
-          ? 'Starter budget rows loaded. Edit caps or add line items to save on this device.'
+          ? 'Edit funding caps or add line items to update your budget check.'
           : status === 'saving'
-            ? 'Saving itemized budget on this device…'
+            ? 'Saving itemized budget…'
             : status === 'session-only'
-              ? 'Budget updates kept for this session only; device storage is unavailable.'
-              : 'Itemized budget saved on this device.'}
+              ? 'Storage unavailable; budget changes apply to the current session.'
+              : 'Itemized budget saved.'}
       </AppText>
 
       <View style={styles.summaryRow}>
@@ -186,7 +185,7 @@ export function BudgetChecklistCard({ slotKey, canEdit }: BudgetChecklistCardPro
           value={newDescription}
           editable={canEdit}
           onChangeText={setNewDescription}
-          placeholder="e.g., Telemetry cloud gateway setup"
+          placeholder="Telemetry cloud gateway setup"
         />
         <AppInput
           label="Quantity"
@@ -228,7 +227,7 @@ export function BudgetChecklistCard({ slotKey, canEdit }: BudgetChecklistCardPro
               setNewQuantity('1');
               setNewUnitRate('');
               setError('');
-              setNotice('Added budget line item on this device.');
+              setNotice('Added budget line item.');
             } catch (e) {
               setNotice('');
               setError(e instanceof Error ? e.message : 'Unable to add budget line item.');

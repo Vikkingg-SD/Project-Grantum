@@ -1,4 +1,4 @@
-import { draftConfidenceScore, scoreTier } from '../src/utils/scoring';
+import { draftConfidenceScore, matchTier, scoreTier } from '../src/utils/scoring';
 import { TIERS } from '../src/config/constants';
 
 const six = ['Mission', 'Pain', 'Solution', 'Market', 'Competitors', 'Moat'];
@@ -18,6 +18,16 @@ const cases: [string, number, number][] = [
   ['confidence 39 -> failure', scoreTier(39, TIERS.confidence) === 'failure' ? 1 : 0, 1],
   ['match 80 -> verified', scoreTier(80, TIERS.match) === 'verified' ? 1 : 0, 1],
   ['match 79 -> pending', scoreTier(79, TIERS.match) === 'pending' ? 1 : 0, 1],
+  ['matchTier 94 -> verified (green)', matchTier(94) === 'verified' ? 1 : 0, 1],
+  ['matchTier 82 -> verified (green)', matchTier(82) === 'verified' ? 1 : 0, 1],
+  ['matchTier 76 -> pending (cyan)', matchTier(76) === 'pending' ? 1 : 0, 1],
+  ['matchTier 35 -> failure (red)', matchTier(35) === 'failure' ? 1 : 0, 1],
+  ['matchTier NaN -> neutral', matchTier(Number.NaN) === 'neutral' ? 1 : 0, 1],
+  [
+    'matchTier out-of-range -> neutral',
+    matchTier(-5) === 'neutral' && matchTier(105) === 'neutral' ? 1 : 0,
+    1,
+  ],
 ];
 
 let failed = 0;

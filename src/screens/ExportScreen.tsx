@@ -106,12 +106,12 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
       setDownloadError('');
       setBundleNotice(
         triggered
-          ? `Downloaded ${filename} on this device. Server DOCX/PDF export remains unavailable in sample mode.`
-          : 'Browser download is unavailable on this device. Copy the application narrative below instead.'
+          ? `Downloaded ${filename}. Cloud DOCX/PDF export requires a connected document service.`
+          : 'Direct file download is unavailable in this environment. Copy the application narrative below instead.'
       );
     } catch (e) {
       setBundleNotice('');
-      setDownloadError(e instanceof Error ? e.message : 'Unable to export local file.');
+      setDownloadError(e instanceof Error ? e.message : 'Unable to export file.');
     }
   };
   const unlocked =
@@ -134,10 +134,11 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
         {!serviceAvailable && (
           <View style={[styles.notice, { backgroundColor: theme.subtle }]}>
             <AppText variant="label" align="center">
-              Downloads unavailable
+              Cloud document bundles unavailable
             </AppText>
             <AppText color="muted" align="center">
-              Preview - edits stay in this session.
+              DOCX and PDF server bundles require a connected service. Use .txt or .md download
+              below.
             </AppText>
           </View>
         )}
@@ -166,20 +167,20 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
             }}
           />
           <AppText variant="caption" color="muted">
-            Local files: {txtFilename} · {mdFilename}
+            Export files: {txtFilename} · {mdFilename}
           </AppText>
           <View style={styles.rowWrap}>
             <AppButton
               size="sm"
               variant="primary"
-              label="Download .txt on this device"
+              label="Download .txt"
               disabled={!localBodyReady}
               onPress={() => handleLocalDownload('txt')}
             />
             <AppButton
               size="sm"
               variant="outline"
-              label="Download .md on this device"
+              label="Download .md"
               disabled={!localBodyReady}
               onPress={() => handleLocalDownload('md')}
             />

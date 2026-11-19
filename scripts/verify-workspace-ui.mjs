@@ -43,6 +43,7 @@ const prohibited = [
   /Storage persistence:/i,
   /View drafts & match reports:\s*YES/i,
   /GitHub \+ Grants.gov/i,
+  /\b(sample|mock-up|mockup|mock|example|on this device|saved on device|saving on device)\b/i,
 ];
 const origin = remote || `http://127.0.0.1:${server.address().port}`;
 const diagnostics = [];
@@ -253,7 +254,7 @@ try {
       await lead.fill('Project lead for application');
       await expect(page.getByText('100% complete', { exact: true })).toBeVisible();
       await expect(
-        page.getByText('Unsaved preview · save to update linked badges.', { exact: true })
+        page.getByText('Unsaved changes · save to update linked badges.', { exact: true })
       ).toBeVisible();
       const projectName = page.getByRole('textbox', {
         name: 'Project name',
@@ -265,7 +266,7 @@ try {
         .fill('Readiness and route regression');
       await page.getByRole('button', { name: 'Save profile', exact: true }).click();
       await expect(
-        page.getByText('Unsaved preview · save to update linked badges.', { exact: true })
+        page.getByText('Unsaved changes · save to update linked badges.', { exact: true })
       ).toHaveCount(0);
       await page
         .getByRole('button', { name: 'Save profile', exact: true })
@@ -355,21 +356,19 @@ try {
       await authored.fill('Authored narrative survives a reload');
       await page
         .getByRole('button', {
-          name: 'Preview template suggestion for Project summary',
+          name: 'Draft suggestion for Project summary',
           exact: true,
         })
         .click();
-      await expect(
-        page.getByText(/Template preview \(no AI or evidence verification\)/)
-      ).toBeVisible();
+      await expect(page.getByText(/Suggested template \(not AI-verified\)/)).toBeVisible();
       await expect(page.getByText(/verified against/)).toHaveCount(0);
       await page.getByRole('button', { name: 'Reject suggestion', exact: true }).click();
       await expect(authored).toHaveValue('Authored narrative survives a reload');
       await page
         .getByRole('textbox', { name: 'Version change summary', exact: true })
         .fill('Reload persistence regression');
-      await page.getByRole('button', { name: 'Save session version', exact: true }).click();
-      await expect(page.getByText(/OWNER · Saved on device/)).toBeVisible();
+      await page.getByRole('button', { name: 'Save draft version', exact: true }).click();
+      await expect(page.getByText(/OWNER · Saved/)).toBeVisible();
       await page.reload();
       await openWorkbench();
       await page.getByRole('button', { name: 'Sections', exact: true }).click();
@@ -451,8 +450,13 @@ try {
       await expect(page.getByText(/^\d+% match$/)).toHaveCount(0);
       await page.getByRole('button', { name: 'View details', exact: true }).first().click();
       await expect(
-        page.getByText(/Local field comparison; evidence and eligibility have not been verified/)
+        page.getByText(
+          /Field comparison only; evidence and official eligibility have not been verified/
+        )
       ).toBeVisible();
+      await expect(
+        page.getByText(/Interactive eligibility preflight|Pre-flight interview/)
+      ).toHaveCount(0);
       await expect(
         page.getByText(/Verifiable Match Breakdown|Verified Alignment|Official Catalog Ref/)
       ).toHaveCount(0);
@@ -500,7 +504,7 @@ try {
       await page.getByRole('button', { name: 'Staff administration', exact: true }).click();
       await expect(page).toHaveURL(/admin$/);
       await page.getByRole('button', { name: 'Retry Job', exact: true }).click();
-      await expect(page.getByText('Sample job marked for retry.', { exact: true })).toBeVisible();
+      await expect(page.getByText('Job marked for retry.', { exact: true })).toBeVisible();
       await page.reload();
       await expect(page.getByRole('button', { name: 'Retry Job', exact: true })).toBeDisabled();
       await expect(page.getByText(/Marked queue item as RETRIED/)).toBeVisible();

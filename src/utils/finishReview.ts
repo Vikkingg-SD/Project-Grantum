@@ -21,7 +21,7 @@ export interface FinishReviewSummary {
 
 export const FINISH_REVERSIBILITY_TITLE = 'Why finishing is reversible';
 export const FINISH_REVERSIBILITY_NOTE =
-  'Finishing marks this work slot READY on this device for export or internal team review. You can reopen it to DRAFTING at any time to continue editing. Nothing is sent to an external funder.';
+  'Finishing marks this application READY for export or team review. You can reopen it to DRAFTING at any time to continue editing. Nothing is sent to an external funder.';
 
 export function evaluateFinishReview(input: {
   status: ApplicationBundle['status'];

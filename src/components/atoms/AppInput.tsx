@@ -1,5 +1,13 @@
-import React from 'react';
-import { View, TextInput, TextInputProps, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {
+  Platform,
+  View,
+  TextInput,
+  TextInputProps,
+  StyleSheet,
+  type TextStyle,
+  type ViewStyle,
+} from 'react-native';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, TYPOGRAPHY, DESKTOP_TYPOGRAPHY } from '@/config/theme';
@@ -12,10 +20,37 @@ export interface AppInputProps extends TextInputProps {
   inputRef?: React.Ref<TextInput>;
 }
 
-export function AppInput({ label, error, icon, style, inputRef, ...props }: AppInputProps) {
+const WEB_INPUT_RESET =
+  Platform.OS === 'web'
+    ? ({ outlineWidth: 0, outlineStyle: 'none' } as unknown as TextStyle)
+    : null;
+
+export function AppInput({
+  label,
+  error,
+  icon,
+  style,
+  inputRef,
+  onFocus,
+  onBlur,
+  ...props
+}: AppInputProps) {
   const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
   const { desktop } = useLayoutMetrics();
+  const [focused, setFocused] = useState(false);
+
+  const focusColor = error ? theme.failureText : theme.primaryText;
+  const webWrapperFocus =
+    Platform.OS === 'web' && focused
+      ? ({
+          outlineWidth: 2,
+          outlineStyle: 'solid',
+          outlineColor: focusColor,
+          outlineOffset: 1,
+        } as unknown as ViewStyle)
+      : null;
+
   return (
     <View style={styles.container}>
       {Boolean(label) && (
@@ -28,8 +63,13 @@ export function AppInput({ label, error, icon, style, inputRef, ...props }: AppI
           styles.inputWrapper,
           {
             backgroundColor: theme.surface,
-            borderColor: error ? theme.failureText : theme.inputBorder,
+            borderColor: error
+              ? theme.failureText
+              : focused
+                ? theme.primaryText
+                : theme.inputBorder,
           },
+          webWrapperFocus,
         ]}
       >
         {Boolean(icon) && <View style={styles.iconContainer}>{icon}</View>}
@@ -38,11 +78,20 @@ export function AppInput({ label, error, icon, style, inputRef, ...props }: AppI
           accessibilityLabel={label ?? props.placeholder}
           aria-invalid={Boolean(error)}
           placeholderTextColor={theme.textMuted}
+          onFocus={(event) => {
+            setFocused(true);
+            onFocus?.(event);
+          }}
+          onBlur={(event) => {
+            setFocused(false);
+            onBlur?.(event);
+          }}
           style={[
             styles.input,
             TYPOGRAPHY.body,
             desktop && DESKTOP_TYPOGRAPHY.body,
             { color: theme.textMain },
+            WEB_INPUT_RESET,
             icon ? styles.inputWithIcon : null,
             style,
           ]}

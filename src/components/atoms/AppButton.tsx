@@ -56,9 +56,9 @@ export function AppButton({
         };
       case 'outline':
         return {
-          backgroundColor: 'transparent',
+          backgroundColor: selected ? theme.subtle : 'transparent',
           borderWidth: 1,
-          borderColor: theme.border,
+          borderColor: selected ? theme.borderStrong : theme.border,
           opacity: pressed ? 0.7 : 1,
         };
       case 'ghost':

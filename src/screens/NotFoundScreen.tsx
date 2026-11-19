@@ -16,8 +16,7 @@ export default function NotFoundScreen() {
         </AppText>
         <AppText variant="h1">Signal lost</AppText>
         <AppText color="muted">
-          This route is not part of the instrument. Return to the command center to continue the
-          demonstration.
+          This route is not available. Return to the dashboard to continue working.
         </AppText>
         <AppButton
           label="Back to dashboard"

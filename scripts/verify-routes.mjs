@@ -379,7 +379,7 @@ try {
       await page.getByRole('button', { name: 'Suggest a source', exact: true }).click();
       const dialog = page.getByRole('dialog', { name: 'Suggest a source', exact: true });
       await expect(dialog).toBeVisible();
-      await dialog.getByRole('button', { name: 'Save on this device', exact: true }).click();
+      await dialog.getByRole('button', { name: 'Save source', exact: true }).click();
       await expect(
         dialog.getByRole('textbox', { name: 'Source title (required)', exact: true })
       ).toHaveAttribute('aria-invalid', 'true');
@@ -388,8 +388,8 @@ try {
         .fill('Official funding opportunities');
       await dialog
         .getByRole('textbox', { name: 'Official source URL (required)', exact: true })
-        .fill('https://example.org/funding');
-      await dialog.getByRole('button', { name: 'Save on this device', exact: true }).click();
+        .fill('https://foundation.org/funding');
+      await dialog.getByRole('button', { name: 'Save source', exact: true }).click();
       await expect(dialog).toBeHidden();
       await expect(page.getByText('Official funding opportunities', { exact: true })).toBeVisible();
       await page.getByRole('button', { name: 'Suggest a source', exact: true }).click();

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Grant } from '@/types/grant';
 import { AppText } from '../atoms/AppText';
@@ -6,14 +6,11 @@ import { AppButton } from '../atoms/AppButton';
 import { StatusBadge } from '../atoms/StatusBadge';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
-import {
-  hydrateEligibilityPreflight,
-  useEligibilityPreflightStore,
-} from '@/store/useEligibilityPreflightStore';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
 import { MODAL_COPY } from '@/config/copy';
 import { ENV } from '@/config/env';
-import { buildDefaultPreflight, summarizePreflight } from '@/utils/eligibilityPreflight';
+import { matchTier } from '@/utils/scoring';
+import { deadlineMetricColor } from '@/utils/presentation';
 import { buildProfileComparison } from '@/utils/workspace';
 
 export interface GrantDetailModalSheetProps {
@@ -31,23 +28,6 @@ export function GrantDetailModalSheet({
   const theme = PALETTE[mode];
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
-  const records = useEligibilityPreflightStore((state) => state.records);
-  const preflightStatus = useEligibilityPreflightStore((state) => state.status);
-  const setCriterionStatus = useEligibilityPreflightStore((state) => state.setCriterionStatus);
-  const resetGrantPreflight = useEligibilityPreflightStore((state) => state.resetGrantPreflight);
-
-  useEffect(() => {
-    void hydrateEligibilityPreflight();
-  }, []);
-
-  const preflightRecord = useMemo(
-    () => (grant ? (records[grant.id] ?? buildDefaultPreflight(grant)) : null),
-    [grant, records]
-  );
-  const preflightSummary = useMemo(
-    () => (preflightRecord ? summarizePreflight(preflightRecord) : null),
-    [preflightRecord]
-  );
 
   const activeProject =
     workspace.projects.find((p) => p.id === activeProjectId) ?? workspace.projects[0];
@@ -73,7 +53,10 @@ export function GrantDetailModalSheet({
         <View style={styles.titleArea}>
           <AppText variant="h2">{grant.title}</AppText>
           <StatusBadge label={grant.funder} variant="neutral" />
-          <StatusBadge label={`${grant.matchPct}% catalog score`} variant="neutral" />
+          <StatusBadge
+            label={`${grant.matchPct}% catalog score`}
+            variant={matchTier(grant.matchPct)}
+          />
         </View>
       </View>
 
@@ -83,7 +66,7 @@ export function GrantDetailModalSheet({
             <AppText variant="caption" color="muted">
               {MODAL_COPY.funding}
             </AppText>
-            <AppText variant="metric-sm" color="main">
+            <AppText variant="metric-sm" color="verified">
               {grant.amount}
             </AppText>
           </View>
@@ -91,7 +74,7 @@ export function GrantDetailModalSheet({
             <AppText variant="caption" color="muted">
               {MODAL_COPY.deadline}
             </AppText>
-            <AppText variant="metric-sm" color="main">
+            <AppText variant="metric-sm" color={deadlineMetricColor(grant.deadline)}>
               {grant.deadline}
             </AppText>
           </View>
@@ -127,7 +110,7 @@ export function GrantDetailModalSheet({
           </AppText>
           <AppText variant="caption" color="muted">
             Profile revision {matchReport.profileRevisionId} · Saved: {matchReport.profileUpdatedAt}{' '}
-            · Local field comparison; evidence and eligibility have not been verified.
+            · Field comparison only; evidence and official eligibility have not been verified.
           </AppText>
 
           <AppText variant="label">Profile information</AppText>
@@ -188,56 +171,6 @@ export function GrantDetailModalSheet({
         </View>
       )}
 
-      {preflightRecord && preflightSummary && (
-        <View
-          style={[styles.reportBox, { backgroundColor: theme.surface, borderColor: theme.border }]}
-        >
-          <AppText variant="h3">Interactive eligibility preflight</AppText>
-          <AppText accessibilityLiveRegion="polite" variant="body">
-            {preflightSummary.summaryText}
-          </AppText>
-          <AppText variant="caption" color="muted">
-            {Object.keys(records).length === 0
-              ? 'Select Confirmed, Needs review, or Unconfirmed below to save your preflight checklist on this device.'
-              : preflightStatus === 'saving'
-                ? 'Saving checklist…'
-                : preflightStatus === 'session-only'
-                  ? 'Checklist kept for this session only; device storage is unavailable.'
-                  : 'Checklist choices saved on this device.'}
-          </AppText>
-          {preflightRecord.criteria.map((criterion) => (
-            <View key={criterion.id} style={[styles.gateRow, { borderColor: theme.border }]}>
-              <AppText variant="body">{criterion.label}</AppText>
-              <View style={styles.preflightActions}>
-                {(
-                  [
-                    ['met', 'Confirmed'],
-                    ['review', 'Needs review'],
-                    ['unconfirmed', 'Unconfirmed'],
-                  ] as const
-                ).map(([statusKey, label]) => (
-                  <AppButton
-                    key={statusKey}
-                    size="sm"
-                    variant="outline"
-                    label={label}
-                    accessibilityLabel={`${criterion.label}: ${label}`}
-                    selected={criterion.status === statusKey}
-                    onPress={() => setCriterionStatus(grant, criterion.id, statusKey)}
-                  />
-                ))}
-              </View>
-            </View>
-          ))}
-          <AppButton
-            size="sm"
-            variant="ghost"
-            label="Reset preflight checklist"
-            onPress={() => resetGrantPreflight(grant)}
-          />
-        </View>
-      )}
-
       <View style={[styles.footer, { borderTopColor: theme.border }]}>
         <AppButton label={MODAL_COPY.apply} variant="primary" onPress={() => onApply(grant)} />
       </View>
@@ -259,7 +192,7 @@ const styles = StyleSheet.create({
   body: {
     flexGrow: 0,
   },
-  content: { padding: SPACING.lg, gap: SPACING.lg },
+  content: { padding: SPACING.lg, paddingBottom: SPACING['2xl'], gap: SPACING.lg },
   metaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -291,11 +224,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: SPACING.sm,
-  },
-  preflightActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING.xs,
   },
   footer: {
     paddingTop: SPACING.lg,

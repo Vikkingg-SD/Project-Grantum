@@ -61,3 +61,30 @@ export function reportUrgency(value: string, now = Date.now()) {
   if (days <= 30) return { label: `Report due in ${days} days`, variant: 'pending' as const };
   return { label: `Report due in ${days} days · time to prepare`, variant: 'verified' as const };
 }
+
+export function deadlineMetricColor(
+  value: string,
+  now = Date.now()
+): 'verified' | 'pending' | 'failure' | 'main' {
+  const trimmed = value.trim();
+  if (!trimmed) return 'main';
+  if (/^today$/i.test(trimmed)) return 'failure';
+  const relativeMatch = /^(-?\d+)\s*days?$/i.exec(trimmed);
+  if (relativeMatch) {
+    const days = Number(relativeMatch[1]);
+    if (!Number.isFinite(days)) return 'main';
+    if (days <= 7) return 'failure';
+    if (days <= 30) return 'pending';
+    return 'verified';
+  }
+  const date = calendarDate(trimmed);
+  if (!Number.isFinite(date.getTime())) return 'main';
+  const today = new Date(now);
+  const day = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  const days = Math.round(
+    (day - Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())) / 86400000
+  );
+  if (days <= 7) return 'failure';
+  if (days <= 30) return 'pending';
+  return 'verified';
+}

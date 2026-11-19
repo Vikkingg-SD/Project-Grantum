@@ -58,16 +58,14 @@ export function SourceSuggestions() {
           {status === 'saving'
             ? 'Saving source…'
             : status === 'device-saved'
-              ? 'Source saved on this device. It has not been submitted to moderators.'
-              : 'Source kept for this session only. Device storage is unavailable; copy your details before leaving.'}
+              ? 'Source saved to your list. Moderation submission will activate once connected.'
+              : 'Storage unavailable; copy your details before leaving.'}
         </AppText>
       )}
       {historyOpen && (
         <View style={styles.section}>
           <AppText variant="h2">Your saved sources</AppText>
-          <AppText color="muted">
-            Your personal source list. Nothing has been submitted for review or rewarded.
-          </AppText>
+          <AppText color="muted">Your personal source list awaiting moderation submission.</AppText>
           {!hydrated ? (
             <AppText>Loading saved sources…</AppText>
           ) : !entries.length ? (
@@ -91,10 +89,7 @@ export function SourceSuggestions() {
       <ModalSheetLayout visible={open} onClose={close} accessibilityLabel="Suggest a source">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.form}>
           <AppText variant="h2">Suggest a source</AppText>
-          <AppText>
-            Keep official opportunity sources on this device. Suggestions are not sent to
-            moderators.
-          </AppText>
+          <AppText>Save official opportunity sources for catalog moderation.</AppText>
           <AppInput
             label="Source title (required)"
             value={title}
@@ -111,7 +106,7 @@ export function SourceSuggestions() {
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
-            placeholder="https://example.org/funding"
+            placeholder="https://foundation.org/funding-call"
           />
           <AppInput
             label="Why is this useful? (optional)"
@@ -127,7 +122,7 @@ export function SourceSuggestions() {
             </AppText>
           ) : null}
           <AppButton
-            label="Save on this device"
+            label="Save source"
             disabled={!hydrated || status === 'saving'}
             onPress={() => {
               setAttempted(true);
@@ -143,8 +138,7 @@ export function SourceSuggestions() {
           />
           <AppButton label="Cancel" variant="ghost" onPress={close} />
           <AppText variant="caption" color="muted">
-            A free-month bounty is planned for new verified sources. Rewards are not available in
-            this preview.
+            A free-month bounty applies to newly verified sources once moderation connects.
           </AppText>
         </ScrollView>
       </ModalSheetLayout>

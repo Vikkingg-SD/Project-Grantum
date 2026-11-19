@@ -143,7 +143,7 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
         <InfoCard tone="surface">
           <AppText color="muted" align="center">
             {ENV.DATA_SOURCE === 'mock'
-              ? 'Preview - section presence only.'
+              ? 'Checks required section presence; content review runs once connected.'
               : 'Run an audit to request a review from your connected service.'}
           </AppText>
         </InfoCard>
@@ -243,7 +243,7 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
             {slotAudit.totalSections} ({slotAudit.filledSections} drafted)
             {'\n'}• Requirement Matrix Approvals: {slotAudit.approvedRequirements}/
             {slotAudit.totalRequirements} approved
-            {'\n'}• Local Reference Attachments: {local.attachments.length} staged
+            {'\n'}• Reference Attachments: {local.attachments.length} staged
             {'\n'}• Finish review checks: {finishReview.passedCount}/{finishReview.totalCount} ready
           </AppText>
           <AppButton
@@ -279,9 +279,7 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
                   try {
                     setWorkSlotReviewStatus(activeApp.id, 'review');
                     setSlotError('');
-                    setSlotNotice(
-                      'Work slot marked IN REVIEW on this device. Editing remains reversible.'
-                    );
+                    setSlotNotice('Application marked IN REVIEW. Editing remains reversible.');
                   } catch (e) {
                     setSlotError(e instanceof Error ? e.message : 'Unable to update status');
                   }
@@ -302,7 +300,7 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
                     setWorkSlotReviewStatus(activeApp.id, 'ready');
                     setSlotError('');
                     setSlotNotice(
-                      'Application marked READY on this device. You can reopen it at any time; nothing was sent externally.'
+                      'Application marked READY. You can reopen it at any time; nothing was sent externally.'
                     );
                   } catch (e) {
                     setSlotError(e instanceof Error ? e.message : 'Unable to finish application');
@@ -381,7 +379,7 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
           </AppText>
           {local.auditMessages.length === 0 && (
             <AppText color="muted" align="center">
-              Agent offline - messages stay in this session.
+              Grantum uses an LLM assistant when connected — double-check audit notes.
             </AppText>
           )}
           {mobile && (

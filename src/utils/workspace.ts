@@ -235,7 +235,7 @@ export const PROFILE_FIELD_DEFINITIONS: readonly {
     label: 'Region',
     weight: 10,
     impact: 'medium',
-    guidance: 'List registered operating regions (e.g., Global, East Europe, CIS).',
+    guidance: 'List registered operating regions (such as Global, East Europe, CIS).',
   },
   {
     key: 'entityType',

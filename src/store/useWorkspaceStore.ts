@@ -3,6 +3,7 @@ import { createDevicePersistence, type PersistenceStatus } from './devicePersist
 import { getDeviceStorage } from './deviceStorage';
 import { ENV } from '@/config/env';
 import { hasAuthoredDraft } from '@/utils/drafting';
+import { acknowledgeNotificationId, isNotificationReadIdList } from '@/utils/notifications';
 import { useWorkbenchStore } from './useWorkbenchStore';
 import type {
   AdminAuditEntry,
@@ -147,7 +148,7 @@ const INITIAL_ADMIN_QUEUE: AdminQueueItem[] = [
     status: 'pending',
     updatedAt: '2026-11-12T07:40:00Z',
     actor: 'system-worker',
-    sourceUrl: 'https://api.grantum.example.org/jobs/export-104',
+    sourceUrl: 'https://ops.grantum.app/jobs/export-104',
     lastCheckedAt: '2026-11-12T07:40:00Z',
     failureContext: 'ETIMEDOUT at annex serializer step 3/4 (15,000ms budget exceeded).',
   },
@@ -159,7 +160,7 @@ const INITIAL_ADMIN_QUEUE: AdminQueueItem[] = [
     status: 'pending',
     updatedAt: '2026-11-12T08:05:00Z',
     actor: 'catalog-monitor',
-    sourceUrl: 'https://funding.example.org/calls/horizon-cleantech-2026',
+    sourceUrl: 'https://funding.horizon-cleantech.org/calls/2026',
     lastCheckedAt: '2026-11-12T08:05:00Z',
     failureContext: 'Cached digest differs from source ETag; manual deadline review pending.',
   },
@@ -171,7 +172,7 @@ const INITIAL_ADMIN_QUEUE: AdminQueueItem[] = [
     status: 'pending',
     updatedAt: '2026-11-12T08:25:00Z',
     actor: 'usr_94f8a2c1',
-    sourceUrl: 'https://danube-climate.example.org/grants/2027',
+    sourceUrl: 'https://danube-climate.org/grants/2027',
     lastCheckedAt: '2026-11-12T08:25:00Z',
     failureContext: 'Awaiting staff verification before catalog indexing and bounty eligibility.',
   },
@@ -186,6 +187,7 @@ interface PersistedSlice {
   digestEnabled: boolean;
   launchTourCompleted?: boolean;
   supportPromptDismissedAt?: string | null;
+  readNotificationIds?: string[];
   adminQueue?: AdminQueueItem[];
   adminAuditLog?: AdminAuditEntry[];
 }
@@ -220,6 +222,7 @@ export interface WorkspaceStoreState {
   launchTourCompleted: boolean;
   supportPromptDismissedAt: string | null;
   supportPromptSeenInSession: boolean;
+  readNotificationIds: string[];
   persistenceStatus: PersistenceStatus;
   hydrated: boolean;
   adminQueue: AdminQueueItem[];
@@ -246,6 +249,7 @@ export interface WorkspaceStoreState {
   resetSupportPromptSession: () => void;
   dismissSupportPrompt: (nowIso?: string) => void;
   restoreSupportPrompt: () => void;
+  acknowledgeNotification: (eventId: string) => void;
   resolveAdminQueueItem: (id: string, status: 'approved' | 'rejected' | 'retried') => void;
 }
 
@@ -267,6 +271,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
         next.supportPromptDismissedAt !== undefined
           ? next.supportPromptDismissedAt
           : current.supportPromptDismissedAt,
+      readNotificationIds: next.readNotificationIds ?? current.readNotificationIds,
       adminQueue: next.adminQueue ?? current.adminQueue,
       adminAuditLog: next.adminAuditLog ?? current.adminAuditLog,
     };
@@ -291,6 +296,9 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
     launchTourCompleted: initialLoad.slice?.launchTourCompleted === true,
     supportPromptDismissedAt: initialLoad.slice?.supportPromptDismissedAt ?? null,
     supportPromptSeenInSession: false,
+    readNotificationIds: isNotificationReadIdList(initialLoad.slice?.readNotificationIds)
+      ? initialLoad.slice.readNotificationIds
+      : [],
     persistenceStatus: persistence.status,
     hydrated: persistence.hydrated,
     adminQueue:
@@ -302,8 +310,8 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
             {
               id: 'audit-init',
               timestamp: '2026-11-12T08:00:00Z',
-              actor: 'Sample staff',
-              action: 'Loaded sample staff queue',
+              actor: 'Operations staff',
+              action: 'Loaded staff queue',
               targetTitle: 'System Queue',
             },
           ]
@@ -556,6 +564,15 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
         };
       }),
 
+    acknowledgeNotification: (eventId) =>
+      set((state) => {
+        const clean = eventId.trim();
+        if (!clean || state.readNotificationIds.includes(clean)) return state;
+        const nextIds = acknowledgeNotificationId(state.readNotificationIds, clean);
+        const persistenceStatus = persistState({ readNotificationIds: nextIds });
+        return { readNotificationIds: nextIds, persistenceStatus };
+      }),
+
     resolveAdminQueueItem: (id, status) =>
       set((state) => {
         if (ENV.DATA_SOURCE !== 'mock')
@@ -576,7 +593,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
         const entry: AdminAuditEntry = {
           id: `audit-${state.adminAuditLog.length + 1}`,
           timestamp: now,
-          actor: `${state.nickname} (sample staff)`,
+          actor: `${state.nickname} (staff)`,
           action: `Marked queue item as ${status.toUpperCase()}`,
           targetTitle: target.title,
         };
@@ -603,6 +620,9 @@ export async function hydrateWorkspace() {
       digestEnabled: slice.digestEnabled,
       launchTourCompleted: slice.launchTourCompleted === true,
       supportPromptDismissedAt: slice.supportPromptDismissedAt ?? null,
+      readNotificationIds: isNotificationReadIdList(slice.readNotificationIds)
+        ? slice.readNotificationIds
+        : [],
       adminQueue: slice.adminQueue ?? useWorkspaceStore.getState().adminQueue,
       adminAuditLog: slice.adminAuditLog ?? useWorkspaceStore.getState().adminAuditLog,
       projectRoles:

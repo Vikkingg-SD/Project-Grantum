@@ -17,7 +17,7 @@ import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 const slides = [
   {
     title: 'Explore funding opportunities.',
-    body: 'Browse sample opportunities and compare their catalog information with your project profile. Scores do not verify eligibility or evidence.',
+    body: 'Browse funding opportunities and compare their requirements with your project profile. Scores do not verify eligibility or evidence.',
   },
   {
     title: 'Give every requirement a place in your draft.',

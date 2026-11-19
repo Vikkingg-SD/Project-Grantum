@@ -1,7 +1,7 @@
 import { useProfileReadiness } from '@/hooks/useProfileReadiness';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { ScrollView, View, StyleSheet } from 'react-native';
 import Bell from 'lucide-react-native/icons/bell';
 import Filter from 'lucide-react-native/icons/funnel';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
@@ -12,6 +12,7 @@ import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppInput } from '@/components/atoms/AppInput';
 import { IconButton } from '@/components/atoms/IconButton';
+import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { PressableBadge } from '@/components/molecules/PressableBadge';
 import { CenteredHeading } from '@/components/molecules/CenteredHeading';
 import { HeroContinueCard } from '@/components/molecules/HeroContinueCard';
@@ -28,9 +29,17 @@ import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useTheme } from '@/hooks/useTheme';
 import { SPACING } from '@/config/theme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
-import { ENV } from '@/config/env';
 import { DASHBOARD_COPY } from '@/config/copy';
+import {
+  countUnreadNotifications,
+  deriveWorkspaceNotifications,
+  formatNotificationBadge,
+  isNotificationUnread,
+  type WorkspaceNotificationEvent,
+} from '@/utils/notifications';
+import { matchTier } from '@/utils/scoring';
 import { shouldShowSupportPopup } from '@/utils/supportPrompt';
+import { getProfileSyncLag } from '@/utils/workspace';
 import type { Grant } from '@/types/grant';
 
 export default function DashboardScreen() {
@@ -45,6 +54,7 @@ export default function DashboardScreen() {
   const [focusNowMs, setFocusNowMs] = useState(() => Date.now());
   const grants = useGrants();
   const summary = useDashboardSummary();
+  const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
   const hydrated = useWorkspaceStore((state) => state.hydrated);
@@ -54,7 +64,44 @@ export default function DashboardScreen() {
     (state) => state.markSupportPromptSeenInSession
   );
   const dismissSupportPrompt = useWorkspaceStore((state) => state.dismissSupportPrompt);
+  const readNotificationIds = useWorkspaceStore((state) => state.readNotificationIds);
+  const acknowledgeNotification = useWorkspaceStore((state) => state.acknowledgeNotification);
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
+  const outOfSyncCount = useMemo(
+    () => workspace.applications.filter((app) => getProfileSyncLag(workspace, app.id) > 0).length,
+    [workspace]
+  );
+  const inboxItems = useMemo(
+    () =>
+      deriveWorkspaceNotifications({
+        activeProjectId,
+        outOfSyncCount,
+        profileReadinessScore: profileReadiness?.score ?? 0,
+        grantCount: grants.data?.length ?? 0,
+      }),
+    [activeProjectId, grants.data?.length, outOfSyncCount, profileReadiness?.score]
+  );
+  const unreadNotificationCount = useMemo(
+    () => countUnreadNotifications(inboxItems, readNotificationIds),
+    [inboxItems, readNotificationIds]
+  );
+  const notificationBadgeText = formatNotificationBadge(unreadNotificationCount);
+  const openNotificationDestination = useCallback(
+    (item: WorkspaceNotificationEvent) => {
+      setActivityOpen(false);
+      acknowledgeNotification(item.id);
+      if (item.destination === 'my-works') {
+        router.push('/my-works');
+        return;
+      }
+      if (item.destination === 'discovery') {
+        navigation.navigateTo('discovery');
+        return;
+      }
+      router.push('/project-profile');
+    },
+    [acknowledgeNotification, navigation, router]
+  );
   useFocusEffect(
     useCallback(() => {
       setFocusNowMs(Date.now());
@@ -109,42 +156,18 @@ export default function DashboardScreen() {
 
   const active = summary.data.activeDraft;
   const greetingText = 'Welcome back, ' + summary.data.greetingName + '.';
-  const inboxItems = [
-    {
-      key: 'sync',
-      title: 'Profile sync',
-      body: 'My Works shows when a newer Project Profile revision can be pulled into a work slot.',
-      action: 'Open My Works',
-      run: () => router.push('/my-works'),
-    },
-    {
-      key: 'readiness',
-      title: 'Readiness and match',
-      body: `Profile ${profileReadiness?.score ?? 0}% done. Open it to see what sits behind each match.`,
-      action: 'Open Project Profile',
-      run: () => router.push('/project-profile'),
-    },
-    {
-      key: 'roles',
-      title: 'Co-work roles',
-      body: 'Review who can edit, review or view each work slot.',
-      action: 'Open project team',
-      run: () => router.push('/project-profile'),
-    },
-    {
-      key: 'deadlines',
-      title: 'Deadlines',
-      body: `${grants.data?.length ?? 0} opportunities tracked in the catalog.`,
-      action: 'View deadlines',
-      run: () => navigation.navigateTo('discovery'),
-    },
-  ];
+
+  const bellLabel = notificationBadgeText
+    ? `${DASHBOARD_COPY.notifications} (${notificationBadgeText} unread)`
+    : DASHBOARD_COPY.notifications;
 
   const bellButton = (
     <IconButton
-      label={DASHBOARD_COPY.notifications}
+      label={bellLabel}
       onPress={() => setActivityOpen(true)}
       icon={<Bell size={SPACING.lg} color={theme.textMuted} />}
+      badgeText={notificationBadgeText}
+      badgeTestID="notification-badge"
     />
   );
 
@@ -184,11 +207,6 @@ export default function DashboardScreen() {
             onStartNew={() => navigation.navigateTo('discovery')}
           />
         )}
-        <AppText variant="caption" color="muted" align="center">
-          {ENV.DATA_SOURCE === 'mock'
-            ? 'Sample portfolio · Pipeline overview'
-            : 'Portfolio overview'}
-        </AppText>
         <PipelineFunnelBar stages={summary.data.pipeline} />
         <WorkspaceStudioBar />
         <CenteredHeading
@@ -215,7 +233,7 @@ export default function DashboardScreen() {
             actionLabel="Open project profile"
             onPress={() => router.push('/project-profile')}
             style={styles.profile}
-            variant="pending"
+            variant={matchTier(profileReadiness?.score ?? 0)}
           />
           <AppButton
             label={DASHBOARD_COPY.showAll}
@@ -238,7 +256,11 @@ export default function DashboardScreen() {
         onClose={() => setActivityOpen(false)}
         accessibilityLabel="Workspace activity"
       >
-        <View style={styles.modalBody}>
+        <ScrollView
+          style={styles.modalScroll}
+          contentContainerStyle={styles.modalBody}
+          keyboardShouldPersistTaps="handled"
+        >
           <AppText variant="h2" align="center">
             Workspace activity
           </AppText>
@@ -246,39 +268,44 @@ export default function DashboardScreen() {
             {active ? `Active application: ${active.title}` : 'No active application yet.'}
           </AppText>
           <View style={styles.inbox}>
-            {inboxItems.map((item, index) => (
-              <View
-                key={item.key}
-                style={[
-                  styles.inboxRow,
-                  index > 0 && { borderTopWidth: 1, borderTopColor: theme.border },
-                ]}
-              >
-                <View style={styles.inboxText}>
-                  <AppText variant="label">{item.title}</AppText>
-                  <AppText variant="caption" color="muted">
-                    {item.body}
-                  </AppText>
+            {inboxItems.map((item, index) => {
+              const unread = isNotificationUnread(item.id, readNotificationIds);
+              return (
+                <View
+                  key={item.key}
+                  style={[
+                    styles.inboxRow,
+                    index > 0 && { borderTopWidth: 1, borderTopColor: theme.border },
+                  ]}
+                >
+                  <View style={styles.inboxText}>
+                    <View style={styles.inboxTitleRow}>
+                      <AppText variant="label">{item.title}</AppText>
+                      <StatusBadge
+                        label={unread ? 'New' : 'Seen'}
+                        variant={unread ? 'brand' : 'neutral'}
+                      />
+                    </View>
+                    <AppText variant="caption" color="muted">
+                      {item.body}
+                    </AppText>
+                  </View>
+                  <AppButton
+                    size="sm"
+                    variant="outline"
+                    label={item.action}
+                    style={styles.inboxAction}
+                    onPress={() => openNotificationDestination(item)}
+                  />
                 </View>
-                <AppButton
-                  size="sm"
-                  variant="outline"
-                  label={item.action}
-                  onPress={() => {
-                    setActivityOpen(false);
-                    item.run();
-                  }}
-                />
-              </View>
-            ))}
+              );
+            })}
           </View>
           <AppText color="muted" align="center">
-            {ENV.DATA_SOURCE === 'mock'
-              ? 'You are viewing sample data. Live notifications are not connected.'
-              : 'Live notifications are not available in this workspace.'}
+            Real-time push notifications will appear here once notification delivery connects.
           </AppText>
           <AppButton label="Close activity" onPress={() => setActivityOpen(false)} />
-        </View>
+        </ScrollView>
       </ModalSheetLayout>
       <ModalSheetLayout
         visible={Boolean(selectedGrant)}
@@ -332,16 +359,25 @@ const styles = StyleSheet.create({
     minWidth: 320,
     maxWidth: 600,
   },
-  modalBody: { padding: SPACING.lg, gap: SPACING.lg },
+  modalScroll: { flexGrow: 0 },
+  modalBody: { padding: SPACING.lg, paddingBottom: SPACING['2xl'], gap: SPACING.lg },
   inbox: { alignSelf: 'stretch' },
   inboxRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: SPACING.md,
     paddingVertical: SPACING.md,
   },
-  inboxText: { flex: 1, minWidth: 0, gap: SPACING.xs },
+  inboxText: { flex: 1, minWidth: 180, gap: SPACING.xs },
+  inboxAction: { flexShrink: 0 },
+  inboxTitleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',

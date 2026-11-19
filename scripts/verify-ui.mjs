@@ -164,6 +164,14 @@ try {
             assert.deepEqual(outside, []);
             if (route === 'discovery-studio') {
               await expect(page.getByText(/^Project Profile \d+% Done$/)).toBeVisible();
+              const scoreText = page.getByText('94% catalog score', { exact: true }).first();
+              await expect(scoreText).toBeVisible();
+              const scoreColor = await scoreText.evaluate((el) => getComputedStyle(el).color);
+              assert.equal(
+                scoreColor,
+                theme === 'dark' ? 'rgb(0, 179, 93)' : 'rgb(0, 107, 54)',
+                `Discovery 94% catalog score must use green verified color, got ${scoreColor}`
+              );
               const applyButton = await page
                 .getByRole('button', { name: 'Help me apply', exact: true })
                 .first()
@@ -188,6 +196,26 @@ try {
               await expect(
                 page.getByRole('button', { name: 'New application', exact: true })
               ).toHaveCount(0);
+              await expect(page.getByText(/Sample portfolio|Pipeline overview/i)).toHaveCount(0);
+              const roadmapBox = await page.getByTestId('product-roadmap-track').boundingBox();
+              const activeAppBox = await page
+                .getByText('Active application', { exact: true })
+                .boundingBox();
+              assert.ok(
+                roadmapBox &&
+                  activeAppBox &&
+                  roadmapBox.y + roadmapBox.height <= activeAppBox.y + 2,
+                `Roadmap must sit above Active application card: ${JSON.stringify({ roadmapBox, activeAppBox })}`
+              );
+              const scoreText = page.getByText('94% catalog score', { exact: true }).first();
+              await expect(scoreText).toBeVisible();
+              const scoreColor = await scoreText.evaluate((el) => getComputedStyle(el).color);
+              assert.equal(
+                scoreColor,
+                theme === 'dark' ? 'rgb(0, 179, 93)' : 'rgb(0, 107, 54)',
+                `Dashboard 94% catalog score must use green verified color, got ${scoreColor}`
+              );
+              await expect(page.getByTestId('notification-badge')).toHaveText('4');
               await expect(
                 page.getByRole('button', { name: 'Feedback | About us', exact: true })
               ).toBeVisible();
@@ -325,7 +353,7 @@ try {
         page.getByRole('heading', { name: 'No grants match your exact criteria' })
       ).toBeVisible();
       await page.getByRole('button', { name: 'Reset', exact: true }).click();
-      await expect(page.getByText('3 sample opportunities', { exact: true })).toBeVisible();
+      await expect(page.getByText('3 opportunities', { exact: true })).toBeVisible();
       await filter.click();
     }
   );
@@ -428,12 +456,14 @@ try {
       await page.getByRole('button', { name: 'Previous navigation tabs' }).click();
       await page.getByRole('button', { name: 'Previous navigation tabs' }).click();
       await page.getByRole('tab', { name: 'Dashboard', exact: true }).click();
-      const trigger = page.getByRole('button', { name: 'Notifications', exact: true });
+      const trigger = page.getByRole('button', { name: /^Notifications/ });
+      await expect(trigger.getByTestId('notification-badge')).toHaveText('4');
       await trigger.focus();
       await page.keyboard.press('Enter');
       await expect(page.getByRole('dialog')).toBeVisible();
       await page.keyboard.press('Escape');
       await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expect(trigger.getByTestId('notification-badge')).toHaveText('4');
       await expect(trigger).toBeFocused();
     }
   );

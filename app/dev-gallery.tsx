@@ -185,13 +185,13 @@ function DevGalleryContent() {
         />
       </View>
       <AppInput
-        label="Sample input"
+        label="Text input"
         value={inputValue}
         onChangeText={setInputValue}
         placeholder="Type to inspect"
       />
       <AppTextArea
-        label="Sample area"
+        label="Text area"
         charLimit={120}
         value={areaValue}
         onChangeText={setAreaValue}
@@ -207,7 +207,7 @@ function DevGalleryContent() {
         <ProgressBar percent={42} label="Drafting progress" />
       </View>
       <View style={styles.row}>
-        <ToggleSwitch label="Example switch" checked={toggled} onChange={setToggled} />
+        <ToggleSwitch label="Toggle switch" checked={toggled} onChange={setToggled} />
         <Chip label="Moat" selected={chipSelected} onToggle={() => setChipSelected((v) => !v)} />
         <IconButton
           icon={<Star size={18} color={theme.primary} />}
