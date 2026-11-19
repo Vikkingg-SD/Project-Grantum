@@ -2,6 +2,7 @@ import React from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import X from 'lucide-react-native/icons/x';
+import { AppText } from '../atoms/AppText';
 import { IconButton } from '../atoms/IconButton';
 import { useTheme } from '@/hooks/useTheme';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
@@ -14,6 +15,7 @@ export interface ModalSheetLayoutProps {
   visible: boolean;
   onClose: () => void;
   accessibilityLabel: string;
+  title?: string;
   children: React.ReactNode;
   size?: 'compact' | 'workspace';
 }
@@ -22,6 +24,7 @@ export function ModalSheetLayout({
   visible,
   onClose,
   accessibilityLabel,
+  title,
   children,
   size = 'compact',
 }: ModalSheetLayoutProps) {
@@ -40,12 +43,21 @@ export function ModalSheetLayout({
       accessibilityLabel={accessibilityLabel}
     >
       <SafeAreaView style={[styles.overlay, { backgroundColor: theme.overlay }]}>
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={onClose}
-          accessible={false}
-          focusable={false}
-        />
+        {Platform.OS === 'web' ? (
+          <View
+            accessible={false}
+            style={StyleSheet.absoluteFill}
+            onStartShouldSetResponder={() => true}
+            onResponderRelease={onClose}
+          />
+        ) : (
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={onClose}
+            accessible={false}
+            focusable={false}
+          />
+        )}
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={[styles.position, wide && styles.centered]}
@@ -63,7 +75,12 @@ export function ModalSheetLayout({
               },
             ]}
           >
-            <View style={styles.closeRow}>
+            <View style={[styles.closeRow, Boolean(title) && styles.headerRow]}>
+              {Boolean(title) && (
+                <AppText variant="h2" style={styles.headerTitle}>
+                  {title}
+                </AppText>
+              )}
               <IconButton
                 icon={<X size={SPACING.xl} color={theme.textMuted} />}
                 label={MODAL_COPY.close}
@@ -98,4 +115,12 @@ const styles = StyleSheet.create({
   dialog: { maxWidth: LAYOUT.modalMaxWidth, borderRadius: RADIUS.lg },
   workspace: { maxWidth: 1120 },
   closeRow: { alignItems: 'flex-end', paddingHorizontal: SPACING.lg, paddingTop: SPACING.sm },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.md,
+    paddingTop: SPACING.md,
+  },
+  headerTitle: { flex: 1, minWidth: 0 },
 });

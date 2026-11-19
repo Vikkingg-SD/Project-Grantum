@@ -178,6 +178,14 @@ try {
       .filter({ visible: true })
       .first()
       .waitFor({ state: 'visible', timeout: runtime.testMs });
+  const dismissSupportIfOpen = async () => {
+    const dialog = page.getByRole('dialog', { name: 'Support Grantum', exact: true });
+    await dialog.waitFor({ state: 'visible', timeout: 800 }).catch(() => {});
+    if (await dialog.isVisible().catch(() => false)) {
+      await dialog.getByRole('button', { name: 'Remind me in 3 days', exact: true }).click();
+      await expect(dialog).toHaveCount(0);
+    }
+  };
   const url = (grant, leaf) => `${origin}/grants/${encodeURIComponent(grant)}/${leaf}`;
 
   await check('cold grant-2 drafting resolves without a prior selection', async () => {
@@ -194,6 +202,7 @@ try {
     await check(`grant-2 navigation selects ${leaf} and preserves identity`, async () => {
       await page.getByRole('tab').nth(index).click();
       await page.waitForURL(url('2', leaf));
+      if (leaf === 'dashboard') await dismissSupportIfOpen();
       await expect(page.getByRole('tab').nth(index)).toHaveAttribute('aria-selected', 'true');
       if (leaf === 'drafting') await visible('Community Health Access');
     });
@@ -297,6 +306,7 @@ try {
   });
   await check('explicit Dashboard application selection changes the grant URL', async () => {
     await page.goto(url('2', 'dashboard'));
+    await dismissSupportIfOpen();
     await page.getByRole('button', { name: 'Help me apply', exact: true }).first().click();
     await page.waitForURL(/\/grants\/1\/drafting$/);
     await visible('Climate Resilience Infrastructure');

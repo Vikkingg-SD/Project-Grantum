@@ -380,6 +380,12 @@ test.describe('app recovery:', () => {
             ]);
           }
           await expect(page.getByText(dashboardHeading, { exact: true })).toBeVisible();
+          const supportDialog = page.getByRole('dialog', { name: 'Support Grantum', exact: true });
+          await supportDialog.waitFor({ state: 'visible', timeout: 800 }).catch(() => {});
+          if (await supportDialog.isVisible().catch(() => false)) {
+            await page.keyboard.press('Escape');
+            await expect(supportDialog).toHaveCount(0);
+          }
           const container = await page.getByTestId('screen-container').boundingBox();
           const content = await page.getByTestId('screen-content').boundingBox();
           expect(container).not.toBeNull();
