@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
@@ -8,7 +8,7 @@ import { AppInput } from '@/components/atoms/AppInput';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { useTheme } from '@/hooks/useTheme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
-import { hydrateMilestones, useMilestonesStore } from '@/store/useMilestonesStore';
+import { useWorkbenchStore } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { styles } from './workspacePageStyles';
 import { useGrants } from '@/api/hooks/useGrants';
@@ -20,7 +20,7 @@ import {
   workSlotKey,
 } from '@/utils/workspace';
 import { FINISH_REVERSIBILITY_NOTE } from '@/utils/finishReview';
-import { buildDefaultMilestoneRecord, summarizeSlotMilestones } from '@/utils/milestones';
+import { hasAuthoredDraft } from '@/utils/drafting';
 
 export default function MyWorksScreen() {
   const theme = useTheme();
@@ -40,11 +40,7 @@ export default function MyWorksScreen() {
   const pullWorkSlotProfile = useWorkspaceStore((state) => state.pullWorkSlotProfile);
   const setWorkSlotReviewStatus = useWorkspaceStore((state) => state.setWorkSlotReviewStatus);
   const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
-  const milestoneRecords = useMilestonesStore((state) => state.records);
-
-  useEffect(() => {
-    void hydrateMilestones();
-  }, []);
+  const work = useWorkbenchStore((state) => state.work);
 
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'sync-needed' | 'archived'>('all');
@@ -79,9 +75,6 @@ export default function MyWorksScreen() {
     <ScreenContainer insetEdges={[]}>
       <View style={styles.pageContent}>
         <AppText variant="h1">My Works</AppText>
-        <AppText color="muted">
-          Find your projects, resume applications and review profile updates.
-        </AppText>
 
         {error ? (
           <AppText color="failureText" accessibilityRole="alert">
@@ -230,18 +223,6 @@ export default function MyWorksScreen() {
                       }
                     />
                   </View>
-                  <AppText variant="caption" color="muted">
-                    Slot ID: {app.id} · Pinned Profile: {app.profileRevisionId} · Updated:{' '}
-                    {app.updatedAt.slice(0, 16).replace('T', ' ')}
-                  </AppText>
-                  <AppText variant="caption" color="muted">
-                    {
-                      summarizeSlotMilestones(
-                        milestoneRecords[workSlotKey(app.projectId, app.grantId)] ??
-                          buildDefaultMilestoneRecord(workSlotKey(app.projectId, app.grantId))
-                      ).summaryLine
-                    }
-                  </AppText>
                   <View style={styles.rowWrap}>
                     {app.artifacts.map((art) => (
                       <StatusBadge
@@ -322,8 +303,8 @@ export default function MyWorksScreen() {
                             label="Finish application (mark ready)"
                             accessibilityLabel={`Finish application (mark ready) for ${proj?.name ?? app.projectId}`}
                             disabled={
-                              !canRolePerform(projectRoles[app.projectId] ?? 'owner', 'edit') &&
-                              !canRolePerform(projectRoles[app.projectId] ?? 'owner', 'review')
+                              !canRolePerform(projectRoles[app.projectId] ?? 'owner', 'review') ||
+                              !hasAuthoredDraft(work[workSlotKey(app.projectId, app.grantId)])
                             }
                             onPress={() => {
                               try {

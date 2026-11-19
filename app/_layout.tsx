@@ -10,6 +10,7 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { useAppReady } from '@/hooks/useAppReady';
 import { PALETTE } from '@/config/theme';
 import { LAYOUT } from '@/config/layout';
+import { WorkspaceNavigationProvider } from '@/hooks/useWorkspaceNavigation';
 import { useRecoveryProbe } from '@/components/templates/AppErrorBoundary';
 export { AppErrorBoundary as ErrorBoundary } from '@/components/templates/AppErrorBoundary';
 
@@ -38,7 +39,9 @@ export default function RootLayout() {
         <View style={[styles.container, { backgroundColor: theme.background }]}>
           <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
           <View style={[styles.stage, width >= LAYOUT.contentMaxWidth && styles.desktopStage]}>
-            <Slot />
+            <WorkspaceNavigationProvider>
+              <Slot />
+            </WorkspaceNavigationProvider>
           </View>
         </View>
       </QueryClientProvider>

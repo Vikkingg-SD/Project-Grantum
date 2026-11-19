@@ -24,7 +24,7 @@ import { AUDIT_COPY } from '@/config/copy';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { GrantContext } from '@/components/molecules/GrantContext';
 import { ENV } from '@/config/env';
-import { evaluateWorkSlotAudit } from '@/utils/drafting';
+import { evaluateWorkSlotAudit, hasAuthoredDraft } from '@/utils/drafting';
 import { evaluateFinishReview } from '@/utils/finishReview';
 import { canRolePerform, getProfileSyncLag, workSlotKey } from '@/utils/workspace';
 
@@ -294,6 +294,7 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
                 disabled={
                   !finishReview.canTransition ||
                   (!canEdit && !canReview) ||
+                  !hasAuthoredDraft(work) ||
                   finishReview.status === 'ready'
                 }
                 onPress={() => {

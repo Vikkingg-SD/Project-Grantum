@@ -16,29 +16,34 @@ import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 
 export interface AppHeaderProps {
   title?: string;
+  homeLabel?: string;
   canGoBack: boolean;
   onBack: () => void;
   onHome: () => void;
 }
 
-export function AppHeader({ canGoBack, onBack, onHome }: AppHeaderProps) {
+export function AppHeader({
+  canGoBack,
+  onBack,
+  onHome,
+  homeLabel = HEADER_COPY.home,
+}: AppHeaderProps) {
   const theme = useTheme();
   const { effectiveWidth } = useLayoutMetrics();
   const mode = useThemeStore((state) => state.mode);
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
   useEffect(() => {
     if (Platform.OS !== 'web') return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.key !== 'Escape' ||
-        event.defaultPrevented ||
-        event.repeat ||
-        event.isComposing ||
-        event.keyCode === 229
-      )
-        return;
+    const canHandleEscape = (event: KeyboardEvent) =>
+      event.key === 'Escape' &&
+      !event.defaultPrevented &&
+      !event.repeat &&
+      !event.isComposing &&
+      event.keyCode !== 229 &&
       // RN Web's Modal owns Escape on keyup and traps/restores focus itself.
-      if (document.querySelector('[role="dialog"], [aria-modal="true"]')) return;
+      !document.querySelector('[role="dialog"], [aria-modal="true"]');
+    const onInputEscape = (event: KeyboardEvent) => {
+      if (!canHandleEscape(event)) return;
       const focused = document.activeElement;
       if (
         focused instanceof HTMLInputElement ||
@@ -46,13 +51,21 @@ export function AppHeader({ canGoBack, onBack, onHome }: AppHeaderProps) {
         (focused instanceof HTMLElement && focused.isContentEditable)
       ) {
         focused.blur();
-      } else if (canGoBack) {
-        onBack();
+        event.preventDefault();
       }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!canHandleEscape(event) || !canGoBack) return;
+      onBack();
       event.preventDefault();
     };
+    // RN Web TextInput stops bubbling keydown events at the input.
+    window.addEventListener('keydown', onInputEscape, true);
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onInputEscape, true);
+      window.removeEventListener('keydown', onKeyDown);
+    };
   }, [canGoBack, onBack]);
   return (
     <View
@@ -69,7 +82,7 @@ export function AppHeader({ canGoBack, onBack, onHome }: AppHeaderProps) {
       />
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={HEADER_COPY.home}
+        accessibilityLabel={homeLabel}
         onPress={onHome}
         style={({ pressed }) => [
           styles.titles,

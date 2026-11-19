@@ -451,10 +451,16 @@ try {
 
       const direct = await context.newPage();
       await direct.goto(`${origin}/project-profile`);
-      await direct.getByRole('button', { name: 'Go back', exact: true }).click();
+      await expect(direct.getByRole('button', { name: 'Go back', exact: true })).toBeDisabled();
+      await direct.getByRole('button', { name: 'Resume last grant view', exact: true }).click();
       await expect(direct).toHaveURL(/grants\/1\/dashboard$/);
       await direct.close();
-      findings.push({ name: 'fresh direct-link back fallback', width, theme, passed: true });
+      findings.push({
+        name: 'cold direct-link Back and brand fallback',
+        width,
+        theme,
+        passed: true,
+      });
       await context.close();
     }
 } finally {

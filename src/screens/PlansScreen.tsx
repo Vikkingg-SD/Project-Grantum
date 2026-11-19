@@ -48,7 +48,7 @@ export default function PlansScreen() {
   );
 
   return (
-    <ScreenContainer>
+    <ScreenContainer insetEdges={[]}>
       <View style={styles.page}>
         <AppText variant="h1">Subscriptions, regional pricing &amp; token economics</AppText>
         <AppText color="muted">
