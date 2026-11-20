@@ -6,12 +6,16 @@ import type {
   WorkSlotAuditSummary,
 } from '../types/workspace';
 import { isSafeExternalUrl } from './navigationHistory';
+import { isKnownSection, normalizeSectionTitle, resolveSectionDescription } from './sectionCatalog';
+import { generateId } from './uuid';
 
 export interface DraftSection {
   id: string;
   title: string;
   text: string;
   evidence: string;
+  description?: string;
+  isCustom?: boolean;
 }
 export interface DraftVersion {
   id: string;
@@ -24,6 +28,8 @@ export interface DraftVersion {
 export interface DraftWorkbench {
   kind: ProjectKind;
   outputs: OutputKind[];
+  templateApplied?: boolean;
+  removedCatalogSections?: string[];
   sections: DraftSection[];
   pitchSlides?: PitchSlide[];
   requirementMappings?: RequirementMapping[];
@@ -39,6 +45,15 @@ export interface DraftWorkbench {
 export const templates: Record<ProjectKind, readonly string[]> = {
   grant: ['Project summary', 'Objectives', 'Delivery plan', 'Budget'],
   startup: ['Problem', 'Solution', 'Market', 'Business model'],
+  rd: [
+    'Hypothesis & novelty',
+    'Tech stack',
+    'Methodology',
+    'Validation & TRL',
+    'IP & commercialization',
+    'Budget',
+    'Risk & safety',
+  ],
   social: ['Community need', 'Beneficiaries', 'Activities', 'Impact'],
   invention: ['Problem', 'Novelty', 'Technical approach', 'Validation'],
   other: ['Overview', 'Goals', 'Plan', 'Resources'],
@@ -51,6 +66,7 @@ export const DEFAULT_PITCH_SLIDES: readonly PitchSlide[] = [
 export const emptyWorkbench = (): DraftWorkbench => ({
   kind: 'grant',
   outputs: ['application'],
+  removedCatalogSections: [],
   sections: [],
   pitchSlides: DEFAULT_PITCH_SLIDES.map((s) => ({ ...s })),
   requirementMappings: [],
@@ -83,6 +99,128 @@ export function applyTemplate(
       ...work.sections,
       ...additions.map((title) => ({ id: `template:${title}`, title, text: '', evidence: '' })),
     ],
+  };
+}
+
+/**
+ * Applies a simplified Form Template configuration (type, outputs, ordered required sections)
+ * while preserving existing drafted section text and keeping standard catalog descriptions fixed.
+ */
+export function applySelectedTemplate(
+  work: DraftWorkbench,
+  kind: ProjectKind,
+  outputs: OutputKind[],
+  selectedSections: readonly { title: string; description?: string }[]
+): DraftWorkbench {
+  if (!outputs.length) throw new Error('Choose at least one output');
+  if (!selectedSections.length) throw new Error('Select at least one required section');
+
+  const byNorm = new Map<string, DraftSection>();
+  for (const existing of work.sections) {
+    byNorm.set(normalizeSectionTitle(existing.title), existing);
+  }
+
+  const seen = new Set<string>();
+  const nextSections: DraftSection[] = [];
+  for (const item of selectedSections) {
+    const cleanTitle = item.title.trim().replace(/\s+/g, ' ');
+    const norm = normalizeSectionTitle(cleanTitle);
+    if (!cleanTitle || seen.has(norm)) continue;
+    seen.add(norm);
+    const existing = byNorm.get(norm);
+    const known = isKnownSection(cleanTitle);
+    const resolved = resolveSectionDescription(
+      cleanTitle,
+      item.description ?? existing?.description
+    );
+    nextSections.push({
+      id: existing?.id ?? generateId('sec'),
+      title: cleanTitle,
+      text: existing?.text ?? '',
+      evidence: existing?.evidence ?? '',
+      description: known ? undefined : resolved.description,
+      isCustom: !known,
+    });
+  }
+
+  if (!nextSections.length) throw new Error('Select at least one required section');
+  const existingSlides = work.pitchSlides?.length
+    ? work.pitchSlides
+    : DEFAULT_PITCH_SLIDES.map((s) => ({ ...s }));
+
+  return {
+    ...work,
+    kind,
+    outputs: [...outputs],
+    templateApplied: true,
+    removedCatalogSections: [],
+    pitchSlides: existingSlides,
+    sections: nextSections,
+  };
+}
+
+export function upsertWorkbenchSection(
+  work: DraftWorkbench,
+  input: { title: string; text?: string; description?: string }
+): DraftWorkbench {
+  const cleanTitle = input.title.trim().replace(/\s+/g, ' ');
+  if (!cleanTitle) throw new Error('Enter a section title');
+  const norm = normalizeSectionTitle(cleanTitle);
+  const nextRemoved = work.removedCatalogSections?.filter(
+    (item) => normalizeSectionTitle(item) !== norm
+  );
+  const known = isKnownSection(cleanTitle);
+  const existingIndex = work.sections.findIndex((s) => normalizeSectionTitle(s.title) === norm);
+  if (existingIndex === -1) {
+    const resolved = resolveSectionDescription(cleanTitle, input.description);
+    const nextSection: DraftSection = {
+      id: generateId('sec'),
+      title: cleanTitle,
+      text: input.text ?? '',
+      evidence: '',
+      description: known ? undefined : resolved.description,
+      isCustom: !known,
+    };
+    return {
+      ...work,
+      removedCatalogSections: nextRemoved,
+      sections: [...work.sections, nextSection],
+    };
+  }
+  const existing = work.sections[existingIndex];
+  const nextDescription = known
+    ? undefined
+    : resolveSectionDescription(cleanTitle, input.description ?? existing.description).description;
+  const updated: DraftSection = {
+    ...existing,
+    title: cleanTitle,
+    text: input.text !== undefined ? input.text : existing.text,
+    description: nextDescription,
+    isCustom: !known,
+  };
+  return {
+    ...work,
+    removedCatalogSections: nextRemoved,
+    sections: work.sections.map((item, idx) => (idx === existingIndex ? updated : item)),
+  };
+}
+
+export function removeWorkbenchSection(work: DraftWorkbench, title: string): DraftWorkbench {
+  const cleanTitle = title.trim().replace(/\s+/g, ' ');
+  const norm = normalizeSectionTitle(cleanTitle);
+  if (!norm) return work;
+  const remaining = work.sections.filter((s) => normalizeSectionTitle(s.title) !== norm);
+  if (work.templateApplied) {
+    if (remaining.length === work.sections.length) return work;
+    return { ...work, sections: remaining };
+  }
+  const existingRemoved = work.removedCatalogSections ?? [];
+  const alreadyRemoved = existingRemoved.some((item) => normalizeSectionTitle(item) === norm);
+  if (remaining.length === work.sections.length && alreadyRemoved) return work;
+  return {
+    ...work,
+    sections: remaining,
+    removedCatalogSections: alreadyRemoved ? existingRemoved : [...existingRemoved, cleanTitle],
   };
 }
 export function validSource(value: string) {

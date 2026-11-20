@@ -1,7 +1,13 @@
 import type { Href } from 'expo-router';
 import { isValidGrantId } from '@/utils/navigationHistory';
 
-const STATIC_RETURN_PATHS = new Set(['/discover', '/my-works', '/project-profile', '/settings']);
+const STATIC_RETURN_PATHS = new Set([
+  '/form-templates',
+  '/discover',
+  '/my-works',
+  '/project-profile',
+  '/settings',
+]);
 const GRANT_RETURN_VIEWS = new Set([
   'dashboard',
   'discovery-studio',

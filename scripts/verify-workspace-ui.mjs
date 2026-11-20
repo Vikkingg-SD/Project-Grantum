@@ -145,6 +145,7 @@ try {
         passed: true,
       });
       for (const [name, route, heading] of [
+        ['templates', '/form-templates', 'Form templates'],
         ['profile', '/project-profile', 'Project Profile'],
         ['works', '/my-works', 'My Works'],
         ['settings', '/settings', 'Personal settings'],
@@ -157,7 +158,7 @@ try {
           0,
           'Sustained workflows must be pages'
         );
-        if (name === 'profile' || name === 'works') {
+        if (name === 'templates' || name === 'profile' || name === 'works') {
           const columns = page.getByTestId('workspace-columns');
           const bounds = await columns.boundingBox();
           assert.ok(
@@ -343,38 +344,60 @@ try {
         .first()
         .click();
       await expect(page).toHaveURL(/grants\/1\/drafting$/);
-      const openWorkbench = async () => {
-        await page.getByRole('button', { name: 'Drafting options', exact: true }).click();
-        await page.getByRole('button', { name: 'Form templates', exact: true }).click();
-        await expect(
-          page.getByRole('dialog', { name: 'Form templates and drafting', exact: true })
-        ).toBeVisible();
-      };
-      await openWorkbench();
+      await expect(
+        page.getByText('Agent offline - messages stay in this session', { exact: false })
+      ).toHaveCount(0);
+      await expect(page.getByTestId('drafting-llm-disclosure')).toBeVisible();
+      await page.getByRole('button', { name: 'Form templates', exact: true }).click();
+      await expect(page).toHaveURL(`${origin}/form-templates`);
+      await expect(page.getByText('Owner', { exact: true })).toBeVisible();
+      await expect(page.getByText(/OWNER · Saved|Saved on device/i)).toHaveCount(0);
+      await expect(
+        page.getByRole('heading', { name: 'Workspace Context Dock', exact: true })
+      ).toHaveCount(0);
+      for (const removedTab of ['Sections', 'Requirements', 'History', 'Review & handoff']) {
+        await expect(page.getByRole('button', { name: removedTab, exact: true })).toHaveCount(0);
+      }
+      await page.getByRole('button', { name: 'Grant', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Proposal', exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Startup', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Unit economics', exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'R&D', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Tech stack', exact: true })).toBeVisible();
+      await page
+        .getByRole('textbox', { name: 'New section name', exact: true })
+        .fill('Field safety telemetry');
+      await page
+        .getByRole('textbox', { name: 'New section description', exact: true })
+        .fill('Document continuous isolation and safety telemetry checks.');
+      await page.getByRole('button', { name: 'Create new section', exact: true }).click();
       await page.getByRole('button', { name: 'Apply template', exact: true }).click();
-      const authored = page.getByRole('textbox', { name: 'Project summary', exact: true });
-      await authored.fill('Authored narrative survives a reload');
-      await page
-        .getByRole('button', {
-          name: 'Draft suggestion for Project summary',
-          exact: true,
-        })
-        .click();
-      await expect(page.getByText(/Suggested template \(not AI-verified\)/)).toBeVisible();
-      await expect(page.getByText(/verified against/)).toHaveCount(0);
-      await page.getByRole('button', { name: 'Reject suggestion', exact: true }).click();
-      await expect(authored).toHaveValue('Authored narrative survives a reload');
-      await page
-        .getByRole('textbox', { name: 'Version change summary', exact: true })
-        .fill('Reload persistence regression');
-      await page.getByRole('button', { name: 'Save draft version', exact: true }).click();
-      await expect(page.getByText(/OWNER · Saved/)).toBeVisible();
+      await page.getByRole('button', { name: 'Open Drafting workspace', exact: true }).click();
+      await expect(page).toHaveURL(/grants\/1\/drafting$/);
+      const openSection = async (accessibleName) => {
+        await page.getByRole('button', { name: /^Required sections/ }).click();
+        await expect(page.getByRole('button', { name: 'Mark missing', exact: true })).toHaveCount(
+          0
+        );
+        const link = page.getByRole('button', { name: accessibleName, exact: true });
+        const nextBtn = page.getByRole('button', { name: 'Next sections', exact: true });
+        while (!(await link.isVisible().catch(() => false)) && (await nextBtn.isEnabled())) {
+          await nextBtn.click();
+        }
+        await link.click();
+      };
+      await openSection('Field safety telemetry requirements');
+      const customDraftInput = page.getByRole('textbox', {
+        name: 'Section draft content',
+        exact: true,
+      });
+      await customDraftInput.fill('Authored narrative survives a reload');
+      await page.getByRole('button', { name: 'Save section draft', exact: true }).click();
+      await page.getByRole('button', { name: 'Done', exact: true }).click();
       await page.reload();
-      await openWorkbench();
-      await page.getByRole('button', { name: 'Sections', exact: true }).click();
-      await expect(authored).toHaveValue('Authored narrative survives a reload');
-      await page.getByRole('button', { name: 'History', exact: true }).click();
-      await expect(page.getByText('Reload persistence regression', { exact: true })).toBeVisible();
+      await openSection('Field safety telemetry requirements');
+      await expect(customDraftInput).toHaveValue('Authored narrative survives a reload');
+      await page.getByRole('button', { name: 'Done', exact: true }).click();
       await page.screenshot({ path: path.join(output, `draft-history-${width}-${theme}.png`) });
       const stored = await page.evaluate(() =>
         globalThis.localStorage.getItem('grantum.workbench.v1')
@@ -382,7 +405,6 @@ try {
       assert.ok(stored.includes('Authored narrative survives a reload'));
       assert.ok(!stored.includes('grants.example.org'));
       if (!remote && width === 1440 && theme === 'light') {
-        await page.keyboard.press('Escape');
         const tab = (name) => page.getByRole('tab', { name, exact: true });
         const chat = page.getByRole('textbox', { name: 'Chat with agent', exact: true });
         const narrative = page.getByRole('textbox', {
@@ -409,35 +431,38 @@ try {
         const file = page.getByRole('button', { name: 'Remove project-a.pdf', exact: true });
         await expect(file).toBeVisible();
         await closeFiles();
+        await expect(page.getByTestId('composer-attachment-tray')).toBeVisible();
+        await expect(
+          page.getByRole('button', { name: 'Remove attached project-a.pdf', exact: true })
+        ).toBeVisible();
         await tab('Export').click();
         await narrative.fill('Project A private application narrative');
         await tab('Drafting').click();
         await chat.fill('Unsent note for project A');
-        await openWorkbench();
-        const switchProject = async (name) => {
-          const dialog = page.getByRole('dialog', { name: 'Form templates and drafting' });
-          await dialog.getByRole('button', { name, exact: true }).click();
-          await expect(dialog).toBeHidden();
-        };
-        await switchProject('Community Health & STEM Lab');
+        await page.getByRole('button', { name: 'Project Profile', exact: true }).click();
+        await page
+          .getByRole('button', { name: 'Community Health & STEM Lab', exact: true })
+          .click();
+        await page.getByRole('button', { name: 'Resume last grant view', exact: true }).click();
         await expect(chat).toHaveValue('');
         const note = page
           .getByText('Project A drafting note', { exact: true })
           .filter({ visible: true });
         await expect(note).toHaveCount(0);
-        await openFiles();
-        await expect(file).toHaveCount(0);
-        await closeFiles();
+        await expect(
+          page.getByRole('button', { name: 'Remove attached project-a.pdf', exact: true })
+        ).toHaveCount(0);
         await tab('Export').click();
         await expect(narrative).not.toHaveValue('Project A private application narrative');
         await narrative.fill('Project B application narrative');
         await tab('Drafting').click();
-        await openWorkbench();
-        await switchProject('Saved workspace project');
+        await page.getByRole('button', { name: 'Project Profile', exact: true }).click();
+        await page.getByRole('button', { name: 'Saved workspace project', exact: true }).click();
+        await page.getByRole('button', { name: 'Resume last grant view', exact: true }).click();
         await expect(note.first()).toBeVisible();
-        await openFiles();
-        await expect(file).toBeVisible();
-        await closeFiles();
+        await expect(
+          page.getByRole('button', { name: 'Remove attached project-a.pdf', exact: true })
+        ).toBeVisible();
         await tab('Export').click();
         await expect(narrative).toHaveValue('Project A private application narrative');
       }
@@ -538,7 +563,7 @@ try {
 process.stdout.write(JSON.stringify(findings, null, 2) + '\n');
 if (diagnostics.length) process.stderr.write(JSON.stringify({ diagnostics }, null, 2) + '\n');
 assert.ok(
-  findings.length === (focusOnly ? 6 : 60) &&
+  findings.length === (focusOnly ? 6 : 66) &&
     findings.every((row) => row.passed) &&
     diagnostics.length === 0,
   'Workspace copy/layout regression; see captures and report'

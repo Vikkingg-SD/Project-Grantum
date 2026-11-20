@@ -9,17 +9,20 @@ export interface ComposerKeyInput {
 
 export type ComposerKeyAction = 'none' | 'prevent' | 'send';
 
-export function canSendMessage(value: string, disabled = false): boolean {
-  return !disabled && value.length <= MAX_INPUT_CHARS && value.trim().length > 0;
+export function canSendMessage(value: string, disabled = false, attachmentCount = 0): boolean {
+  return (
+    !disabled && value.length <= MAX_INPUT_CHARS && (value.trim().length > 0 || attachmentCount > 0)
+  );
 }
 
 export function composerKeyAction(
   event: ComposerKeyInput,
   value: string,
-  disabled = false
+  disabled = false,
+  attachmentCount = 0
 ): ComposerKeyAction {
   if (event.key !== 'Enter' || event.shiftKey || event.isComposing || event.keyCode === 229) {
     return 'none';
   }
-  return canSendMessage(value, disabled) ? 'send' : 'prevent';
+  return canSendMessage(value, disabled, attachmentCount) ? 'send' : 'prevent';
 }

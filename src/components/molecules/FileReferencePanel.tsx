@@ -31,7 +31,9 @@ export function FileReferencePanel({
       <IconButton
         label="File references"
         onPress={() => setOpen(!open)}
-        icon={<Paperclip size={20} color={theme.textMuted} />}
+        icon={
+          <Paperclip size={20} color={files.length > 0 ? theme.primaryText : theme.textMuted} />
+        }
       />
       <ModalSheetLayout
         visible={open}
@@ -47,8 +49,7 @@ export function FileReferencePanel({
             File references
           </AppText>
           <AppText variant="caption" color="muted" align="center">
-            Attach up to 5 file references to keep alongside your draft. Only names, types, and
-            sizes are stored until file upload connects.
+            Attach up to 5 files to preview above the composer and send with your message.
           </AppText>
           <AttachmentOptionGrid onChoose={onChoose} disabled={busy || files.length >= 5} />
           {busy && (
@@ -64,7 +65,7 @@ export function FileReferencePanel({
           {files.map((file) => (
             <View key={file.id} style={[styles.fileItem, { borderColor: theme.border }]}>
               <AppText style={styles.name}>
-                {file.name} · {Math.ceil(file.size / 1024)} KB
+                {file.name} · {Math.max(1, Math.ceil(file.size / 1024))} KB
               </AppText>
               <AppButton
                 label={`Remove ${file.name}`}
@@ -84,6 +85,9 @@ export function FileReferencePanel({
             <AppText color="failure" align="center" accessibilityRole="alert">
               {error}
             </AppText>
+          )}
+          {files.length > 0 && (
+            <AppButton label="Done" variant="primary" onPress={() => setOpen(false)} />
           )}
         </ScrollView>
       </ModalSheetLayout>

@@ -2,7 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getDataSource } from '../dataSource';
 import { AuditScanResponse } from '@/types/api';
 import { ENV } from '@/config/env';
+import { useDraftStore } from '@/store/useDraftStore';
 import { queryKeys } from '../queryKeys';
+
+export interface AuditTriggerInput {
+  snapshotSignature?: string;
+  allComplete?: boolean;
+}
 
 export function auditPollingInterval(
   data: AuditScanResponse | null | undefined,
@@ -27,17 +33,26 @@ export function useAuditStatus(grantId: string, isScanning = false) {
   });
 }
 
-export function useTriggerAuditScan(grantId: string) {
+export function useTriggerAuditScan(grantId: string, slotKey?: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (_input?: AuditTriggerInput | void) => {
       if (!grantId) throw new Error('Select a grant before running an audit.');
       const ds = getDataSource();
       return ds.runAudit(grantId);
     },
-    onSuccess: (scan) => {
+    onSuccess: (scan, input) => {
       queryClient.setQueryData(queryKeys.audit(grantId), scan);
       void queryClient.invalidateQueries({ queryKey: queryKeys.draft(grantId) });
+      if (
+        slotKey &&
+        input &&
+        input.snapshotSignature &&
+        input.allComplete &&
+        scan.missingSections.length === 0
+      ) {
+        useDraftStore.getState().recordAuditSnapshot(slotKey, input.snapshotSignature);
+      }
     },
   });
 }

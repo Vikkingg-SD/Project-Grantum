@@ -38,7 +38,7 @@ export function ModalSheetLayout({
     <Modal
       visible={visible}
       transparent
-      animationType={reduceMotion ? 'none' : 'fade'}
+      animationType={Platform.OS === 'web' || reduceMotion ? 'none' : 'fade'}
       onRequestClose={onClose}
       accessibilityLabel={accessibilityLabel}
     >

@@ -8,11 +8,13 @@ import { AppTextArea } from '@/components/atoms/AppTextArea';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import { useProposalDraft } from '@/api/hooks/useProposalDraft';
+import { useAuditStatus } from '@/api/hooks/useAuditScan';
 import { useExportBundle } from '@/api/hooks/useExportBundle';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
+import { useApplicationAuditState } from '@/hooks/useApplicationAuditState';
 import { MAX_INPUT_CHARS, TIERS } from '@/config/constants';
 import { EXPORT_FORMATS } from '@/config/exportFormats';
 import { GrantContext } from '@/components/molecules/GrantContext';
@@ -20,7 +22,6 @@ import { ENV } from '@/config/env';
 import { useTheme } from '@/hooks/useTheme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { RADIUS, SPACING } from '@/config/theme';
-import { isExportUnlocked } from '@/utils/scoring';
 import { fullArtifactBundleText } from '@/utils/drafting';
 import {
   buildSafeExportFilename,
@@ -50,6 +51,7 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
   const activeRole = useWorkspaceStore((state) => state.activeRole);
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
   const draft = useProposalDraft(grantId);
+  const scan = useAuditStatus(grantId);
   const mutation = useExportBundle(grantId);
   const [format, setFormat] = useState<ExportFormat | null>(null);
   const [downloadError, setDownloadError] = useState('');
@@ -62,6 +64,22 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
     (app) => app.projectId === activeProjectId && app.grantId === grantId
   );
   const canEdit = canRolePerform(activeRole, 'edit');
+
+  const rawRequired = draft.data?.requiredSections;
+  const rawCompleted = draft.data?.completedSections;
+  const rawBody = draft.data?.body;
+  const runningAudit = scan.data?.status === 'running';
+
+  const { incompleteSections, confidenceScore, auditStale, unlocked } = useApplicationAuditState({
+    requiredSections: rawRequired,
+    completedSections: rawCompleted,
+    work,
+    exportBody: local.exportDocument ?? rawBody ?? '',
+    contentRevision: local.contentRevision,
+    auditedSignature: local.auditedSignature,
+    scanStatus: scan.data?.status,
+    running: runningAudit,
+  });
 
   if (!grantId || draft.isPending || draft.isError || !draft.data) {
     return (
@@ -83,6 +101,7 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
       </ScreenContainer>
     );
   }
+
   const selectedFormat = EXPORT_FORMATS.find((item) => item.id === format);
   const documentBody = local.exportDocument ?? draft.data.body;
   const localBodyReady = Boolean(documentBody.trim()) && documentBody.length <= MAX_INPUT_CHARS;
@@ -91,6 +110,7 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
     activeApp?.profileRevisionId ?? activeProject?.currentRevisionId ?? 'latest';
   const txtFilename = buildSafeExportFilename(activeProjectName, grantId, 'txt');
   const mdFilename = buildSafeExportFilename(activeProjectName, grantId, 'md');
+
   const handleLocalDownload = (localFormat: LocalTextFormat) => {
     try {
       const filename = localFormat === 'txt' ? txtFilename : mdFilename;
@@ -115,8 +135,6 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
       setDownloadError(e instanceof Error ? e.message : 'Unable to export file.');
     }
   };
-  const unlocked =
-    draft.data.requiredSections.length > 0 && isExportUnlocked(draft.data.confidenceScore);
   const result =
     requestedGrantId === grantId &&
     !mutation.isPending &&
@@ -128,7 +146,7 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
     <ScreenContainer>
       <View style={styles.content}>
         <AppText variant="h1" align="center">
-          Review & export
+          Review &amp; export
         </AppText>
         <GrantContext grantId={grantId} />
         <WorkspaceStudioBar />
@@ -150,7 +168,7 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
           </View>
           <AppText variant="caption" color="muted">
             Active Project: {activeProject?.name ?? activeProjectId} · Pinned Profile:{' '}
-            {activeApp?.profileRevisionId ?? activeProject?.currentRevisionId} · Studio Sections:{' '}
+            {activeApp?.profileRevisionId ?? activeProject?.currentRevisionId} · Template Sections:{' '}
             {work.sections.length}
           </AppText>
           {bundleNotice ? <AppText color="verified">{bundleNotice}</AppText> : null}
@@ -226,6 +244,13 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
             </Pressable>
           ))}
         </View>
+        {auditStale && (
+          <StatusBadge
+            label="Checks incomplete — run Audit again"
+            variant="pending"
+            style={styles.centerBadge}
+          />
+        )}
         <AppTextArea
           label="Application narrative"
           value={documentBody}
@@ -240,11 +265,15 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
             <View style={styles.formats}>
               <StatusBadge
                 label={
-                  unlocked
-                    ? `Checklist ready - ${draft.data.confidenceScore}% complete`
-                    : `Needs ${TIERS.confidence.pass}% completeness · currently ${draft.data.confidenceScore}%`
+                  auditStale
+                    ? 'Checks incomplete — run Audit again'
+                    : unlocked
+                      ? `Checklist ready - ${confidenceScore}% complete`
+                      : incompleteSections.length > 0
+                        ? `Complete all required sections · ${confidenceScore}% complete`
+                        : `Needs ${TIERS.confidence.pass}% completeness · currently ${confidenceScore}%`
                 }
-                variant={unlocked ? 'verified' : 'pending'}
+                variant={!auditStale && unlocked ? 'verified' : 'pending'}
               />
               <StatusBadge label={'Selected - ' + selectedFormat.label} variant="neutral" />
             </View>
@@ -308,6 +337,7 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
 }
 const styles = StyleSheet.create({
   content: { gap: SPACING.md },
+  centerBadge: { alignSelf: 'center' },
   card: { padding: SPACING.md, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACING.sm },
   rowBetween: {
     flexDirection: 'row',

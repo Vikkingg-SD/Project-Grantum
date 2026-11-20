@@ -358,18 +358,18 @@ try {
     }
   );
   await check(
-    'Given drafting, when a requirement is changed, then status and audit agree',
+    'Given drafting, when sections, guidance, and attachments change, then chat and audit agree',
     async () => {
       await page.getByRole('button', { name: 'Help me apply', exact: true }).first().click();
+      await expect(page.getByTestId('drafting-llm-disclosure')).toBeVisible();
       await page.getByRole('button', { name: 'Required sections (6/6)', exact: true }).click();
-      await page.getByRole('button', { name: 'Mark missing', exact: true }).first().click();
-      await expect(
-        page.getByRole('button', { name: 'Required sections (5/6)', exact: true })
-      ).toBeVisible();
-      await page.getByRole('button', { name: 'Restore all sections', exact: true }).click();
-      await expect(
-        page.getByRole('button', { name: 'Required sections (6/6)', exact: true })
-      ).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Mark missing', exact: true })).toHaveCount(0);
+      await page.getByRole('button', { name: 'Next sections', exact: true }).click();
+      await page.getByRole('button', { name: 'Moat requirements', exact: true }).click();
+      await expect(page.getByTestId('section-fixed-description')).toContainText(
+        'technological or any other edge'
+      );
+      await page.getByRole('button', { name: 'Done', exact: true }).click();
       await page.getByRole('button', { name: 'Required sections (6/6)', exact: true }).click();
       await page
         .getByRole('textbox', { name: 'Chat with agent', exact: true })
@@ -429,6 +429,10 @@ try {
       ).toHaveCount(0);
       await page.keyboard.press('Escape');
       await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expect(page.getByTestId('composer-attachment-tray')).toBeVisible();
+      await page.getByRole('button', { name: 'Send message', exact: true }).click();
+      await expect(page.getByTestId('chat-message-attachments')).toBeVisible();
+      await expect(page.getByTestId('composer-attachment-tray')).toHaveCount(0);
       await page.getByRole('tab', { name: 'Audit', exact: true }).click();
       await page.getByRole('button', { name: 'Audit prompts', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Budget', exact: true })).toBeVisible();
@@ -468,16 +472,32 @@ try {
     }
   );
   await check(
-    'Given missing required section, when viewing Audit, then Action required badge uses failure color',
+    'Given incomplete added section or edited Export narrative, when viewing Audit, then Action required and Checks incomplete reflect changes',
     async () => {
-      await page.goto(`${origin}/grants/1/drafting`);
+      await page.goto(`${origin}/grants/1/audit-studio`);
+      await page.getByRole('button', { name: 'Run audit', exact: true }).click();
+      await expect(page.getByText('Checklist check passed', { exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Next navigation tabs' }).click();
+      await page.getByRole('tab', { name: 'Export', exact: true }).click();
+      await page
+        .getByRole('textbox', { name: 'Application narrative', exact: true })
+        .fill('Edited application narrative invalidates prior green audit');
+      await page.getByRole('button', { name: 'Previous navigation tabs' }).click();
+      await page.getByRole('tab', { name: 'Audit', exact: true }).click();
+      await expect(page.getByText('Checklist check passed', { exact: true })).toHaveCount(0);
+      await expect(page.getByText('Checks incomplete', { exact: true }).last()).toBeVisible();
+      await page.getByRole('tab', { name: 'Drafting', exact: true }).click();
       await page.getByRole('button', { name: 'Required sections (6/6)', exact: true }).click();
-      await page.getByRole('button', { name: 'Mark missing', exact: true }).first().click();
+      await page.getByRole('button', { name: 'Add section', exact: true }).click();
+      await page
+        .getByRole('textbox', { name: 'New section name', exact: true })
+        .fill('Compliance plan');
+      await page.getByRole('button', { name: 'Save section', exact: true }).click();
       await expect(
-        page.getByRole('button', { name: 'Required sections (5/6)', exact: true })
+        page.getByRole('button', { name: 'Required sections (6/7)', exact: true })
       ).toBeVisible();
       await page.getByRole('tab', { name: 'Audit', exact: true }).click();
-      const actionBadge = page.getByText('Action required', { exact: true });
+      const actionBadge = page.getByText('Action required', { exact: true }).last();
       await expect(actionBadge).toBeVisible();
       const badgeColor = await actionBadge.evaluate((el) => getComputedStyle(el).color);
       assert.equal(badgeColor, 'rgb(255, 90, 95)');

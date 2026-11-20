@@ -3,6 +3,8 @@ import { View, StyleSheet } from 'react-native';
 import Bot from 'lucide-react-native/icons/bot';
 import User from 'lucide-react-native/icons/user';
 import { AppText } from '../atoms/AppText';
+import { AttachmentIcon } from '../atoms/AttachmentIcon';
+import { StatusBadge } from '../atoms/StatusBadge';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
 import { CHAT_COPY } from '@/config/copy';
@@ -18,6 +20,8 @@ export const ChatMessageBubble = memo(function ChatMessageBubble({
   variant = 'assistant-narrative',
   timestamp,
   status,
+  attachments,
+  toolLabel,
 }: ChatMessageBubbleProps) {
   const mode = useThemeStore((state) => state.mode);
   const theme = PALETTE[mode];
@@ -41,7 +45,35 @@ export const ChatMessageBubble = memo(function ChatMessageBubble({
             {timestamp ?? CHAT_COPY.now}
           </AppText>
         </View>
-        <AppText>{text}</AppText>
+        {Boolean(toolLabel) && (
+          <View style={styles.toolBadgeWrap}>
+            <StatusBadge label={`Tool: ${toolLabel}`} variant="brand" />
+          </View>
+        )}
+        {Boolean(text.trim()) && <AppText>{text}</AppText>}
+        {Boolean(attachments && attachments.length > 0) && (
+          <View testID="chat-message-attachments" style={styles.attachments}>
+            {attachments!.map((file) => (
+              <View
+                key={file.id}
+                style={[
+                  styles.attachmentPill,
+                  { backgroundColor: isUser ? theme.surface : theme.subtle },
+                ]}
+              >
+                <AttachmentIcon
+                  name={file.name}
+                  type={file.type}
+                  size={14}
+                  color={theme.primaryText}
+                />
+                <AppText variant="caption" numberOfLines={1} style={styles.attachmentName}>
+                  {file.name} · {Math.max(1, Math.ceil(file.size / 1024))} KB
+                </AppText>
+              </View>
+            ))}
+          </View>
+        )}
         {status === 'error' && (
           <AppText variant="caption" color="failure" style={styles.error}>
             {CHAT_COPY.failed}
@@ -63,7 +95,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
+    gap: SPACING.xs,
   },
-  header: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.xs },
-  error: { marginTop: SPACING.sm },
+  header: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+  toolBadgeWrap: { alignSelf: 'flex-start' },
+  attachments: { gap: SPACING.xs, marginTop: SPACING.xs },
+  attachmentPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.sm,
+    maxWidth: '100%',
+  },
+  attachmentName: { flexShrink: 1, minWidth: 0 },
+  error: { marginTop: SPACING.xs },
 });

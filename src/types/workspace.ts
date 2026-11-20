@@ -1,5 +1,5 @@
 /** Workspace, multi-slot drafting, verifiable match, and co-work role contracts. */
-export type ProjectKind = 'grant' | 'startup' | 'social' | 'invention' | 'other';
+export type ProjectKind = 'grant' | 'startup' | 'rd' | 'social' | 'invention' | 'other';
 export type OutputKind = 'application' | 'pitch-deck' | 'document';
 export type CoWorkRole = 'owner' | 'editor' | 'reviewer' | 'viewer';
 export type CoWorkAction = 'view' | 'edit' | 'review' | 'submit' | 'manage-project';

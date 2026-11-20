@@ -330,54 +330,56 @@ export async function auditInterfaces(browser, origin, runtime) {
           await expect(history).toHaveAttribute('aria-expanded', 'false');
         }
       );
-      await record('Drafting options and each workbench tab opens and dismisses', async () => {
-        await goto('/grants/1/drafting');
-        const composer = page.getByRole('textbox', { name: 'Chat with agent', exact: true });
-        assert.ok(
-          await composer.evaluate((el) => {
-            const style = getComputedStyle(el);
-            return (
-              el.clientHeight >=
-              parseFloat(style.lineHeight) * 2 +
-                parseFloat(style.paddingTop) +
-                parseFloat(style.paddingBottom)
-            );
-          }),
-          'Composer must display at least two lines without clipping'
-        );
-        await button('Drafting options').click();
-        await expect(page.getByRole('dialog')).toBeVisible();
-        await button('Tab 2: Quick Convenience Prompts').click();
-        await capture(`${width}-drafting-quick-prompts`);
-        await button('Tab 1: Form & Track Templates').click();
-        await capture(`${width}-drafting-templates-menu`);
-        await button('Form templates').click();
-        const dialog = page.getByRole('dialog', {
-          name: 'Form templates and drafting',
-          exact: true,
-        });
-        await expect(dialog).toBeVisible();
-        if (width >= 1024)
+      await record(
+        'Tools hero menu, Convenience prompts, and Form templates page work',
+        async () => {
+          await goto('/grants/1/drafting');
+          const composer = page.getByRole('textbox', { name: 'Chat with agent', exact: true });
           assert.ok(
-            (await page.getByTestId('workspace-sheet').boundingBox()).width >= 1000,
-            'Workbench requires room for desktop columns'
+            await composer.evaluate((el) => {
+              const style = getComputedStyle(el);
+              return (
+                el.clientHeight >=
+                parseFloat(style.lineHeight) * 2 +
+                  parseFloat(style.paddingTop) +
+                  parseFloat(style.paddingBottom)
+              );
+            }),
+            'Composer must display at least two lines without clipping'
           );
-        for (const label of [
-          'Templates',
-          'Sections',
-          'Requirements',
-          'History',
-          'Review & handoff',
-        ]) {
-          await dialog.getByRole('button', { name: label, exact: true }).click();
-          await expect(dialog.getByRole('button', { name: label, exact: true })).toHaveAttribute(
-            'aria-pressed',
-            'true'
-          );
-          await capture(`${width}-studio-${label.replaceAll(/[^a-z]/gi, '')}`);
+          await button('Tools and prompts').click();
+          const toolsDialog = page.getByRole('dialog', { name: 'Tools and prompts', exact: true });
+          await expect(toolsDialog).toBeVisible();
+          for (const label of [
+            'Search Database',
+            'Create image',
+            'Create video',
+            'Create music',
+            'Canvas',
+            'Deep research (Grant writing)',
+            'Guided legal docs',
+          ]) {
+            await expect(
+              toolsDialog.getByRole('button', { name: label, exact: true })
+            ).toBeVisible();
+          }
+          await expect(toolsDialog.getByText('Convenience prompts', { exact: true })).toBeVisible();
+          await expect(toolsDialog.getByText(/Copy \d+ catalog requirements/)).toHaveCount(0);
+          await capture(`${width}-drafting-tools-menu`);
+          await toolsDialog
+            .getByRole('button', { name: 'Deep research (Grant writing)', exact: true })
+            .click();
+          await expect(toolsDialog).toHaveCount(0);
+          await expect(page.getByTestId('composer-attachment-tray')).toBeVisible();
+          await button('Remove tool Deep research (Grant writing)').click();
+          await goto('/form-templates');
+          for (const label of ['Grant', 'Startup', 'R&D']) {
+            await button(label).click();
+          }
+          await expect(button('Tech stack')).toBeVisible();
+          await capture(`${width}-form-templates-page`);
         }
-        await dismiss();
-      });
+      );
       await record('File-reference submenu supports each chooser and removal', async () => {
         await goto('/grants/1/drafting');
         await button('File references').click();

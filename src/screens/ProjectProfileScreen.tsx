@@ -21,8 +21,7 @@ import {
   toggleVaultDoc,
 } from '@/utils/workspace';
 import type { ProjectKind } from '@/types/workspace';
-
-const PROJECT_KINDS: readonly ProjectKind[] = ['grant', 'startup', 'social', 'invention', 'other'];
+import { PROJECT_KIND_OPTIONS } from '@/utils/sectionCatalog';
 
 const FIELD_LABELS = PROFILE_FIELD_DEFINITIONS.map(({ key, label }) => ({
   key,
@@ -275,14 +274,14 @@ export default function ProjectProfileScreen() {
               />
               <AppText variant="label">Project type</AppText>
               <View style={styles.rowWrap}>
-                {PROJECT_KINDS.map((item) => (
+                {PROJECT_KIND_OPTIONS.map((item) => (
                   <AppButton
-                    key={item}
+                    key={item.id}
                     size="sm"
-                    label={item}
-                    selected={kind === item}
+                    label={item.label}
+                    selected={kind === item.id}
                     disabled={!canEdit}
-                    onPress={() => setKind(item)}
+                    onPress={() => setKind(item.id)}
                   />
                 ))}
               </View>

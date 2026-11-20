@@ -8,6 +8,7 @@ function equal(actual: unknown, expected: unknown) {
 for (const value of [
   '/grants/2/drafting',
   '/grants/grant%2Fwith%20spaces/drafting',
+  '/form-templates',
   '/settings',
   '/discover',
   '/my-works',
@@ -33,6 +34,6 @@ for (const value of [
   equal(workspaceReturnPath(value), '/dashboard');
 }
 equal(workspaceReturnPath(['/grants/2/audit-studio']), '/grants/2/audit-studio');
-console.log(
+console.info(
   'PASS Given a plans return target, when validated, then grant identity is preserved and unsafe or privileged paths fall back'
 );

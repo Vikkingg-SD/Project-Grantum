@@ -1,3 +1,5 @@
+import type { LocalAttachment } from '@/utils/attachments';
+
 export type ChatVariant = 'user' | 'assistant-narrative' | 'assistant-auditor' | 'system';
 
 export interface ChatEntry {
@@ -5,4 +7,6 @@ export interface ChatEntry {
   text: string;
   variant: ChatVariant;
   timestamp?: string;
+  attachments?: LocalAttachment[];
+  toolLabel?: string;
 }
