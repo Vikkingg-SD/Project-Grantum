@@ -17,7 +17,7 @@ export interface AppButtonProps {
   label: string;
   accessibilityLabel?: string;
   onPress: () => void;
-  variant?: 'primary' | 'surface' | 'outline' | 'ghost' | 'danger';
+  variant?: 'primary' | 'surface' | 'outline' | 'ghost' | 'danger' | 'gold';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   disabled?: boolean;
@@ -72,6 +72,13 @@ export function AppButton({
           borderWidth: 0,
           opacity: pressed ? 0.85 : 1,
         };
+      case 'gold':
+        return {
+          backgroundColor: theme.gold,
+          borderWidth: 1,
+          borderColor: theme.goldText,
+          opacity: pressed ? 0.85 : 1,
+        };
       case 'surface':
       default:
         return {
@@ -83,7 +90,7 @@ export function AppButton({
   };
 
   const getTextColor = (): 'main' | 'muted' | 'primary' | 'primaryForeground' | 'failureText' => {
-    if (variant === 'primary') return 'primaryForeground';
+    if (variant === 'primary' || variant === 'gold') return 'primaryForeground';
     if (variant === 'ghost') return 'muted';
     return 'main';
   };
@@ -112,7 +119,7 @@ export function AppButton({
         <ActivityIndicator
           size="small"
           color={
-            variant === 'primary'
+            variant === 'primary' || variant === 'gold'
               ? theme.primaryForeground
               : variant === 'danger'
                 ? theme.failureForeground

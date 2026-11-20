@@ -94,6 +94,24 @@ export function GrantDetailModalSheet({
               {ENV.DATA_SOURCE === 'mock' ? MODAL_COPY.mockRecord : MODAL_COPY.apiRecord}
             </AppText>
           </View>
+          <View>
+            <AppText variant="caption" color="muted">
+              Project stage
+            </AppText>
+            <AppText variant="body">{grant.stage ?? 'Unspecified'}</AppText>
+          </View>
+          <View>
+            <AppText variant="caption" color="muted">
+              Participation format
+            </AppText>
+            <AppText variant="body">{grant.participation ?? 'Unspecified'}</AppText>
+          </View>
+          <View>
+            <AppText variant="caption" color="muted">
+              Team size
+            </AppText>
+            <AppText variant="body">{grant.teamSize ?? 'Unspecified'}</AppText>
+          </View>
         </View>
 
         <AppText variant="body" color="main" style={styles.summary}>

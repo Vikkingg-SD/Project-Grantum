@@ -454,26 +454,52 @@ try {
     }
   );
   await check(
-    'Given a source form, when errors clear, then inputs render without runtime errors',
+    'Given Bounty Hunt form, when bogus URL rejected and confirmed 6-field form submitted, then inputs render without runtime errors',
     async () => {
       await page.goto(`${origin}/discover`);
-      await page.getByRole('button', { name: 'Suggest a source', exact: true }).click();
-      const dialog = page.getByRole('dialog', { name: 'Suggest a source', exact: true });
+      await page.getByRole('button', { name: 'Bounty Hunt', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'Bounty Hunt', exact: true });
       await expect(dialog).toBeVisible();
-      await dialog.getByRole('button', { name: 'Save source', exact: true }).click();
+      await dialog.getByRole('button', { name: 'Submit for Bounty Hunt', exact: true }).click();
       await expect(
         dialog.getByRole('textbox', { name: 'Source title (required)', exact: true })
+      ).toHaveAttribute('aria-invalid', 'true');
+      await expect(
+        dialog.getByRole('textbox', { name: 'Location / region (required)', exact: true })
       ).toHaveAttribute('aria-invalid', 'true');
       await dialog
         .getByRole('textbox', { name: 'Source title (required)', exact: true })
         .fill('Official funding opportunities');
       await dialog
         .getByRole('textbox', { name: 'Official source URL (required)', exact: true })
+        .fill('https://bullshit.com');
+      await dialog.getByRole('button', { name: 'Verify link', exact: true }).click();
+      await expect(dialog.getByText('Link unconfirmed', { exact: true })).toBeVisible();
+      await expect(dialog.getByTestId('confirmed-source-link')).toHaveCount(0);
+      await dialog
+        .getByRole('textbox', { name: 'Official source URL (required)', exact: true })
         .fill('https://foundation.org/funding');
-      await dialog.getByRole('button', { name: 'Save source', exact: true }).click();
+      const confirmedLink = dialog.getByTestId('confirmed-source-link');
+      await expect(confirmedLink).toBeVisible();
+      await expect(confirmedLink).toHaveAttribute('href', 'https://foundation.org/funding');
+      await expect(confirmedLink).toHaveAttribute('target', '_blank');
+      await expect(confirmedLink).toHaveAttribute('rel', /noopener/);
+      await expect(confirmedLink).toHaveAttribute('rel', /noreferrer/);
+      await dialog
+        .getByRole('textbox', { name: 'Location / region (required)', exact: true })
+        .fill('Global');
+      await dialog.getByRole('button', { name: 'Use Not published', exact: true }).click();
+      await dialog
+        .getByRole('textbox', { name: 'Mission (required)', exact: true })
+        .fill('Support climate resilience research');
+      await dialog
+        .getByRole('textbox', { name: 'What Grantum should also note (required)', exact: true })
+        .fill('Requires institutional lead');
+      await dialog.getByRole('button', { name: 'Submit for Bounty Hunt', exact: true }).click();
       await expect(dialog).toBeHidden();
       await expect(page.getByText('Official funding opportunities', { exact: true })).toBeVisible();
-      await page.getByRole('button', { name: 'Suggest a source', exact: true }).click();
+      await expect(page.getByText('Pending review', { exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Bounty Hunt', exact: true }).click();
       await expect(dialog).toBeVisible();
       await expect(
         dialog.getByRole('textbox', { name: 'Source title (required)', exact: true })
