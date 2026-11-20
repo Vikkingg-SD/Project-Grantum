@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { AppText } from '../atoms/AppText';
 import { AppButton } from '../atoms/AppButton';
+import { StatusBadge } from '../atoms/StatusBadge';
 import { PressableBadge } from './PressableBadge';
 import { useThemeStore } from '@/store/useThemeStore';
 import { PALETTE, RADIUS, SPACING } from '@/config/theme';
@@ -10,18 +11,26 @@ import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { GRANT_CARD_COPY } from '@/config/copy';
 import { matchTier } from '@/utils/scoring';
 import { deadlineMetricColor } from '@/utils/presentation';
+import { extractGrantTags, isGrantTagHighlighted, type GrantFilters } from '@/utils/filters';
 import type { Grant } from '@/types/grant';
 
 export interface GrantCardProps {
   grant: Grant;
   onSelect: (grant: Grant) => void;
   onApply: (grant: Grant) => void;
+  activeFilters?: GrantFilters;
 }
 
-export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: GrantCardProps) {
+export const GrantCard = memo(function GrantCard({
+  grant,
+  onSelect,
+  onApply,
+  activeFilters,
+}: GrantCardProps) {
   const mode = useThemeStore((state) => state.mode);
   const theme = PALETTE[mode];
   const { effectiveWidth: width } = useLayoutMetrics();
+  const facetTags = extractGrantTags(grant);
 
   return (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -62,6 +71,15 @@ export const GrantCard = memo(function GrantCard({ grant, onSelect, onApply }: G
             {grant.deadline}
           </AppText>
         </View>
+      </View>
+      <View testID={`grant-card-tags-${grant.id}`} style={styles.tagsRow}>
+        {facetTags.map((tag) => (
+          <StatusBadge
+            key={tag.facet}
+            label={tag.label}
+            variant={isGrantTagHighlighted(tag, activeFilters) ? 'brand' : 'neutral'}
+          />
+        ))}
       </View>
       <View
         style={[
@@ -120,6 +138,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.sm,
     borderRadius: RADIUS.sm,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginBottom: SPACING.md,
   },
   footer: {
     flexDirection: 'row',

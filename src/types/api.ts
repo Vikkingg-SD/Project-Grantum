@@ -110,8 +110,12 @@ export interface OAuthResult {
 }
 
 export interface BountyInput {
+  submissionId?: string;
   title: string;
   url?: string;
+  region?: string;
+  prizePool?: string;
+  mission?: string;
   note?: string;
 }
 

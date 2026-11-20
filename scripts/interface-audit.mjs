@@ -309,14 +309,17 @@ export async function auditInterfaces(browser, origin, runtime) {
         }
       );
       await record(
-        'Source modal supports validation, cancel and saved-history expansion',
+        'Bounty Hunt modal supports validation, cancel and saved-history expansion',
         async () => {
           await goto('/discover');
-          await button('Suggest a source').click();
+          await button('Bounty Hunt').click();
           await expect(page.getByRole('dialog')).toBeVisible();
-          await button('Save source').click();
+          await button('Submit for Bounty Hunt').click();
           await expect(
             page.getByRole('textbox', { name: 'Source title (required)', exact: true })
+          ).toHaveAttribute('aria-invalid', 'true');
+          await expect(
+            page.getByRole('textbox', { name: 'Location / region (required)', exact: true })
           ).toHaveAttribute('aria-invalid', 'true');
           await button('Cancel').click();
           await expect(page.getByRole('dialog')).toHaveCount(0);

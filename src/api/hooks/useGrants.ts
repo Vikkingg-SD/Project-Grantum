@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getDataSource } from '../dataSource';
 import type { Grant } from '@/types/grant';
 import type { GrantSearchParams } from '@/types/api';
@@ -12,6 +12,7 @@ export function useGrants(query?: string | GrantSearchParams) {
       const ds = getDataSource();
       return ds.getGrants(params);
     },
+    placeholderData: keepPreviousData,
     staleTime: 1000 * 60 * 5,
   });
 }

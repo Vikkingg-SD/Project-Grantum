@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Grant } from '@/types/grant';
+import type { GrantFilters } from '@/utils/filters';
 import { GrantCard } from '../molecules/GrantCard';
 import { AppText } from '../atoms/AppText';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
@@ -10,12 +11,14 @@ export interface GrantDiscoveryGridProps {
   grants: Grant[];
   onSelect: (grant: Grant) => void;
   onApply: (grant: Grant) => void;
+  activeFilters?: GrantFilters;
 }
 
 export const GrantDiscoveryGrid = memo(function GrantDiscoveryGrid({
   grants,
   onSelect,
   onApply,
+  activeFilters,
 }: GrantDiscoveryGridProps) {
   const { desktop } = useLayoutMetrics();
   if (!grants.length) {
@@ -35,7 +38,12 @@ export const GrantDiscoveryGrid = memo(function GrantDiscoveryGrid({
     <View style={[styles.container, desktop && styles.columns]}>
       {grants.map((grant) => (
         <View key={grant.id} style={desktop ? styles.column : styles.fullWidth}>
-          <GrantCard grant={grant} onSelect={onSelect} onApply={onApply} />
+          <GrantCard
+            grant={grant}
+            onSelect={onSelect}
+            onApply={onApply}
+            activeFilters={activeFilters}
+          />
         </View>
       ))}
     </View>

@@ -19,7 +19,7 @@ import {
   type GrantPreflightRecord,
   type PreflightPersistedState,
 } from '../src/utils/eligibilityPreflight';
-import { filterGrants } from '../src/utils/filters';
+import { extractGrantTags, filterGrants, isGrantTagHighlighted } from '../src/utils/filters';
 import { useWorkspaceStore } from '../src/store/useWorkspaceStore';
 
 const check = (name: string, condition: boolean) => {
@@ -47,6 +47,34 @@ async function main() {
   check(
     'Given conflicting stage and participation filters When applied Then no grants match',
     mismatched.length === 0
+  );
+
+  const soloEligible = filterGrants(mockGrants, { participations: ['Solo'] });
+  const consortiumEligible = filterGrants(mockGrants, { participations: ['Consortium'] });
+  check(
+    'Given Solo or Consortium filter When a grant specifies Either Then applicant-intent matching includes that grant',
+    soloEligible.map((g) => g.id).join(',') === '2,3' &&
+      consortiumEligible.map((g) => g.id).join(',') === '1,2'
+  );
+
+  const tagsGrant2 = extractGrantTags(mockGrants[1]);
+  const missingTagGrant = extractGrantTags({
+    id: 'missing-tags',
+    title: 'Minimal Call',
+    funder: 'Funder',
+    deadline: '30 days',
+    amount: '$10k',
+    matchPct: 50,
+    region: 'Global',
+    summary: 'Missing facets',
+  });
+  check(
+    'Given grant metadata or missing facets When building card tags Then explicit labels and active filter highlights work',
+    tagsGrant2.map((t) => t.label).join(' | ') ===
+      'Stage: Prototype / Pilot | Format: Either | Team: 4-10' &&
+      isGrantTagHighlighted(tagsGrant2[1], { participations: ['Solo'] }) === true &&
+      isGrantTagHighlighted(tagsGrant2[0], { stages: ['Scaling'] }) === false &&
+      missingTagGrant.every((t) => !t.specified && t.label.endsWith('Unspecified'))
   );
 
   const ws = useWorkspaceStore.getState().workspace;

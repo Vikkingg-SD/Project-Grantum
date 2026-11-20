@@ -39,6 +39,7 @@ for (const [mode, colors] of Object.entries(PALETTE)) {
   }
   for (const [background, foreground] of [
     [colors.primary, colors.primaryForeground],
+    [colors.gold, colors.primaryForeground],
     [colors.failure, colors.failureForeground],
   ]) {
     const values = [luminance(background), luminance(foreground)].sort((a, b) => a - b);
