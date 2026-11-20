@@ -208,6 +208,8 @@ export default function MyWorksScreen() {
               const proj = workspace.projects.find((p) => p.id === app.projectId);
               const grant = grants.find((g) => g.id === app.grantId);
               const lag = getProfileSyncLag(workspace, app.id);
+              const slotRole = projectRoles[app.projectId] ?? 'owner';
+              const canEditSlot = canRolePerform(slotRole, 'edit');
               return (
                 <View key={app.id} style={[styles.checkItem, { borderColor: theme.border }]}>
                   <View style={styles.rowBetween}>
@@ -253,7 +255,7 @@ export default function MyWorksScreen() {
                             ? 'Locked to Submission Snapshot'
                             : `Pull Latest Profile (${proj?.currentRevisionId})`
                         }
-                        disabled={app.status === 'submitted'}
+                        disabled={app.status === 'submitted' || !canEditSlot}
                         onPress={() => {
                           try {
                             pullWorkSlotProfile(app.id);

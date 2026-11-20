@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
+import { useEscapeDismiss } from '@/hooks/useEscapeDismiss';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { ModalSheetLayout } from '@/components/templates/ModalSheetLayout';
@@ -44,6 +45,7 @@ export default function DiscoveryScreen() {
   const theme = useTheme();
   const [query, setQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  useEscapeDismiss(!wide && filtersOpen, () => setFiltersOpen(false));
   const [regions, setRegions] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [stages, setStages] = useState<string[]>([]);

@@ -6,6 +6,7 @@ import {
   UNIT_ECONOMICS_METRICS,
   evaluateAffiliateEligibility,
   formatUsdPrice,
+  resolveExternalBillingUrl,
 } from '../src/utils/plans';
 
 const check = (name: string, condition: boolean) => {
@@ -72,6 +73,16 @@ function main() {
   check(
     'Given >=5 invites with active T3 or >=2 months on T1/T2 When checking affiliate eligibility Then eligible',
     eligibleT3.eligible && eligibleT1.eligible
+  );
+
+  check(
+    'Given external billing portal URLs When resolved Then only credential-free HTTPS URLs are accepted',
+    resolveExternalBillingUrl('https://billing.grantum.app/plans') ===
+      'https://billing.grantum.app/plans' &&
+      resolveExternalBillingUrl('http://billing.grantum.app/plans') === null &&
+      resolveExternalBillingUrl('javascript:alert(1)') === null &&
+      resolveExternalBillingUrl('https://user:pass@billing.grantum.app/plans') === null &&
+      resolveExternalBillingUrl('') === null
   );
 }
 

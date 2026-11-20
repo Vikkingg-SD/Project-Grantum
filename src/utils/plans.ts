@@ -1,3 +1,5 @@
+import { isSafeExternalUrl } from '@/utils/navigationHistory';
+
 export type BillingRegion = 'cis' | 'east-europe' | 'global';
 export type SubscriptionTierId = 't1' | 't2' | 't3';
 export type AffiliateTierChoice = 'free' | SubscriptionTierId;
@@ -161,4 +163,10 @@ export function evaluateAffiliateEligibility(
 
 export function formatUsdPrice(amount: number): string {
   return `$${amount.toFixed(2)}`;
+}
+
+export function resolveExternalBillingUrl(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  return isSafeExternalUrl(trimmed) ? trimmed : null;
 }

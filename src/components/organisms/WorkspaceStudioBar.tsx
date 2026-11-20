@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { AppButton } from '@/components/atoms/AppButton';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
@@ -7,10 +7,12 @@ import { useTheme } from '@/hooks/useTheme';
 import { RADIUS, SPACING } from '@/config/theme';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { computeProfileReadiness, getProfileSyncLag } from '@/utils/workspace';
+import { normalizePathname } from '@/utils/navigationHistory';
 
 export function WorkspaceStudioBar() {
   const theme = useTheme();
   const router = useRouter();
+  const pathname = normalizePathname(usePathname());
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const persistenceStatus = useWorkspaceStore((state) => state.persistenceStatus);
@@ -37,13 +39,17 @@ export function WorkspaceStudioBar() {
           size="sm"
           variant="outline"
           label={`Project: ${activeProject?.name ?? 'Default'} (${readiness?.score ?? 0}% ready)`}
-          onPress={() => router.push('/project-profile')}
+          onPress={() => {
+            if (pathname !== '/project-profile') router.push('/project-profile');
+          }}
         />
         <AppButton
           size="sm"
           variant="outline"
           label={`My Works (${workspace.applications.length}${outOfSyncCount ? ` · ${outOfSyncCount} sync` : ''})`}
-          onPress={() => router.push('/my-works')}
+          onPress={() => {
+            if (pathname !== '/my-works') router.push('/my-works');
+          }}
         />
         <StatusBadge
           label={

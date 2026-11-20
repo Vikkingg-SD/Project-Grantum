@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { AppButton } from '@/components/atoms/AppButton';
+import { useEscapeDismiss } from '@/hooks/useEscapeDismiss';
 import type { CoWorkRole } from '@/types/workspace';
 
 const roles: CoWorkRole[] = ['owner', 'editor', 'reviewer', 'viewer'];
@@ -17,20 +18,30 @@ export function ProjectRolePicker({
 }) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<View>(null);
-  useEffect(() => {
-    if (!open || Platform.OS !== 'web') return;
-    const dismiss = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      event.stopPropagation();
-      setOpen(false);
+
+  const dismissAndFocusTrigger = useCallback(() => {
+    setOpen(false);
+    if (Platform.OS === 'web') {
       (trigger.current as unknown as HTMLElement | null)
         ?.querySelector<HTMLElement>('button, [role="button"]')
         ?.focus();
+    }
+  }, []);
+
+  useEscapeDismiss(open, dismissAndFocusTrigger);
+
+  useEffect(() => {
+    if (!open || Platform.OS !== 'web') return;
+    const onPointerDown = (event: MouseEvent) => {
+      const container = trigger.current as unknown as HTMLElement | null;
+      if (container && event.target instanceof Node && !container.contains(event.target)) {
+        setOpen(false);
+      }
     };
-    window.addEventListener('keydown', dismiss, true);
-    return () => window.removeEventListener('keydown', dismiss, true);
+    window.addEventListener('mousedown', onPointerDown, true);
+    return () => window.removeEventListener('mousedown', onPointerDown, true);
   }, [open]);
+
   return (
     <View ref={trigger}>
       <AppButton

@@ -15,6 +15,7 @@ const tasks = [
   ['scripts/verify-input-render.cjs'],
   ['scripts/verify-native-children.cjs'],
   [require.resolve('tsx/cli'), 'scripts/verify-workspace-return.ts'],
+  [require.resolve('tsx/cli'), 'scripts/verify-navigation-history.ts'],
   ['scripts/lint-project.js', '--max-warnings=0'],
   [
     require('node:path').join(require.resolve('prettier/package.json'), '..', 'bin/prettier.cjs'),

@@ -29,6 +29,7 @@ import {
   type LocalTextFormat,
 } from '@/utils/localExport';
 import { canRolePerform, workSlotKey } from '@/utils/workspace';
+import { isLocalHttpOrigin, isSafeExternalUrl } from '@/utils/navigationHistory';
 import type { ExportFormat } from '@/types/api';
 
 export default function ExportScreen() {
@@ -283,9 +284,12 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
                   label="Download bundle"
                   onPress={() => {
                     void (async () => {
-                      if (!/^https?:\/\//i.test(result.downloadUrl))
+                      const cleanUrl = result.downloadUrl.trim();
+                      const allowLocalHttp =
+                        !ENV.API_BASE_URL || isLocalHttpOrigin(ENV.API_BASE_URL);
+                      if (!isSafeExternalUrl(cleanUrl, { allowLocalHttp }))
                         throw new Error('Unsupported download URL');
-                      await Linking.openURL(result.downloadUrl);
+                      await Linking.openURL(cleanUrl);
                     })().catch(() => setDownloadError('Unable to open the download. Try again.'));
                   }}
                 />

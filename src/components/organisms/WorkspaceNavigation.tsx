@@ -4,41 +4,39 @@ import { usePathname, useRouter } from 'expo-router';
 import { AppButton } from '@/components/atoms/AppButton';
 import { useTheme } from '@/hooks/useTheme';
 import { SPACING } from '@/config/theme';
+import { normalizePathname } from '@/utils/navigationHistory';
+
+const WORKSPACE_TABS = [
+  ['/my-works', 'My Works'],
+  ['/project-profile', 'Project Profile'],
+] as const;
 
 export function WorkspaceNavigation() {
-  const pathname = usePathname();
+  const pathname = normalizePathname(usePathname());
   const router = useRouter();
   const theme = useTheme();
   return (
     <View style={[styles.navigation, { borderBottomColor: theme.border }]}>
-      {(
-        [
-          ['/discover', 'Discover'],
-          ['/my-works', 'My Works'],
-          ['/project-profile', 'Project Profile'],
-        ] as const
-      ).map(([href, label]) => (
-        <AppButton
-          key={href}
-          label={label}
-          size="sm"
-          variant="ghost"
-          selected={
-            pathname === href || (href === '/discover' && pathname.endsWith('/discovery-studio'))
-          }
-          style={{
-            borderRadius: 0,
-            borderBottomWidth: 2,
-            borderBottomColor:
-              pathname === href || (href === '/discover' && pathname.endsWith('/discovery-studio'))
-                ? theme.primary
-                : 'transparent',
-          }}
-          onPress={() => {
-            if (pathname !== href) router.push(href);
-          }}
-        />
-      ))}
+      {WORKSPACE_TABS.map(([href, label]) => {
+        const selected = pathname === href;
+        return (
+          <AppButton
+            key={href}
+            label={label}
+            size="sm"
+            variant="ghost"
+            selected={selected}
+            style={{
+              borderRadius: 0,
+              borderBottomWidth: 2,
+              borderBottomColor: selected ? theme.primary : 'transparent',
+            }}
+            onPress={() => {
+              if (pathname !== href) router.push(href);
+            }}
+          />
+        );
+      })}
     </View>
   );
 }

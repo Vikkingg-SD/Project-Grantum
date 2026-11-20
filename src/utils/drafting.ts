@@ -5,6 +5,7 @@ import type {
   RequirementMapping,
   WorkSlotAuditSummary,
 } from '../types/workspace';
+import { isSafeExternalUrl } from './navigationHistory';
 
 export interface DraftSection {
   id: string;
@@ -85,19 +86,14 @@ export function applyTemplate(
   };
 }
 export function validSource(value: string) {
-  try {
-    const url = new URL(value);
-    return ['https:', 'http:'].includes(url.protocol);
-  } catch {
-    return false;
-  }
+  return isSafeExternalUrl(value);
 }
 export function syncGrantRequirements(
   work: DraftWorkbench,
   requirements: readonly string[],
   sourceUrl: string
 ): DraftWorkbench {
-  if (sourceUrl && !validSource(sourceUrl)) throw new Error('Reference URL must use http or https');
+  if (sourceUrl && !validSource(sourceUrl)) throw new Error('Reference URL must use https');
   const cleanReqs = requirements.map((r) => r.trim()).filter(Boolean);
   const newSections = [...work.sections];
   const newMappings = [...(work.requirementMappings ?? [])];
@@ -160,7 +156,7 @@ export function saveVersion(
   if (!summary.trim()) throw new Error('Describe the change');
   if (work.versions.some((version) => version.id === id)) throw new Error('Version already exists');
   if (work.sections.some((section) => section.evidence && !validSource(section.evidence)))
-    throw new Error('Evidence links must use http or https');
+    throw new Error('Evidence links must use https');
   const version: DraftVersion = {
     id,
     createdAt,
@@ -195,7 +191,7 @@ export function recordSubmission(
   destination: string
 ): DraftWorkbench {
   if (!receipt.trim() || !validSource(destination))
-    throw new Error('Enter a receipt reference and official http(s) destination');
+    throw new Error('Enter a receipt reference and official https destination');
   if (!work.sections.length || work.sections.some((s) => !s.text.trim()))
     throw new Error('Complete each section before recording submission');
   const saved = saveVersion(work, id, recordedAt, 'Submission snapshot');

@@ -81,12 +81,17 @@ export default function PersonalSettingsScreen() {
           <AppButton
             label="Replay onboarding tour"
             variant="outline"
-            onPress={() => router.push({ pathname: '/onboarding', params: { replay: '1' } })}
+            onPress={() =>
+              router.push({
+                pathname: '/onboarding',
+                params: { replay: '1', returnTo: '/settings' },
+              })
+            }
           />
           <AppButton
             label="Subscriptions & plans overview"
             variant="outline"
-            onPress={() => router.push('/plans')}
+            onPress={() => router.push({ pathname: '/plans', params: { returnTo: '/settings' } })}
           />
         </View>
       </View>

@@ -19,6 +19,7 @@ import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useWorkbenchStore } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
+import { useEscapeDismiss } from '@/hooks/useEscapeDismiss';
 import { useTheme } from '@/hooks/useTheme';
 import { RADIUS, SPACING } from '@/config/theme';
 import { DRAFTING_COPY } from '@/config/copy';
@@ -46,6 +47,8 @@ function DraftingSession({ grantId, slotKey }: { grantId: string; slotKey: strin
   const scrollRef = useRef<ScrollView>(null);
   const scrollAfterNote = useRef(false);
   const [sectionsOpen, setSectionsOpen] = useState(false);
+  useEscapeDismiss(sectionsOpen, () => setSectionsOpen(false));
+  useEscapeDismiss(mobile && promptsOpen, () => setPromptsOpen(false));
   const [page, setPage] = useState(0);
   const [deleteSection, setDeleteSection] = useState<string | null>(null);
   const query = useProposalDraft(grantId);

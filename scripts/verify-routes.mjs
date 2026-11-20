@@ -239,71 +239,139 @@ try {
     await back.click();
     await expect(page).toHaveURL(url('2', 'audit-studio'));
   });
-  await check('brand resumes grant 2, then Back reaches the actual workspace origin', async () => {
-    await page.goto(url('2', 'drafting'));
-    await visible('Community Health Access');
-    await page.getByRole('button', { name: 'My Works', exact: true }).click();
-    await page.getByRole('button', { name: 'Project Profile', exact: true }).click();
-    await page.getByRole('button', { name: 'Resume last grant view', exact: true }).click();
-    await expect(page).toHaveURL(url('2', 'drafting'));
-    await visible('Community Health Access');
-    await page.getByRole('button', { name: 'Go back', exact: true }).click();
-    await expect(page).toHaveURL(`${origin}/project-profile`);
-    await expect(page.getByText('Staff administration', { exact: true })).toBeHidden();
-  });
-  await check('cold workspace Back is disabled and Plans shares the referring route', async () => {
-    await page.goto(`${origin}/my-works`);
-    const back = page.getByRole('button', { name: 'Go back', exact: true });
-    await expect(back).toBeDisabled();
-    await page.goto(url('2', 'drafting'));
-    await page.getByRole('button', { name: 'Account menu', exact: true }).click();
-    const menu = page.getByRole('dialog', { name: 'Account menu' });
-    await expect(menu).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(menu).toBeHidden();
-    await expect(page).toHaveURL(url('2', 'drafting'));
-    await page.getByRole('button', { name: 'Account menu', exact: true }).click();
-    await menu.getByRole('button', { name: 'Subscriptions & plans', exact: true }).click();
-    await expect(page).toHaveURL(/\/plans\?/);
-    await expect(back).toBeEnabled();
-    await page.keyboard.press('Escape');
-    await expect(page).toHaveURL(url('2', 'drafting'));
-    await visible('Community Health Access');
-    await page.goto(`${origin}/plans`);
-    await expect(back).toBeDisabled();
-    await page.getByRole('button', { name: 'Open public roadmap', exact: true }).click();
-    await expect(page).toHaveURL(/\/roadmap\?/);
-    await page
-      .getByRole('button', { name: 'View proposed subscriptions & pricing', exact: true })
-      .click();
-    await expect(page).toHaveURL(/\/plans\?/);
-    await page.getByRole('button', { name: 'Back to workspace', exact: true }).click();
-    await expect(page).toHaveURL(url('1', 'dashboard'));
-  });
-  await check('in-app history is bounded and selected tabs do not duplicate entries', async () => {
+  await check(
+    'brand resumes grant 2, no duplicate Discover tab, and Back never leaks admin',
+    async () => {
+      await page.goto(url('2', 'drafting'));
+      await visible('Community Health Access');
+      await expect(page.getByRole('button', { name: 'Discover', exact: true })).toHaveCount(0);
+      await page.getByRole('button', { name: 'My Works', exact: true }).click();
+      await page.getByRole('button', { name: 'Project Profile', exact: true }).click();
+      await page.getByRole('button', { name: 'Resume last grant view', exact: true }).click();
+      await expect(page).toHaveURL(url('2', 'drafting'));
+      await visible('Community Health Access');
+      await page.getByRole('button', { name: 'Go back', exact: true }).click();
+      await expect(page).toHaveURL(`${origin}/project-profile`);
+      await expect(page.getByText('Staff administration', { exact: true })).toBeHidden();
+      // Visit /admin explicitly, then move to /my-works -> Go back must skip /admin completely.
+      await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+      await page
+        .getByRole('dialog', { name: 'Account menu', exact: true })
+        .getByRole('button', { name: 'Staff administration', exact: true })
+        .click();
+      await expect(page).toHaveURL(`${origin}/admin`);
+      await page.getByRole('button', { name: 'My Works', exact: true }).click();
+      await expect(page).toHaveURL(`${origin}/my-works`);
+      await page.getByRole('button', { name: 'Go back', exact: true }).click();
+      await expect(page).toHaveURL(`${origin}/project-profile`);
+      await expect(page.getByText('Staff administration', { exact: true })).toBeHidden();
+    }
+  );
+  await check(
+    'cold workspace Back is disabled, Plans omits public roadmap, and /roadmap redirects',
+    async () => {
+      await page.goto(`${origin}/my-works`);
+      const back = page.getByRole('button', { name: 'Go back', exact: true });
+      await expect(back).toBeDisabled();
+      await page.goto(url('2', 'drafting'));
+      await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+      const menu = page.getByRole('dialog', { name: 'Account menu' });
+      await expect(menu).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(menu).toBeHidden();
+      await expect(page).toHaveURL(url('2', 'drafting'));
+      await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+      await menu.getByRole('button', { name: 'Subscriptions & plans', exact: true }).click();
+      await expect(page).toHaveURL(/\/plans\?/);
+      await expect(
+        page.getByRole('button', { name: 'Open public roadmap', exact: true })
+      ).toHaveCount(0);
+      await expect(back).toBeEnabled();
+      await page.keyboard.press('Escape');
+      await expect(page).toHaveURL(url('2', 'drafting'));
+      await visible('Community Health Access');
+      // Settings -> Plans preserves returnTo=/settings
+      await page.goto(`${origin}/settings`);
+      await page
+        .getByRole('button', { name: 'Subscriptions & plans overview', exact: true })
+        .click();
+      await expect(page).toHaveURL(/\/plans\?returnTo=%2Fsettings/);
+      await page.getByRole('button', { name: 'Back to workspace', exact: true }).click();
+      await expect(page).toHaveURL(`${origin}/settings`);
+      // Cold /plans Back is disabled and /roadmap redirects to Dashboard roadmap
+      await page.goto(`${origin}/plans`);
+      await expect(back).toBeDisabled();
+      await expect(
+        page.getByRole('button', { name: 'Open public roadmap', exact: true })
+      ).toHaveCount(0);
+      await page.getByRole('button', { name: 'Back to workspace', exact: true }).click();
+      await expect(page).toHaveURL(url('1', 'dashboard'));
+      await dismissSupportIfOpen();
+      await page.goto(`${origin}/roadmap`);
+      await expect(page).toHaveURL(url('1', 'dashboard'));
+      await dismissSupportIfOpen();
+      await expect(page.getByTestId('product-roadmap-track')).toBeVisible();
+    }
+  );
+  await check('Escape dismisses non-modal panels before triggering Back navigation', async () => {
     await page.goto(url('2', 'dashboard'));
-    const back = page.getByRole('button', { name: 'Go back', exact: true });
-    const dashboard = page.getByRole('tab', { name: 'Dashboard', exact: true });
-    await expect(back).toBeDisabled();
-    const initialLength = await page.evaluate(() => window.history.length);
-    await dashboard.click();
-    await dashboard.click();
-    assert.equal(await page.evaluate(() => window.history.length), initialLength);
-    const destinations = [
-      ['Drafting', 'drafting'],
-      ['Audit', 'audit-studio'],
-    ];
-    for (let index = 0; index < 12; index++) {
-      const [name, leaf] = destinations[index % 2];
-      await page.getByRole('tab', { name, exact: true }).click();
-      await expect(page).toHaveURL(url('2', leaf));
-    }
-    for (let index = 10; index >= 1; index--) {
-      await back.click();
-      await expect(page).toHaveURL(url('2', destinations[index % 2][1]));
-    }
-    await expect(back).toBeDisabled();
+    await dismissSupportIfOpen();
+    await page.getByRole('tab', { name: 'Drafting', exact: true }).click();
+    await expect(page).toHaveURL(url('2', 'drafting'));
+    const sectionsToggle = page.getByRole('button', { name: /^Required sections/ });
+    await sectionsToggle.click();
+    await expect(sectionsToggle).toHaveAttribute('aria-expanded', 'true');
+    await page.keyboard.press('Escape');
+    await expect(sectionsToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(page).toHaveURL(url('2', 'drafting'));
+    await page.keyboard.press('Escape');
+    await expect(page).toHaveURL(url('2', 'dashboard'));
   });
+  await check(
+    'in-app history is bounded, supports 3-step return, and blocks self-nav spam',
+    async () => {
+      await page.goto(url('2', 'dashboard'));
+      await dismissSupportIfOpen();
+      const back = page.getByRole('button', { name: 'Go back', exact: true });
+      const dashboard = page.getByRole('tab', { name: 'Dashboard', exact: true });
+      const brand = page.getByRole('button', { name: 'Resume last grant view', exact: true });
+      await expect(back).toBeDisabled();
+      const initialLength = await page.evaluate(() => window.history.length);
+      await brand.click();
+      await dashboard.click();
+      await brand.click();
+      assert.equal(await page.evaluate(() => window.history.length), initialLength);
+      await expect(back).toBeDisabled();
+      // dashboard -> drafting -> audit -> dashboard, then 3x Back -> audit -> drafting -> dashboard
+      await page.getByRole('tab', { name: 'Drafting', exact: true }).click();
+      await expect(page).toHaveURL(url('2', 'drafting'));
+      await page.getByRole('tab', { name: 'Audit', exact: true }).click();
+      await expect(page).toHaveURL(url('2', 'audit-studio'));
+      await dashboard.click();
+      await expect(page).toHaveURL(url('2', 'dashboard'));
+      await back.click();
+      await expect(page).toHaveURL(url('2', 'audit-studio'));
+      await back.click();
+      await expect(page).toHaveURL(url('2', 'drafting'));
+      await back.click();
+      await expect(page).toHaveURL(url('2', 'dashboard'));
+      await expect(back).toBeDisabled();
+      const destinations = [
+        ['Drafting', 'drafting'],
+        ['Audit', 'audit-studio'],
+      ];
+      for (let index = 0; index < 12; index++) {
+        const [name, leaf] = destinations[index % 2];
+        await page.getByRole('tab', { name, exact: true }).click();
+        await expect(page).toHaveURL(url('2', leaf));
+      }
+      for (let index = 10; index >= 1; index--) {
+        await back.click();
+        await expect(page).toHaveURL(url('2', destinations[index % 2][1]));
+      }
+      await expect(back).toBeDisabled();
+    }
+  );
   await check('explicit Dashboard application selection changes the grant URL', async () => {
     await page.goto(url('2', 'dashboard'));
     await dismissSupportIfOpen();
@@ -356,22 +424,35 @@ try {
       'true'
     );
   });
-  await check('unknown grant never falls back to another grant', async () => {
-    await page.goto(url('missing-grant', 'drafting'));
-    await visible('Opportunity unavailable');
-    await expect(
-      page.getByRole('button', { name: 'Back to dashboard', exact: true })
-    ).toBeVisible();
-    assert.equal(new URL(page.url()).pathname, '/grants/missing-grant/drafting');
-    assert.equal(
-      (await page.locator('body').innerText()).includes('Community Health Access'),
-      false
-    );
-    assert.equal(
-      (await page.locator('body').innerText()).includes('Climate Resilience Infrastructure'),
-      false
-    );
-  });
+  await check(
+    'unknown, traversal, or colliding grant IDs never hang or fall back to another grant',
+    async () => {
+      await page.goto(url('missing-grant', 'drafting'));
+      await visible('Opportunity unavailable');
+      await expect(
+        page.getByRole('button', { name: 'Back to dashboard', exact: true })
+      ).toBeVisible();
+      assert.equal(new URL(page.url()).pathname, '/grants/missing-grant/drafting');
+      assert.equal(
+        (await page.locator('body').innerText()).includes('Community Health Access'),
+        false
+      );
+      assert.equal(
+        (await page.locator('body').innerText()).includes('Climate Resilience Infrastructure'),
+        false
+      );
+      // Encoded traversal payload (/grants/%2e%2e%2fadmin/drafting) must fail closed without hanging.
+      await page.goto(`${origin}/grants/%2e%2e%2fadmin/drafting`);
+      await visible('Opportunity unavailable');
+      await expect(
+        page.getByRole('button', { name: 'Back to dashboard', exact: true })
+      ).toBeVisible();
+      // Navigating away from an unavailable grant must not allow Back to return to it.
+      await page.getByRole('button', { name: 'My Works', exact: true }).click();
+      await expect(page).toHaveURL(`${origin}/my-works`);
+      await expect(page.getByRole('button', { name: 'Go back', exact: true })).toBeDisabled();
+    }
+  );
   await check(
     'Given a source form, when errors clear, then inputs render without runtime errors',
     async () => {

@@ -566,7 +566,9 @@ export function DraftWorkbenchPanel({
                     label={source}
                     disabled={!validSource(source)}
                     onPress={() => {
-                      void Linking.openURL(source).catch(() => setError('Could not open source.'));
+                      void Linking.openURL(source.trim()).catch(() =>
+                        setError('Could not open source.')
+                      );
                     }}
                   />
                 ))}
