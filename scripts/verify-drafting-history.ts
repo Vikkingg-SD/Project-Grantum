@@ -1,5 +1,6 @@
 import {
   acceptSuggestion,
+  applySelectedTemplate,
   applyTemplate,
   buildSectionSuggestion,
   computeLineDiff,
@@ -7,10 +8,19 @@ import {
   evaluateWorkSlotAudit,
   fullArtifactBundleText,
   recordSubmission,
+  removeWorkbenchSection,
   restoreVersion,
   saveVersion,
   syncGrantRequirements,
+  upsertWorkbenchSection,
 } from '../src/utils/drafting';
+import {
+  computeApplicationAuditSignature,
+  computeSectionCompletionPct,
+  resolveActiveRequiredSections,
+  resolveSectionDescription,
+  TEMPLATE_TYPE_SECTIONS,
+} from '../src/utils/sectionCatalog';
 const check = (name: string, value: boolean) => {
   if (!value) throw new Error(name);
   console.info('PASS ' + name);
@@ -138,4 +148,93 @@ const templateOnly = buildSectionSuggestion(unlinked.sections[0], 'Project', '')
 check(
   'Given a template without sources When previewed Then sources stay empty and user review is required',
   templateOnly.sources.length === 0 && templateOnly.proposed.includes('review')
+);
+
+check(
+  'Given Grant, Startup, and R&D types When inspecting choosers Then each exposes distinct template sections including Unit economics and Tech stack',
+  TEMPLATE_TYPE_SECTIONS.grant.includes('Proposal') &&
+    TEMPLATE_TYPE_SECTIONS.startup.includes('Unit economics') &&
+    TEMPLATE_TYPE_SECTIONS.rd.includes('Tech stack') &&
+    TEMPLATE_TYPE_SECTIONS.rd.includes('Validation & TRL')
+);
+
+const moatDesc = resolveSectionDescription('Moat', 'Attempted override');
+const customDesc = resolveSectionDescription('Pilot safety protocol', 'Verify battery isolation');
+check(
+  'Given known vs custom section descriptions When resolved Then standard Moat stays fixed and custom remains editable',
+  moatDesc.isFixed &&
+    moatDesc.description ===
+      'A technological or any other edge that allows your product to be competitive on the market.' &&
+    !customDesc.isFixed &&
+    customDesc.description === 'Verify battery isolation'
+);
+
+let templated = applySelectedTemplate(
+  emptyWorkbench(),
+  'rd',
+  ['application', 'document'],
+  [
+    { title: 'Tech stack' },
+    { title: 'Данные безопасности (Кириллица)' },
+    { title: 'Оценка рисков (Кириллица)', description: 'Custom description text' },
+  ]
+);
+templated = upsertWorkbenchSection(templated, {
+  title: 'Данные безопасности (Кириллица)',
+  text: '80 chars minimum text sample for partial check',
+});
+check(
+  'Given non-Latin sections with punctuation When edited Then distinct IDs prevent collisions and compute partial percentage',
+  templated.templateApplied === true &&
+    templated.sections.length === 3 &&
+    templated.sections[1].id !== templated.sections[2].id &&
+    templated.sections[1].text.length > 0 &&
+    templated.sections[2].text === '' &&
+    computeSectionCompletionPct('Данные безопасности (Кириллица)', {
+      workbenchSection: templated.sections[1],
+    }) > 0 &&
+    computeSectionCompletionPct('Данные безопасности (Кириллица)', {
+      workbenchSection: templated.sections[1],
+    }) < 100 &&
+    computeSectionCompletionPct('Оценка рисков (Кириллица)', {
+      workbenchSection: templated.sections[2],
+    }) === 0
+);
+
+const sigBase = computeApplicationAuditSignature({
+  requiredSections: ['Tech stack'],
+  completedSections: ['Tech stack'],
+  workSections: templated.sections,
+  kind: 'rd',
+  outputs: ['application'],
+  exportBody: 'Initial export statement',
+  contentRevision: 0,
+});
+const sigExportEdited = computeApplicationAuditSignature({
+  requiredSections: ['Tech stack'],
+  completedSections: ['Tech stack'],
+  workSections: templated.sections,
+  kind: 'rd',
+  outputs: ['application'],
+  exportBody: 'Modified export statement',
+  contentRevision: 1,
+});
+const afterRemove = removeWorkbenchSection(templated, 'Оценка рисков (Кириллица)');
+const catalogRemoved = removeWorkbenchSection(emptyWorkbench(), 'Moat');
+const catalogResolvedAfterRemove = resolveActiveRequiredSections(
+  ['Mission', 'Moat'],
+  catalogRemoved
+);
+const catalogRestored = upsertWorkbenchSection(catalogRemoved, { title: 'Moat', text: '' });
+const catalogResolvedAfterRestore = resolveActiveRequiredSections(
+  ['Mission', 'Moat'],
+  catalogRestored
+);
+check(
+  'Given an audited signature When Export text or sections change Then audit signature invalidates',
+  sigBase !== sigExportEdited &&
+    afterRemove.sections.length === 2 &&
+    catalogRemoved.removedCatalogSections?.includes('Moat') === true &&
+    !catalogResolvedAfterRemove.includes('Moat') &&
+    catalogResolvedAfterRestore.includes('Moat')
 );

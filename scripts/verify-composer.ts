@@ -42,6 +42,13 @@ const cases: [string, string | boolean, string | boolean][] = [
   ['whitespace is not sendable', canSendMessage(' \n\t '), false],
   ['disabled text is not sendable', canSendMessage('hello', true), false],
   ['empty input is not sendable', canSendMessage(''), false],
+  ['attachment-only input is sendable', canSendMessage('', false, 1), true],
+  ['disabled attachment-only input is not sendable', canSendMessage('', true, 1), false],
+  [
+    'Enter with staged attachment and empty text sends message',
+    composerKeyAction({ key: 'Enter' }, '', false, 1),
+    'send',
+  ],
   ['10000 characters are sendable', canSendMessage(atLimit), true],
   ['10001 characters are not sendable', canSendMessage(overLimit), false],
   ['multiline text is sendable', canSendMessage('first\nsecond'), true],
@@ -51,7 +58,7 @@ let failed = 0;
 for (const [name, got, want] of cases) {
   const passed = got === want;
   if (!passed) failed += 1;
-  console.log(`${passed ? 'PASS' : 'FAIL'} ${name} got=${got} want=${want}`);
+  console.info(`${passed ? 'PASS' : 'FAIL'} ${name} got=${got} want=${want}`);
 }
 if (failed > 0) process.exit(1);
-console.log(`ALL ${cases.length} COMPOSER CASES PASS`);
+console.info(`ALL ${cases.length} COMPOSER CASES PASS`);

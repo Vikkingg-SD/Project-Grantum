@@ -38,7 +38,6 @@ export function updateMockDraft(grantId: string, update: Partial<ProposalDraft>)
   const current = getMockDraft(grantId);
   const next = { ...current, ...update };
   drafts[grantId] = next;
-  if (update.completedSections || update.requiredSections) delete latestScans[grantId];
   return next;
 }
 

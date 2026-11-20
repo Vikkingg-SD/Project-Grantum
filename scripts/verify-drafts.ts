@@ -36,6 +36,28 @@ assert(
   'mutation does not leak to other grants',
   getState().getDraft('3') === d3a && getState().getDraft('1') === EMPTY_DRAFT
 );
+const revBefore = getState().getDraft('4').contentRevision;
+getState().addDraftingMessage('4', '', 'user', {
+  attachments: [{ id: 'file-only', name: 'budget.pdf', type: 'application/pdf', size: 2048 }],
+  toolLabel: 'Deep research (Grant writing)',
+});
+const lastMsg = getState().getDraft('4').draftingMessages.slice(-1)[0];
+assert(
+  'Given attachment-only message and selected tool When sent Then message stores attachments and tool badge',
+  lastMsg?.text === '' &&
+    lastMsg.attachments?.[0]?.name === 'budget.pdf' &&
+    lastMsg.toolLabel === 'Deep research (Grant writing)'
+);
+getState().setExportDocument('4', 'Updated Export statement');
+assert(
+  'Given edited Export document When changed Then contentRevision increments for audit staleness',
+  getState().getDraft('4').contentRevision > revBefore
+);
+getState().recordAuditSnapshot('4', 'sig-1');
+assert(
+  'Given recorded audit snapshot When checked Then signature persists per work slot',
+  getState().getDraft('4').auditedSignature === 'sig-1'
+);
 getState().addDraftingMessage('', 'ghost', 'user');
 getState().setExportDocument('', 'ghost doc');
 assert('empty-id mutation creates no draft', getState().drafts[''] === undefined);

@@ -72,10 +72,12 @@ export const DASHBOARD_COPY = {
 
 export const DRAFTING_COPY = {
   title: 'Drafting workspace',
+  llmDisclosure: 'Grantum uses an LLM agent — double-check all answers before submitting.',
   chips: ['Tighten the mission statement', 'Align budget to funder cap', 'Add evidence references'],
 } as const;
 export const AUDIT_COPY = {
   title: 'Application check',
+  llmDisclosure: 'Grantum uses an LLM agent — double-check all answers before submitting.',
   chips: ['Budget', 'Eligibility', 'Evidence'],
   welcome:
     'Run a check to find missing sections. Section presence checks do not validate budget math, eligibility, or evidence.',

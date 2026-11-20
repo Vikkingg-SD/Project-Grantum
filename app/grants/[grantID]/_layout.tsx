@@ -7,6 +7,7 @@ import { useActiveView } from '@/hooks/useActiveView';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { WorkspaceShell } from '@/components/templates/WorkspaceShell';
 import { useRememberLifecycle, useWorkspaceNavigation } from '@/hooks/useWorkspaceNavigation';
+import { useDraftStore } from '@/store/useDraftStore';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 import { queryKeys } from '@/api/queryKeys';
@@ -32,6 +33,7 @@ export default function GrantLayout() {
   const selectedName = useActiveView();
   const navigation = useAppNavigation();
   const { markInvalidPath } = useWorkspaceNavigation();
+  const setLastGrantId = useDraftStore((state) => state.setLastGrantId);
   const isLoading = Boolean(grantID) && grant.isPending;
   const isUnavailable = !grantID || grant.isError || (!grant.isPending && !grant.data);
   const cachedCatalog = queryClient.getQueryData<Grant[]>(queryKeys.grants());
@@ -39,9 +41,14 @@ export default function GrantLayout() {
 
   // Remember only confirmed grants (detail resolved or already validated in the loaded catalog)
   // so invalid or 404 grant URLs can never poison lastLifecycle or un-blacklist invalidPaths.
-  useRememberLifecycle(
-    grantID && !grant.isError && (Boolean(grant.data) || confirmedByCatalog) ? grantID : ''
-  );
+  const confirmedGrantId =
+    grantID && !grant.isError && (Boolean(grant.data) || confirmedByCatalog) ? grantID : '';
+  useRememberLifecycle(confirmedGrantId);
+  useEffect(() => {
+    if (confirmedGrantId) {
+      setLastGrantId(confirmedGrantId);
+    }
+  }, [confirmedGrantId, setLastGrantId]);
   useEffect(() => {
     if (isUnavailable) {
       markInvalidPath(pathname);

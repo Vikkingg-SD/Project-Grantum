@@ -1,4 +1,5 @@
 import type { Grant, GrantDetail } from './grant';
+import type { LocalAttachment } from '@/utils/attachments';
 
 export type ApiStatus = 'idle' | 'loading' | 'success' | 'error';
 export type ScoreTier = 'verified' | 'pending' | 'failure';
@@ -143,4 +144,6 @@ export interface ChatMessage {
   variant: 'user' | 'assistant-narrative' | 'assistant-auditor' | 'system';
   timestamp?: string;
   status?: 'sending' | 'sent' | 'error';
+  attachments?: LocalAttachment[];
+  toolLabel?: string;
 }

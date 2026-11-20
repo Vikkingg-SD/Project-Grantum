@@ -18,6 +18,7 @@ import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
+import { useApplicationAuditState } from '@/hooks/useApplicationAuditState';
 import { useEscapeDismiss } from '@/hooks/useEscapeDismiss';
 import { useTheme } from '@/hooks/useTheme';
 import { RADIUS, SPACING } from '@/config/theme';
@@ -27,6 +28,7 @@ import { GrantContext } from '@/components/molecules/GrantContext';
 import { ENV } from '@/config/env';
 import { evaluateWorkSlotAudit, hasAuthoredDraft } from '@/utils/drafting';
 import { evaluateFinishReview } from '@/utils/finishReview';
+import { normalizeSectionTitle } from '@/utils/sectionCatalog';
 import { canRolePerform, getProfileSyncLag, workSlotKey } from '@/utils/workspace';
 
 export default function AuditScreen() {
@@ -49,9 +51,10 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
   const scrollAfterNote = useRef(false);
   const draft = useProposalDraft(grantId);
   const scan = useAuditStatus(grantId);
-  const trigger = useTriggerAuditScan(grantId);
+  const trigger = useTriggerAuditScan(grantId, slotKey);
   const local = useDraftStore((state) => state.drafts[slotKey] ?? EMPTY_DRAFT);
   const addNote = useDraftStore((state) => state.addAuditMessage);
+  const setAttachments = useDraftStore((state) => state.setAttachments);
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const activeRole = useWorkspaceStore((state) => state.activeRole);
@@ -83,6 +86,31 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
   const canReview = canRolePerform(activeRole, 'review');
   const canEdit = canRolePerform(activeRole, 'edit');
 
+  const rawRequired = draft.data?.requiredSections;
+  const rawCompleted = draft.data?.completedSections;
+  const rawBody = draft.data?.body;
+  const running = trigger.isPending || scan.data?.status === 'running';
+
+  const {
+    sectionItems,
+    completeSections,
+    incompleteSections,
+    confidenceScore,
+    currentSignature,
+    auditStale,
+    failed,
+    passed,
+  } = useApplicationAuditState({
+    requiredSections: rawRequired,
+    completedSections: rawCompleted,
+    work,
+    exportBody: local.exportDocument ?? rawBody ?? '',
+    contentRevision: local.contentRevision,
+    auditedSignature: local.auditedSignature,
+    scanStatus: scan.data?.status,
+    running,
+  });
+
   if (!grantId || draft.isPending || draft.isError || !draft.data) {
     return (
       <ScreenContainer>
@@ -103,13 +131,28 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
       </ScreenContainer>
     );
   }
-  const running = trigger.isPending || scan.data?.status === 'running';
-  const missingRequirement = draft.data.requiredSections.some(
-    (section) => !draft.data.completedSections.includes(section)
-  );
-  const failed = scan.data?.status === 'failed' || missingRequirement;
-  const passed = !failed && scan.data?.status === 'passed';
+
   const error = trigger.error ?? scan.error;
+
+  const statusLabel = running
+    ? 'Scanning…'
+    : failed
+      ? 'Action required'
+      : auditStale
+        ? 'Checks incomplete'
+        : passed
+          ? 'Checklist check passed'
+          : 'Not scanned';
+  const statusVariant = running
+    ? 'pending'
+    : failed
+      ? 'failure'
+      : auditStale
+        ? 'pending'
+        : passed
+          ? 'verified'
+          : 'neutral';
+
   return (
     <ScreenContainer scrollable={false}>
       <ScrollView
@@ -127,26 +170,17 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
           <AppText variant="h1" align="center">
             {AUDIT_COPY.title}
           </AppText>
-          <StatusBadge
-            label={
-              running
-                ? 'Scanning…'
-                : passed
-                  ? 'Checklist check passed'
-                  : failed
-                    ? 'Action required'
-                    : 'Not scanned'
-            }
-            variant={running ? 'pending' : passed ? 'verified' : failed ? 'failure' : 'neutral'}
-            style={styles.centerBadge}
-          />
+          <StatusBadge label={statusLabel} variant={statusVariant} style={styles.centerBadge} />
+          {auditStale && failed && (
+            <StatusBadge label="Checks incomplete" variant="pending" style={styles.centerBadge} />
+          )}
         </View>
         <GrantContext grantId={grantId} />
         <WorkspaceStudioBar />
         <InfoCard tone="surface">
           <AppText color="muted" align="center">
             {ENV.DATA_SOURCE === 'mock'
-              ? 'Checks required section presence; content review runs once connected.'
+              ? 'Checks required section completeness and flags edits requiring a fresh audit.'
               : 'Run an audit to request a review from your connected service.'}
           </AppText>
         </InfoCard>
@@ -155,51 +189,64 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
             Section completeness
           </AppText>
           <View style={{ flexDirection: 'row', gap: SPACING.sm }}>
-            {[true, false].map((complete) => (
-              <View
-                key={String(complete)}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  gap: SPACING.sm,
-                  padding: SPACING.sm,
-                  borderRadius: RADIUS.sm,
-                  backgroundColor: theme.subtle,
-                }}
-              >
-                <AppText variant="caption" color={complete ? 'verified' : 'failure'}>
-                  {complete ? 'Complete' : 'Incomplete'}
-                </AppText>
-                {draft.data.requiredSections
-                  .filter((section) => draft.data.completedSections.includes(section) === complete)
-                  .map((section) => (
+            {[true, false].map((complete) => {
+              const bucket = complete ? completeSections : incompleteSections;
+              return (
+                <View
+                  key={String(complete)}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    gap: SPACING.sm,
+                    padding: SPACING.sm,
+                    borderRadius: RADIUS.sm,
+                    backgroundColor: theme.subtle,
+                  }}
+                >
+                  <AppText variant="caption" color={complete ? 'verified' : 'failure'}>
+                    {complete ? 'Complete' : 'Incomplete'}
+                  </AppText>
+                  {bucket.map((item) => (
                     <AppText
-                      key={section}
+                      key={normalizeSectionTitle(item.title)}
                       variant="caption"
                       color={complete ? 'verified' : 'failure'}
                     >
-                      {section}
+                      {complete ? item.title : `${item.title} (${item.completionPct}% complete)`}
                     </AppText>
                   ))}
-                {!draft.data.requiredSections.some(
-                  (section) => draft.data.completedSections.includes(section) === complete
-                ) && (
-                  <AppText variant="caption" color="muted">
-                    None
-                  </AppText>
-                )}
-              </View>
-            ))}
+                  {bucket.length === 0 && (
+                    <AppText variant="caption" color="muted">
+                      None
+                    </AppText>
+                  )}
+                </View>
+              );
+            })}
           </View>
-          <ConfidenceGaugeReadout
-            score={draft.data.requiredSections.length ? draft.data.confidenceScore : 0}
-          />
+          <ConfidenceGaugeReadout score={confidenceScore} />
+          {auditStale && (
+            <AppText
+              variant="caption"
+              color="pending"
+              align="center"
+              accessibilityLiveRegion="polite"
+            >
+              Checks incomplete — sections, descriptions, or Export text changed since your last
+              audit. Run audit again before exporting.
+            </AppText>
+          )}
           <AppButton
             variant="primary"
             label={running ? 'Scanning…' : 'Run audit'}
             isLoading={running}
-            disabled={!draft.data.requiredSections.length}
-            onPress={() => trigger.mutate()}
+            disabled={!sectionItems.length}
+            onPress={() => {
+              trigger.mutate({
+                snapshotSignature: currentSignature,
+                allComplete: incompleteSections.length === 0,
+              });
+            }}
           />
           {error && (
             <AppText color="failure" accessibilityRole="alert">
@@ -221,7 +268,7 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.rowBetween}>
-            <AppText variant="h3">Work Slot Grounding & Reviewer Compliance</AppText>
+            <AppText variant="h3">Work Slot Grounding &amp; Reviewer Compliance</AppText>
             <View style={styles.chipsRow}>
               <StatusBadge
                 label={finishReview.status.toUpperCase()}
@@ -232,7 +279,7 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
                 }
               />
               <StatusBadge
-                label={slotAudit.readyForHandoff ? 'Handoff Ready' : 'Review Studio Items'}
+                label={slotAudit.readyForHandoff ? 'Handoff Ready' : 'Review Items'}
                 variant={slotAudit.readyForHandoff ? 'verified' : 'pending'}
               />
             </View>
@@ -242,11 +289,10 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
             Profile: {activeApp?.profileRevisionId ?? activeProject?.currentRevisionId}
           </AppText>
           <AppText variant="body">
-            • Sections with source links (content not verified): {slotAudit.linkedSections}/
-            {slotAudit.totalSections} ({slotAudit.filledSections} drafted)
+            • Sections drafted: {slotAudit.filledSections}/{slotAudit.totalSections}
             {'\n'}• Requirement Matrix Approvals: {slotAudit.approvedRequirements}/
             {slotAudit.totalRequirements} approved
-            {'\n'}• Reference Attachments: {local.attachments.length} staged
+            {'\n'}• File Attachments: {local.attachments.length} staged
             {'\n'}• Finish review checks: {finishReview.passedCount}/{finishReview.totalCount} ready
           </AppText>
           <AppButton
@@ -387,11 +433,9 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
           <AppText variant="h3" align="center">
             Agent chat
           </AppText>
-          {local.auditMessages.length === 0 && (
-            <AppText color="muted" align="center">
-              Grantum uses an LLM assistant when connected — double-check audit notes.
-            </AppText>
-          )}
+          <AppText variant="caption" color="muted" align="center">
+            {AUDIT_COPY.llmDisclosure}
+          </AppText>
           {mobile && (
             <AppButton
               label="Audit prompts"
@@ -423,9 +467,10 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
         onChangeText={setMessage}
         draftKey={slotKey}
         onSend={() => {
-          if (!message.trim()) return;
+          if (!message.trim() && local.attachments.length === 0) return;
           scrollAfterNote.current = true;
-          addNote(slotKey, message.trim(), 'user');
+          addNote(slotKey, message.trim(), 'user', { attachments: local.attachments });
+          if (local.attachments.length > 0) setAttachments(slotKey, []);
           setMessage('');
         }}
       />

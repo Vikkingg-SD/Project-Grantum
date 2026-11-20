@@ -155,7 +155,8 @@ step(
     invalidTrail = recordHistoryVisit(invalidTrail, { key: 'c', href: '/project-profile' }, false);
     assert.equal(findPreviousBackIndex(invalidTrail, '/project-profile', invalid), 0);
 
-    // Onboarding and roadmap are never back targets
+    // Onboarding and roadmap are never back targets, whereas /form-templates is valid.
+    assert.equal(isBackTargetPath('/form-templates'), true);
     assert.equal(isBackTargetPath('/onboarding'), false);
     assert.equal(isBackTargetPath('/onboarding?replay=1'), false);
     assert.equal(isBackTargetPath('/roadmap'), false);

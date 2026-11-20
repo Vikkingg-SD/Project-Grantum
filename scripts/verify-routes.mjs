@@ -52,6 +52,7 @@ await check('grant identity and history have a single route owner', () => {
 
 await check('workspace workflows have independent page routes', () => {
   for (const [leaf, screen] of [
+    ['form-templates', 'FormTemplates'],
     ['my-works', 'MyWorks'],
     ['project-profile', 'ProjectProfile'],
     ['discover', 'Discovery'],
@@ -245,6 +246,18 @@ try {
       await page.goto(url('2', 'drafting'));
       await visible('Community Health Access');
       await expect(page.getByRole('button', { name: 'Discover', exact: true })).toHaveCount(0);
+      const formTemplatesBtn = page.getByRole('button', { name: 'Form templates', exact: true });
+      const myWorksBtn = page.getByRole('button', { name: 'My Works', exact: true });
+      const formTemplatesBox = await formTemplatesBtn.boundingBox();
+      const myWorksBox = await myWorksBtn.boundingBox();
+      assert.ok(
+        formTemplatesBox && myWorksBox && formTemplatesBox.x < myWorksBox.x,
+        'Form templates must occupy the first top-bar slot left of My Works'
+      );
+      await formTemplatesBtn.click();
+      await expect(page).toHaveURL(`${origin}/form-templates`);
+      await page.getByRole('button', { name: 'Go back', exact: true }).click();
+      await expect(page).toHaveURL(url('2', 'drafting'));
       await page.getByRole('button', { name: 'My Works', exact: true }).click();
       await page.getByRole('button', { name: 'Project Profile', exact: true }).click();
       await page.getByRole('button', { name: 'Resume last grant view', exact: true }).click();

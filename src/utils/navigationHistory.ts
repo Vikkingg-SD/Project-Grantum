@@ -12,6 +12,7 @@ export const LIFECYCLE_VIEW_PATHS = [
 
 const LIFECYCLE_VIEW_SET = new Set<string>(LIFECYCLE_VIEW_PATHS);
 const WORKSPACE_BACKABLE_PATHS = new Set<string>([
+  '/form-templates',
   '/discover',
   '/my-works',
   '/project-profile',

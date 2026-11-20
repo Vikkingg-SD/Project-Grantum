@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { usePathname, useRouter } from 'expo-router';
+import { usePathname, useRouter, type Href } from 'expo-router';
 import { AppButton } from '@/components/atoms/AppButton';
 import { useTheme } from '@/hooks/useTheme';
 import { SPACING } from '@/config/theme';
 import { normalizePathname } from '@/utils/navigationHistory';
 
 const WORKSPACE_TABS = [
+  ['/form-templates', 'Form templates'],
   ['/my-works', 'My Works'],
   ['/project-profile', 'Project Profile'],
 ] as const;
@@ -32,7 +33,7 @@ export function WorkspaceNavigation() {
               borderBottomColor: selected ? theme.primary : 'transparent',
             }}
             onPress={() => {
-              if (pathname !== href) router.push(href);
+              if (pathname !== href) router.push(href as Href);
             }}
           />
         );

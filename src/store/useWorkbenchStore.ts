@@ -5,6 +5,15 @@ import { emptyWorkbench, type DraftWorkbench } from '@/utils/drafting';
 
 const WORKBENCH_STORAGE_KEY = 'grantum.workbench.v1';
 
+const isValidDraftSection = (section: unknown): boolean =>
+  Boolean(
+    section &&
+    typeof section === 'object' &&
+    typeof (section as { id?: unknown }).id === 'string' &&
+    typeof (section as { title?: unknown }).title === 'string' &&
+    typeof (section as { text?: unknown }).text === 'string'
+  );
+
 const persistence = createDevicePersistence<Record<string, DraftWorkbench>>(
   WORKBENCH_STORAGE_KEY,
   getDeviceStorage(),
@@ -17,6 +26,10 @@ const persistence = createDevicePersistence<Record<string, DraftWorkbench>>(
         (work) =>
           work &&
           Array.isArray(work.sections) &&
+          work.sections.every(isValidDraftSection) &&
+          (work.removedCatalogSections === undefined ||
+            (Array.isArray(work.removedCatalogSections) &&
+              work.removedCatalogSections.every((title: unknown) => typeof title === 'string'))) &&
           Array.isArray(work.versions) &&
           Array.isArray(work.submissions) &&
           Array.isArray(work.outputs)
