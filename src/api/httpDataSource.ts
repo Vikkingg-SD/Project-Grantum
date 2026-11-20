@@ -1,6 +1,7 @@
 import { apiClientOptions, ApiError, createApiClient } from './client';
 import { ENDPOINTS } from './endpoint';
 import { getSessionToken } from '@/store/useAuthStore';
+import { isSafeExternalUrl } from '@/utils/navigationHistory';
 import type { DataSource, SectionMutation } from '@/types/api';
 
 function wireMutation(input: SectionMutation): SectionMutation {
@@ -109,7 +110,8 @@ function validPayload(path: string, value: unknown): boolean {
     return shape({
       success: (item) => item === true,
       checksum: identifier,
-      downloadUrl: (item) => typeof item === 'string' && /^https?:\/\//i.test(item),
+      downloadUrl: (item) =>
+        typeof item === 'string' && isSafeExternalUrl(item, { allowLocalHttp: true }),
     })(value);
   if (route.endsWith('/award'))
     return shape({

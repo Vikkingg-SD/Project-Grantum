@@ -10,6 +10,7 @@ import {
 } from '@/store/useSourceSuggestionStore';
 import { validateSource } from '@/utils/sourceSuggestions';
 import { useTheme } from '@/hooks/useTheme';
+import { useEscapeDismiss } from '@/hooks/useEscapeDismiss';
 import { SPACING } from '@/config/theme';
 
 export function SourceSuggestions() {
@@ -17,6 +18,7 @@ export function SourceSuggestions() {
   const { entries, hydrated, status, add } = useSourceSuggestionStore();
   const [open, setOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  useEscapeDismiss(historyOpen, () => setHistoryOpen(false));
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
   const [note, setNote] = useState('');

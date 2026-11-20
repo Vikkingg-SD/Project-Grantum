@@ -36,6 +36,7 @@ export default function ProjectProfileScreen() {
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const activeRole = useWorkspaceStore((state) => state.activeRole);
+  const projectRoles = useWorkspaceStore((state) => state.projectRoles);
   const nickname = useWorkspaceStore((state) => state.nickname);
   const setProjectRole = useWorkspaceStore((state) => state.setProjectRole);
   const inputs = useRef<Record<string, TextInput | null>>({});
@@ -128,8 +129,9 @@ export default function ProjectProfileScreen() {
   );
 
   const unsaved = hasProfileChanges(currentProject, currentRevision, { name, kind, fields });
-  const canEdit =
-    canRolePerform(activeRole, 'manage-project') || canRolePerform(activeRole, 'edit');
+  const editingRole = currentProject ? (projectRoles[currentProject.id] ?? 'owner') : activeRole;
+  const canEdit = canRolePerform(editingRole, 'edit');
+  const canManageProject = canRolePerform(editingRole, 'manage-project');
 
   return (
     <ScreenContainer insetEdges={[]}>
@@ -141,7 +143,7 @@ export default function ProjectProfileScreen() {
 
         {!canEdit && (
           <StatusBadge
-            label={`Read-only mode (${activeRole.toUpperCase()} role)`}
+            label={`Read-only mode (${editingRole.toUpperCase()} role)`}
             variant="pending"
           />
         )}
@@ -175,7 +177,7 @@ export default function ProjectProfileScreen() {
                   size="sm"
                   variant="outline"
                   label="New project"
-                  disabled={!canEdit}
+                  disabled={!canManageProject}
                   onPress={startNewSlot}
                 />
               </View>
@@ -246,7 +248,7 @@ export default function ProjectProfileScreen() {
               <AppText>{nickname} · You</AppText>
               <ProjectRolePicker
                 name={nickname}
-                role={activeRole}
+                role={editingRole}
                 disabled={!currentProject || ENV.DATA_SOURCE !== 'mock'}
                 onChange={(role) => {
                   setProjectRole(editingProjectId, role);
@@ -380,14 +382,19 @@ export default function ProjectProfileScreen() {
                       currentProject.archivedAt ? 'Restore Project Slot' : 'Archive Project Slot'
                     }
                     variant="outline"
-                    disabled={!canEdit}
+                    disabled={!canManageProject}
                     onPress={() => {
-                      toggleArchiveProject(currentProject.id);
-                      setNotice(
-                        currentProject.archivedAt
-                          ? 'Project slot restored.'
-                          : 'Project slot archived.'
-                      );
+                      try {
+                        toggleArchiveProject(currentProject.id);
+                        setError('');
+                        setNotice(
+                          currentProject.archivedAt
+                            ? 'Project slot restored.'
+                            : 'Project slot archived.'
+                        );
+                      } catch (e) {
+                        setError(e instanceof Error ? e.message : 'Unable to update project slot');
+                      }
                     }}
                   />
                 )}

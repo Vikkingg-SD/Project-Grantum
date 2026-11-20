@@ -176,7 +176,7 @@ export function DraftReviewTab({
       </AppText>
       <AppButton
         label="Use reviewed text in Export"
-        disabled={!work.sections.length || work.sections.some((s) => !s.text.trim())}
+        disabled={!canEdit || !work.sections.length || work.sections.some((s) => !s.text.trim())}
         onPress={() =>
           act(
             () =>
@@ -204,7 +204,9 @@ export function DraftReviewTab({
         label="Open official destination"
         disabled={!validSource(destination)}
         onPress={() => {
-          void Linking.openURL(destination).catch(() => onError('Could not open the destination.'));
+          void Linking.openURL(destination.trim()).catch(() =>
+            onError('Could not open the destination.')
+          );
         }}
       />
       <AppInput

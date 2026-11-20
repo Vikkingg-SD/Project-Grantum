@@ -1,7 +1,10 @@
 import { useLocalSearchParams } from 'expo-router';
+import { isValidGrantId } from '@/utils/navigationHistory';
 
-// Only the matched route supplies identity; no fixture or UI-store fallback.
+// Only a single valid matched route parameter supplies identity; reject array collisions
+// and dot-segment/control-character traversal payloads.
 export function useActiveGrantId(): string {
   const { grantID } = useLocalSearchParams<{ grantID?: string | string[] }>();
-  return typeof grantID === 'string' ? grantID : '';
+  if (typeof grantID !== 'string') return '';
+  return isValidGrantId(grantID) ? grantID : '';
 }

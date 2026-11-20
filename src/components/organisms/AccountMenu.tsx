@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Pressable, View, StyleSheet, useWindowDimensions } from 'react-native';
+import { Modal, Platform, Pressable, View, StyleSheet, useWindowDimensions } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/atoms/AppText';
@@ -9,19 +9,30 @@ import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { ENV } from '@/config/env';
 import { LAYOUT } from '@/config/layout';
 import { RADIUS, SPACING } from '@/config/theme';
+import { normalizePathname } from '@/utils/navigationHistory';
+import { workspaceReturnPath } from '@/utils/workspaceReturn';
 
 export function AccountMenu() {
   const [open, setOpen] = useState(false);
   const nickname = useWorkspaceStore((state) => state.nickname);
   const theme = useTheme();
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = normalizePathname(usePathname());
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const navigate = (path: '/settings' | '/project-profile' | '/admin' | '/plans') => {
     setOpen(false);
-    if (path === '/plans') router.push({ pathname: '/plans', params: { returnTo: pathname } });
-    else router.push(path);
+    if (pathname === path) return;
+    if (path === '/plans') {
+      const safeReturn = workspaceReturnPath(pathname);
+      if (safeReturn !== '/dashboard') {
+        router.push({ pathname: '/plans', params: { returnTo: String(safeReturn) } });
+      } else {
+        router.push('/plans');
+      }
+      return;
+    }
+    router.push(path);
   };
   return (
     <>
@@ -61,12 +72,21 @@ export function AccountMenu() {
             },
           ]}
         >
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            accessible={false}
-            focusable={false}
-            onPress={() => setOpen(false)}
-          />
+          {Platform.OS === 'web' ? (
+            <View
+              accessible={false}
+              style={StyleSheet.absoluteFill}
+              onStartShouldSetResponder={() => true}
+              onResponderRelease={() => setOpen(false)}
+            />
+          ) : (
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              accessible={false}
+              focusable={false}
+              onPress={() => setOpen(false)}
+            />
+          )}
           <View
             style={[styles.menu, { backgroundColor: theme.surface, borderColor: theme.border }]}
           >

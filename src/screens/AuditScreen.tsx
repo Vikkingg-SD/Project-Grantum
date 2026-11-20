@@ -18,6 +18,7 @@ import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
+import { useEscapeDismiss } from '@/hooks/useEscapeDismiss';
 import { useTheme } from '@/hooks/useTheme';
 import { RADIUS, SPACING } from '@/config/theme';
 import { AUDIT_COPY } from '@/config/copy';
@@ -40,6 +41,8 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
   const { mobile } = useLayoutMetrics();
   const [promptsOpen, setPromptsOpen] = useState(false);
   const [finishInfoOpen, setFinishInfoOpen] = useState(false);
+  useEscapeDismiss(mobile && promptsOpen, () => setPromptsOpen(false));
+  useEscapeDismiss(finishInfoOpen, () => setFinishInfoOpen(false));
   const [slotNotice, setSlotNotice] = useState('');
   const [slotError, setSlotError] = useState('');
   const scrollRef = useRef<ScrollView>(null);
@@ -341,10 +344,17 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
                 label="Pull Latest Profile Revision"
                 disabled={!canEdit || activeApp.status === 'submitted'}
                 onPress={() => {
-                  pullWorkSlotProfile(activeApp.id);
-                  setSlotNotice(
-                    `Pulled latest profile revision ${activeProject?.currentRevisionId} into work slot.`
-                  );
+                  try {
+                    pullWorkSlotProfile(activeApp.id);
+                    setSlotError('');
+                    setSlotNotice(
+                      `Pulled latest profile revision ${activeProject?.currentRevisionId} into work slot.`
+                    );
+                  } catch (e) {
+                    setSlotError(
+                      e instanceof Error ? e.message : 'Unable to pull profile revision'
+                    );
+                  }
                 }}
               />
             </View>

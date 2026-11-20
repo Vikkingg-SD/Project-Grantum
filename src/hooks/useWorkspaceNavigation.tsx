@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
+import { BackHandler, Platform } from 'react-native';
 import { create } from 'zustand';
 import {
   usePathname,
@@ -8,40 +8,58 @@ import {
   useUnstableGlobalHref,
   type Href,
 } from 'expo-router';
-import { VIEW_PATHS } from './useActiveView';
+import {
+  applyFallbackBack,
+  canUseNativeRouterBack,
+  findPreviousBackIndex,
+  isLifecyclePath,
+  isWorkspaceShellPath,
+  normalizePathname,
+  reconcileNativeHistory,
+  recordHistoryVisit,
+  resolveHomeDestination,
+  type NavHistory,
+} from '@/utils/navigationHistory';
+import { dismissTopEscapeLayer } from '@/hooks/useEscapeDismiss';
 
-const previousDestinationLimit = 10;
-const workspacePaths = new Set([
-  '/discover',
-  '/my-works',
-  '/project-profile',
-  '/settings',
-  '/plans',
-  '/admin',
-]);
-const lifecycleViews = new Set<string>(Object.values(VIEW_PATHS));
-
-function isLifecyclePath(pathname: string) {
-  const [, root, grant, view, extra] = pathname.split('/');
-  return root === 'grants' && Boolean(grant && lifecycleViews.has(view)) && extra === undefined;
-}
-
-function isWorkspacePath(href: string) {
-  const pathname = href.split(/[?#]/, 1)[0];
-  return workspacePaths.has(pathname) || isLifecyclePath(pathname);
-}
-
-type Visit = { key: string; href: string };
-type History = { visits: Visit[]; index: number };
 type RootNavigationState = ReturnType<typeof useRootNavigationState>;
 type ChildNavigationState = RootNavigationState['routes'][number]['state'];
+
+interface HistoryStoreState extends NavHistory {
+  invalidPaths: string[];
+}
+
 // Browser Forward can reset the navigation tree and remount the root layout.
-// Keep the trail and resume target for the current app session.
-const useHistory = create<History>(() => ({ visits: [], index: -1 }));
+// Keep the trail, invalid-route blacklist, and resume target for the current app session.
+const useHistory = create<HistoryStoreState>(() => ({
+  visits: [],
+  index: -1,
+  invalidPaths: [],
+}));
 let lastLifecycle: string | null = null;
 
 function rememberLifecycle(destination: string) {
-  if (isLifecyclePath(destination.split(/[?#]/, 1)[0])) lastLifecycle = destination;
+  const clean = normalizePathname(destination);
+  if (isLifecyclePath(clean)) lastLifecycle = clean;
+}
+
+function markInvalidPath(destination: string) {
+  const clean = normalizePathname(destination);
+  if (lastLifecycle === clean) lastLifecycle = null;
+  useHistory.setState((state) =>
+    state.invalidPaths.includes(clean)
+      ? state
+      : { invalidPaths: [...state.invalidPaths.slice(-49), clean] }
+  );
+}
+
+function clearInvalidPath(destination: string) {
+  const clean = normalizePathname(destination);
+  useHistory.setState((state) =>
+    state.invalidPaths.includes(clean)
+      ? { invalidPaths: state.invalidPaths.filter((item) => item !== clean) }
+      : state
+  );
 }
 
 function focusedRouteKey(state: ChildNavigationState): string | undefined {
@@ -50,51 +68,95 @@ function focusedRouteKey(state: ChildNavigationState): string | undefined {
   return route?.state ? focusedRouteKey(route.state) : route?.key;
 }
 
-function recordVisit(history: History, visit: Visit, browserTraversal: boolean): History {
-  const { visits, index } = history;
-  const previousIndex = visits.findIndex((entry) => entry.key === visit.key);
-  if (previousIndex !== -1) {
-    if (previousIndex === index && visits[index].href === visit.href) return history;
-    const updated = [...visits];
-    updated[previousIndex] = visit;
-    return { visits: updated, index: previousIndex };
+function collectActiveRouteKeys(state: ChildNavigationState, acc: string[] = []): string[] {
+  if (!state) return acc;
+  for (const route of state.routes) {
+    if (route?.state) {
+      collectActiveRouteKeys(route.state, acc);
+    } else if (route?.key) {
+      acc.push(route.key);
+    }
   }
-  const next = browserTraversal ? [visit] : [...visits.slice(0, index + 1), visit];
-  const bounded = next.slice(-(previousDestinationLimit + 1));
-  return { visits: bounded, index: bounded.length - 1 };
+  return acc;
 }
 
-type WorkspaceNavigation = {
+export interface WorkspaceNavigationApi {
   canGoBack: boolean;
+  previousHref: string | null;
   goBack: () => void;
   goHome: () => void;
   rememberLifecycle: (href: string) => void;
-};
-const NavigationContext = createContext<WorkspaceNavigation | null>(null);
+  markInvalidPath: (href: string) => void;
+  clearInvalidPath: (href: string) => void;
+}
+
+const NavigationContext = createContext<WorkspaceNavigationApi | null>(null);
 
 export function WorkspaceNavigationProvider({ children }: React.PropsWithChildren) {
   const router = useRouter();
   const pathname = usePathname();
   const href = useUnstableGlobalHref();
   const state = useRootNavigationState();
-  const history = useHistory();
+  const visits = useHistory((s) => s.visits);
+  const index = useHistory((s) => s.index);
+  const invalidPaths = useHistory((s) => s.invalidPaths);
   const returning = useRef(false);
-  const current = history.visits[history.index];
+  const departingKey = useRef<string | null>(null);
+  const returnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearReturnTimer = useCallback(() => {
+    if (returnTimer.current !== null) {
+      clearTimeout(returnTimer.current);
+      returnTimer.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
+      let frame = 0;
+      let retryAttempts = 0;
       const observe = (browserTraversal: boolean) => {
-        returning.current = false;
         // Expo Router gives the browser entry an id and restores it on Back or Forward.
         const key = window.history.state?.id;
-        if (typeof key !== 'string') return;
+        if (typeof key !== 'string') {
+          if (!browserTraversal && retryAttempts < 10) {
+            retryAttempts += 1;
+            frame = window.requestAnimationFrame(() => observe(false));
+          }
+          return;
+        }
+        // Ignore a departing-frame rAF while an async history.go() is still awaiting popstate.
+        if (
+          !browserTraversal &&
+          returning.current &&
+          departingKey.current &&
+          key === departingKey.current
+        ) {
+          return;
+        }
+        returning.current = false;
+        departingKey.current = null;
+        clearReturnTimer();
         const browserHref = window.location.pathname + window.location.search;
-        useHistory.setState((value) =>
-          recordVisit(value, { key, href: browserHref }, browserTraversal)
-        );
+        useHistory.setState((value) => {
+          const next = recordHistoryVisit(
+            { visits: value.visits, index: value.index },
+            { key, href: browserHref },
+            browserTraversal
+          );
+          if (next.visits === value.visits && next.index === value.index) return value;
+          return { visits: next.visits, index: next.index };
+        });
       };
-      // Expo's linking listener publishes browser history after the router state changes.
-      const frame = window.requestAnimationFrame(() => observe(false));
+      // Observe immediately when browser URL already reflects the committed route,
+      // and re-check on the next animation frame after Expo's linking listener publishes.
+      if (
+        typeof window.history.state?.id === 'string' &&
+        normalizePathname(window.location.pathname) === normalizePathname(pathname)
+      ) {
+        observe(false);
+      }
+      frame = window.requestAnimationFrame(() => observe(false));
       const onPopState = () => observe(true);
       window.addEventListener('popstate', onPopState, true);
       return () => {
@@ -104,43 +166,180 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
     }
     const key = focusedRouteKey(state);
     if (key) {
+      if (returning.current && departingKey.current && key === departingKey.current) {
+        return;
+      }
       returning.current = false;
-      useHistory.setState((value) => recordVisit(value, { key, href }, false));
+      departingKey.current = null;
+      clearReturnTimer();
+      const activeKeys = collectActiveRouteKeys(state);
+      useHistory.setState((value) => {
+        const next = reconcileNativeHistory(
+          { visits: value.visits, index: value.index },
+          activeKeys,
+          { key, href }
+        );
+        if (next.visits === value.visits && next.index === value.index) return value;
+        return { visits: next.visits, index: next.index };
+      });
     }
-  }, [href, state]);
+  }, [clearReturnTimer, href, pathname, state]);
 
-  const previousIndex = history.visits.findLastIndex(
-    (entry, index) =>
-      index < history.index && entry.href !== current?.href && isWorkspacePath(entry.href)
-  );
-  const canGoBack =
-    previousIndex !== -1 &&
-    isWorkspacePath(pathname) &&
-    current?.href.split(/[?#]/, 1)[0] === pathname;
+  useEffect(() => clearReturnTimer, [clearReturnTimer]);
 
-  return (
-    <NavigationContext.Provider
-      value={{
-        canGoBack,
-        goBack: () => {
-          if (!canGoBack || returning.current) return;
-          if (Platform.OS === 'web') {
-            returning.current = true;
-            window.history.go(previousIndex - history.index);
-          } else if (router.canGoBack()) {
-            router.back();
-          }
-        },
-        goHome: () => {
-          const destination = lastLifecycle ?? '/dashboard';
-          if (href !== destination) router.push(destination as Href);
-        },
-        rememberLifecycle,
-      }}
-    >
-      {children}
-    </NavigationContext.Provider>
+  const invalidSet = useMemo(() => new Set(invalidPaths), [invalidPaths]);
+  const previousIndex = findPreviousBackIndex({ visits, index }, pathname, invalidSet);
+  const previousHref = previousIndex !== -1 ? visits[previousIndex].href : null;
+  const canGoBack = previousIndex !== -1;
+
+  const goBack = useCallback(() => {
+    if (!canGoBack || returning.current || previousIndex === -1) return;
+    const target = visits[previousIndex];
+    if (!target) return;
+    if (Platform.OS === 'web') {
+      const currentBrowserKey =
+        typeof window.history.state?.id === 'string' ? window.history.state.id : null;
+      returning.current = true;
+      departingKey.current = currentBrowserKey;
+      clearReturnTimer();
+      const targetHref = target.href;
+      // Guard against browser history truncation where history.go does not emit popstate.
+      returnTimer.current = setTimeout(() => {
+        if (!returning.current) return;
+        returning.current = false;
+        departingKey.current = null;
+        returnTimer.current = null;
+        const latestKey =
+          typeof window.history.state?.id === 'string' ? window.history.state.id : null;
+        useHistory.setState((current) => {
+          const next = applyFallbackBack(
+            { visits: current.visits, index: current.index },
+            previousIndex,
+            latestKey,
+            targetHref
+          );
+          return { visits: next.visits, index: next.index };
+        });
+        router.replace(targetHref as Href);
+      }, 400);
+      window.history.go(previousIndex - index);
+      return;
+    }
+    const currentNativeKey = focusedRouteKey(state) ?? null;
+    const activeKeys = collectActiveRouteKeys(state);
+    returning.current = true;
+    departingKey.current = currentNativeKey;
+    clearReturnTimer();
+    returnTimer.current = setTimeout(() => {
+      returning.current = false;
+      departingKey.current = null;
+      returnTimer.current = null;
+    }, 400);
+    if (canUseNativeRouterBack(activeKeys, target.key) && router.canGoBack()) {
+      router.back();
+    } else {
+      useHistory.setState((current) => {
+        const next = applyFallbackBack(
+          { visits: current.visits, index: current.index },
+          previousIndex,
+          null,
+          target.href
+        );
+        return { visits: next.visits, index: next.index };
+      });
+      router.replace(target.href as Href);
+    }
+  }, [canGoBack, clearReturnTimer, index, previousIndex, router, state, visits]);
+
+  const goHome = useCallback(() => {
+    const destination = resolveHomeDestination(pathname, lastLifecycle, invalidSet);
+    if (!destination) return;
+    router.push(destination as Href);
+  }, [invalidSet, pathname, router]);
+
+  // Single root web Escape coordinator:
+  // 1. Open dialog/modal (RN Web Modal handles Escape on keyup)
+  // 2. Focused text input / textarea / select / contentEditable -> blur
+  // 3. Open non-modal expandable panel/dropdown (LIFO) -> dismiss
+  // 4. In-app Back navigation (only when canGoBack is true)
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key !== 'Escape' ||
+        event.defaultPrevented ||
+        event.repeat ||
+        event.isComposing ||
+        event.keyCode === 229 ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey
+      ) {
+        return;
+      }
+      if (document.querySelector('[role="dialog"], [aria-modal="true"]')) {
+        return;
+      }
+      const focused = document.activeElement;
+      if (
+        focused instanceof HTMLInputElement ||
+        focused instanceof HTMLTextAreaElement ||
+        focused instanceof HTMLSelectElement ||
+        (focused instanceof HTMLElement && focused.isContentEditable)
+      ) {
+        focused.blur();
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      if (dismissTopEscapeLayer()) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      if (canGoBack) {
+        goBack();
+        event.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [canGoBack, goBack]);
+
+  // Android hardware Back uses the exact same guarded workspace trail so Back
+  // cannot pop into onboarding or staff administration.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (canGoBack) {
+        goBack();
+        return true;
+      }
+      if (isWorkspaceShellPath(pathname) && router.canGoBack()) {
+        return true;
+      }
+      return false;
+    });
+    return () => subscription.remove();
+  }, [canGoBack, goBack, pathname, router]);
+
+  const value = useMemo<WorkspaceNavigationApi>(
+    () => ({
+      canGoBack,
+      previousHref,
+      goBack,
+      goHome,
+      rememberLifecycle,
+      markInvalidPath,
+      clearInvalidPath,
+    }),
+    [canGoBack, goBack, goHome, previousHref]
   );
+
+  return <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>;
 }
 
 export function useWorkspaceNavigation() {
@@ -150,10 +349,13 @@ export function useWorkspaceNavigation() {
 }
 
 export function useRememberLifecycle(grantId: string) {
-  const { rememberLifecycle } = useWorkspaceNavigation();
-  const href = useUnstableGlobalHref();
+  const { rememberLifecycle: remember, clearInvalidPath: clearInvalid } = useWorkspaceNavigation();
+  const pathname = usePathname();
   useEffect(() => {
-    if (grantId && href.startsWith(`/grants/${encodeURIComponent(grantId)}/`))
-      rememberLifecycle(href);
-  }, [grantId, href, rememberLifecycle]);
+    const clean = normalizePathname(pathname);
+    if (grantId && clean.startsWith(`/grants/${encodeURIComponent(grantId)}/`)) {
+      clearInvalid(clean);
+      remember(clean);
+    }
+  }, [clearInvalid, grantId, pathname, remember]);
 }

@@ -391,7 +391,7 @@ const ROLE_CAPABILITIES: Record<CoWorkRole, readonly CoWorkAction[]> = {
 };
 
 export function canRolePerform(role: CoWorkRole, action: CoWorkAction): boolean {
-  return ROLE_CAPABILITIES[role].includes(action);
+  return ROLE_CAPABILITIES[role]?.includes(action) ?? false;
 }
 
 export function parseVaultDocs(raw: string | undefined): string[] {

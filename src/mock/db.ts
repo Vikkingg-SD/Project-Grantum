@@ -1,5 +1,6 @@
 import type { GrantDetail } from '@/types/grant';
 import type { ProposalDraft, AuditScan, AwardRecord, AuditEvent } from '@/types/api';
+import { ApiError } from '@/api/client';
 import { mockGrants } from './grants';
 import { seedExportDoc } from './seeds';
 import { DEFAULT_REQUIRED_SECTIONS } from '@/config/constants';
@@ -13,7 +14,7 @@ const latestScans: Record<string, string> = {};
 
 export function getMockGrantDetail(id: string): GrantDetail {
   const grant = mockGrants.find((g) => g.id === id);
-  if (!grant) throw new Error('Grant not found.');
+  if (!grant) throw new ApiError('Grant not found.', 404, 'HTTP_ERROR');
   return { ...grant, requirements: [...DEFAULT_REQUIRED_SECTIONS] };
 }
 
@@ -87,7 +88,9 @@ export function getLatestMockScan(grantId: string): AuditScan | null {
 
 export function getMockAward(grantId: string): AwardRecord {
   getMockGrantDetail(grantId);
-  if (grantId !== '1') throw new Error('No award record exists for this application.');
+  if (grantId !== '1') {
+    throw new ApiError('No award record exists for this application.', 404, 'HTTP_ERROR');
+  }
   return {
     grantId,
     status: 'awarded',

@@ -13,6 +13,7 @@ import { MOTION } from '@/config/motion';
 import { RADIUS, SPACING } from '@/config/theme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { workspaceReturnPath } from '@/utils/workspaceReturn';
 
 const slides = [
   {
@@ -35,8 +36,12 @@ export default function OnboardingScreen() {
   const reduceMotion = useReduceMotion();
   const { mobile, effectiveWidth } = useLayoutMetrics();
   const router = useRouter();
-  const { replay } = useLocalSearchParams<{ replay?: string | string[] }>();
+  const { replay, returnTo } = useLocalSearchParams<{
+    replay?: string | string[];
+    returnTo?: string | string[];
+  }>();
   const isReplay = replay === '1' || (Array.isArray(replay) && replay[0] === '1');
+  const replayReturnPath = isReplay && returnTo ? workspaceReturnPath(returnTo) : null;
   const grants = useGrants();
   const completeLaunchTour = useWorkspaceStore((state) => state.completeLaunchTour);
   const [slideOpacity] = useState(() => new Animated.Value(1));
@@ -68,6 +73,10 @@ export default function OnboardingScreen() {
 
   const finish = () => {
     if (!isReplay) completeLaunchTour();
+    if (replayReturnPath && replayReturnPath !== '/dashboard') {
+      router.replace(replayReturnPath);
+      return;
+    }
     const grant = grants.data?.[0];
     if (grant) {
       router.replace({
@@ -150,8 +159,8 @@ export default function OnboardingScreen() {
             <AppButton
               label={final ? 'Get started' : 'Next'}
               variant="primary"
-              isLoading={final && grants.isPending}
-              disabled={final && !grants.data?.length}
+              isLoading={final && !replayReturnPath && grants.isPending}
+              disabled={final && !replayReturnPath && !grants.data?.length}
               onPress={() => {
                 if (!final) {
                   setIndex((current) => current + 1);

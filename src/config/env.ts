@@ -13,6 +13,7 @@ if (dataMode !== 'api' && dataMode !== 'mock') {
 
 export const ENV = {
   API_BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL ?? '',
+  BILLING_PORTAL_URL: process.env.EXPO_PUBLIC_BILLING_PORTAL_URL ?? '',
   API_TIMEOUT_MS: positiveNumber(process.env.EXPO_PUBLIC_API_TIMEOUT_MS, 15000),
   POLLING_INTERVAL_MS: positiveNumber(process.env.EXPO_PUBLIC_POLLING_INTERVAL_MS, 1000),
   DATA_SOURCE: dataMode,

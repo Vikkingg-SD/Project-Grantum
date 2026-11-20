@@ -1,12 +1,15 @@
-import React, { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Linking, Platform, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { workspaceReturnPath } from '@/utils/workspaceReturn';
+import { normalizePathname } from '@/utils/navigationHistory';
+import { useWorkspaceNavigation } from '@/hooks/useWorkspaceNavigation';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppText } from '@/components/atoms/AppText';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { InfoCard } from '@/components/molecules/InfoCard';
+import { ENV } from '@/config/env';
 import { RADIUS, SPACING } from '@/config/theme';
 import { useTheme } from '@/hooks/useTheme';
 import {
@@ -16,6 +19,7 @@ import {
   evaluateAffiliateEligibility,
   formatUsdPrice,
   REFERRAL_PROGRAM,
+  resolveExternalBillingUrl,
   SUBSCRIPTION_TIERS,
   UNIT_ECONOMICS_METRICS,
   type AffiliateTierChoice,
@@ -34,18 +38,108 @@ const MONTH_PRESETS = [0, 1, 2, 6] as const;
 export default function PlansScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { canGoBack, previousHref, goBack } = useWorkspaceNavigation();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
   const returnPath = workspaceReturnPath(returnTo);
+  const externalBillingUrl = resolveExternalBillingUrl(ENV.BILLING_PORTAL_URL);
   const [region, setRegion] = useState<BillingRegion>('cis');
   const [invitedCount, setInvitedCount] = useState<number>(5);
   const [currentTier, setCurrentTier] = useState<AffiliateTierChoice>('t3');
   const [subscribedMonths, setSubscribedMonths] = useState<number>(2);
+  const [openingPortal, setOpeningPortal] = useState(false);
+  const [portalNotice, setPortalNotice] = useState('');
+  const portalToken = useRef(0);
+  useEffect(() => {
+    return () => {
+      portalToken.current += 1;
+    };
+  }, []);
 
   const regionLabel = BILLING_REGIONS.find((r) => r.id === region)?.label ?? 'CIS (СНГ)';
   const affiliateStatus = useMemo(
     () => evaluateAffiliateEligibility({ invitedCount, currentTier, subscribedMonths }),
     [currentTier, invitedCount, subscribedMonths]
   );
+
+  const handleReturnToWorkspace = () => {
+    if (
+      canGoBack &&
+      previousHref &&
+      normalizePathname(previousHref) === normalizePathname(String(returnPath))
+    ) {
+      goBack();
+      return;
+    }
+    router.replace(returnPath);
+  };
+
+  const handleOpenExternalBilling = async () => {
+    if (!externalBillingUrl || openingPortal) return;
+    const token = ++portalToken.current;
+    setOpeningPortal(true);
+    setPortalNotice('');
+    try {
+      await Linking.openURL(externalBillingUrl);
+      if (portalToken.current === token) {
+        setPortalNotice('Opened subscription billing in your browser.');
+      }
+    } catch {
+      if (portalToken.current === token) {
+        setPortalNotice(
+          'Could not open the external billing page. Visit it directly in a browser.'
+        );
+      }
+    } finally {
+      if (portalToken.current === token) {
+        setOpeningPortal(false);
+      }
+    }
+  };
+
+  if (Platform.OS !== 'web') {
+    return (
+      <ScreenContainer insetEdges={[]}>
+        <View style={styles.page}>
+          <AppText variant="h1">Subscriptions</AppText>
+          <View
+            style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
+          >
+            <AppText variant="h2">Manage your plan on the web</AppText>
+            <AppText color="muted">
+              Grantum subscriptions and regional pricing are managed outside the mobile app on the
+              Grantum web portal. In-app purchases are not offered on iOS or Android.
+            </AppText>
+            {externalBillingUrl ? (
+              <AppButton
+                label="Open web billing portal"
+                variant="primary"
+                isLoading={openingPortal}
+                onPress={() => {
+                  void handleOpenExternalBilling();
+                }}
+              />
+            ) : (
+              <AppText variant="caption" color="muted">
+                Web billing checkout will open in your browser once billing services connect.
+              </AppText>
+            )}
+            {portalNotice ? (
+              <AppText accessibilityLiveRegion="polite" variant="caption" color="muted">
+                {portalNotice}
+              </AppText>
+            ) : null}
+          </View>
+          <View style={styles.rowWrap}>
+            <AppButton
+              label="Back to workspace"
+              variant="primary"
+              onPress={handleReturnToWorkspace}
+            />
+          </View>
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer insetEdges={[]}>
@@ -56,6 +150,24 @@ export default function PlansScreen() {
           platform unit economics. Checkout, token enforcement, and USDT payouts activate once
           billing services connect.
         </AppText>
+
+        {externalBillingUrl ? (
+          <View style={styles.rowWrap}>
+            <AppButton
+              label="Open web billing portal"
+              variant="primary"
+              isLoading={openingPortal}
+              onPress={() => {
+                void handleOpenExternalBilling();
+              }}
+            />
+            {portalNotice ? (
+              <AppText accessibilityLiveRegion="polite" variant="caption" color="muted">
+                {portalNotice}
+              </AppText>
+            ) : null}
+          </View>
+        ) : null}
 
         <InfoCard tone="surface">
           <AppText variant="label" align="center">
@@ -244,14 +356,7 @@ export default function PlansScreen() {
           <AppButton
             label="Back to workspace"
             variant="primary"
-            onPress={() => router.replace(returnPath)}
-          />
-          <AppButton
-            label="Open public roadmap"
-            variant="outline"
-            onPress={() =>
-              router.push({ pathname: '/roadmap', params: { returnTo: String(returnPath) } })
-            }
+            onPress={handleReturnToWorkspace}
           />
         </View>
       </View>

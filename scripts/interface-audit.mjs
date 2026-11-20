@@ -14,7 +14,6 @@ export async function auditInterfaces(browser, origin, runtime) {
     diagnostics = [];
   const routes = [
     '/onboarding',
-    '/roadmap',
     '/plans',
     '/discover',
     '/my-works',
@@ -135,7 +134,6 @@ export async function auditInterfaces(browser, origin, runtime) {
       await page.goto(`${origin}${route}`);
       const titles = {
         '/onboarding': /Explore funding opportunities\./,
-        '/roadmap': 'Building Grantum together',
         '/plans': 'Subscriptions, regional pricing & token economics',
         '/discover': 'Find your next opportunity',
         '/my-works': 'My Works',
@@ -511,26 +509,31 @@ export async function auditInterfaces(browser, origin, runtime) {
           assert.ok((await pending).suggestedFilename().endsWith(`.${extension}`));
         }
       });
-      await record('Plans simulator and roadmap links respond', async () => {
-        await goto('/plans');
-        for (const label of [
-          'Affiliate invited count: 0',
-          'Affiliate invited count: 8',
-          'Affiliate tier: Free',
-          'Affiliate tier: Tier 3',
-          'Affiliate subscribed months: 0',
-          'Affiliate subscribed months: 6',
-        ]) {
-          await button(label).click();
-          await expect(button(label)).toHaveAttribute('aria-pressed', 'true');
+      await record(
+        'Plans simulator keeps full shell, removes public roadmap, and /roadmap redirects',
+        async () => {
+          await goto('/plans');
+          await expect(button('Open public roadmap')).toHaveCount(0);
+          await expect(button('Go back')).toBeVisible();
+          await expect(button('Resume last grant view')).toBeVisible();
+          for (const label of [
+            'Affiliate invited count: 0',
+            'Affiliate invited count: 8',
+            'Affiliate tier: Free',
+            'Affiliate tier: Tier 3',
+            'Affiliate subscribed months: 0',
+            'Affiliate subscribed months: 6',
+          ]) {
+            await button(label).click();
+            await expect(button(label)).toHaveAttribute('aria-pressed', 'true');
+          }
+          await button('Back to workspace').click();
+          await expect(page).toHaveURL(/\/grants\/1\/dashboard$/);
+          await page.goto(`${origin}/roadmap`);
+          await expect(page).toHaveURL(/\/grants\/1\/dashboard$/);
+          await expect(page.getByTestId('product-roadmap-track')).toBeVisible();
         }
-        await button('Open public roadmap').click();
-        await expect(page).toHaveURL((url) => url.pathname === '/roadmap');
-        await button('View proposed subscriptions & pricing').click();
-        await expect(page).toHaveURL((url) => url.pathname === '/plans');
-        await button('Back to workspace').click();
-        await expect(page).toHaveURL(/\/grants\/1\/dashboard$/);
-      });
+      );
       await record(
         'Plans returns to the originating grant instead of selecting another application',
         async () => {

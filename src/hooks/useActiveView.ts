@@ -12,6 +12,7 @@ export type AppView = keyof typeof VIEW_PATHS;
 
 export function useActiveView(): AppView | undefined {
   const segments = useSegments();
+  if (segments[0] !== 'grants') return undefined;
   const leaf = segments[segments.length - 1];
   return (Object.keys(VIEW_PATHS) as AppView[]).find((view) => VIEW_PATHS[view] === leaf);
 }

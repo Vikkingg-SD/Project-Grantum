@@ -1,7 +1,8 @@
 import type { GrantSearchParams } from '@/types/api';
+import { isValidGrantId } from '@/utils/navigationHistory';
 
 const id = (value: string) => {
-  if (!value.trim()) throw new Error('A record identifier is required.');
+  if (!isValidGrantId(value)) throw new Error('A valid record identifier is required.');
   return encodeURIComponent(value);
 };
 const proposal = (grantId: string) => `/api/v1/proposals/${id(grantId)}`;

@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Pressable, StyleSheet, Platform } from 'react-native';
+import React from 'react';
+import { View, Pressable, StyleSheet } from 'react-native';
 import ArrowLeft from 'lucide-react-native/icons/arrow-left';
 import House from 'lucide-react-native/icons/house';
 import Sun from 'lucide-react-native/icons/sun';
@@ -15,7 +15,6 @@ import { AccountMenu } from '@/components/organisms/AccountMenu';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 
 export interface AppHeaderProps {
-  title?: string;
   homeLabel?: string;
   canGoBack: boolean;
   onBack: () => void;
@@ -32,41 +31,7 @@ export function AppHeader({
   const { effectiveWidth } = useLayoutMetrics();
   const mode = useThemeStore((state) => state.mode);
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const canHandleEscape = (event: KeyboardEvent) =>
-      event.key === 'Escape' &&
-      !event.defaultPrevented &&
-      !event.repeat &&
-      !event.isComposing &&
-      event.keyCode !== 229 &&
-      // RN Web's Modal owns Escape on keyup and traps/restores focus itself.
-      !document.querySelector('[role="dialog"], [aria-modal="true"]');
-    const onInputEscape = (event: KeyboardEvent) => {
-      if (!canHandleEscape(event)) return;
-      const focused = document.activeElement;
-      if (
-        focused instanceof HTMLInputElement ||
-        focused instanceof HTMLTextAreaElement ||
-        (focused instanceof HTMLElement && focused.isContentEditable)
-      ) {
-        focused.blur();
-        event.preventDefault();
-      }
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (!canHandleEscape(event) || !canGoBack) return;
-      onBack();
-      event.preventDefault();
-    };
-    // RN Web TextInput stops bubbling keydown events at the input.
-    window.addEventListener('keydown', onInputEscape, true);
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('keydown', onInputEscape, true);
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [canGoBack, onBack]);
+
   return (
     <View
       style={[

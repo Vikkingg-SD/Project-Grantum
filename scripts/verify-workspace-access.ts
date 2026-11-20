@@ -25,8 +25,42 @@ if (process.argv.includes('--api')) {
   );
 } else {
   state().setRole('viewer');
+  throws(() =>
+    state().saveProjectProfile({
+      projectId: 'project-1',
+      name: 'Blocked viewer edit',
+      kind: 'startup',
+      summary: 'Should fail',
+      fields: { mission: 'Blocked' },
+    })
+  );
+  throws(() => state().toggleArchiveProject('project-1'));
+  throws(() => state().pullWorkSlotProfile(state().workspace.applications[0].id));
+  state().setRole('editor');
+  throws(() =>
+    state().saveProjectProfile({
+      projectId: 'project-new-blocked',
+      name: 'Editor cannot create project',
+      kind: 'grant',
+      summary: 'Should fail',
+      fields: { mission: 'Blocked' },
+    })
+  );
+  throws(() => state().toggleArchiveProject('project-1'));
+  state().setRole('viewer');
   state().setActiveProject('project-2');
   equal(state().activeRole, 'owner');
+  const p1Before = state().workspace.projects.find((item) => item.id === 'project-1')!.name;
+  throws(() =>
+    state().saveProjectProfile({
+      projectId: '  project-1  ',
+      name: 'Bypass attempt',
+      kind: 'startup',
+      summary: 'Blocked',
+      fields: { mission: 'Blocked' },
+    })
+  );
+  equal(state().workspace.projects.find((item) => item.id === 'project-1')!.name, p1Before);
   state().setRole('reviewer');
   state().setActiveProject('project-1');
   equal(state().activeRole, 'viewer');
