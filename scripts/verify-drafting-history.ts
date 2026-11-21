@@ -3,10 +3,12 @@ import {
   applySelectedTemplate,
   applyTemplate,
   buildSectionSuggestion,
+  bundleText,
   computeLineDiff,
   emptyWorkbench,
   evaluateWorkSlotAudit,
   fullArtifactBundleText,
+  mergeTemplateInitialSections,
   recordSubmission,
   removeWorkbenchSection,
   restoreVersion,
@@ -116,10 +118,36 @@ check(
 );
 const serializedBundle = fullArtifactBundleText(accepted, 'CleanWater AI', 'rev-p1-v2');
 check(
-  'Given multi-artifact work slot When serialized for export Then narrative and compliance annex are included',
+  'Given multi-artifact work slot When serialized for export Then narrative and compliance annex are included without Requested Outputs noise',
   serializedBundle.includes('# Project Profile: CleanWater AI (Revision: rev-p1-v2)') &&
+    !serializedBundle.includes('Requested Outputs:') &&
     serializedBundle.includes('## Application Narrative') &&
     serializedBundle.includes('## Requirement-to-Evidence Compliance Annex')
+);
+
+let preTemplateWork = upsertWorkbenchSection(emptyWorkbench(), {
+  title: 'Telemetry Audit',
+  text: 'Field calibration metrics.',
+  description: 'Custom calibration evidence',
+});
+preTemplateWork = upsertWorkbenchSection(preTemplateWork, {
+  title: 'Empty Draft Section',
+  text: '   ',
+});
+preTemplateWork = removeWorkbenchSection(preTemplateWork, 'Budget');
+const mergedInitial = mergeTemplateInitialSections(preTemplateWork);
+check(
+  'Given pre-template custom sections and removed catalog section When initializing Form templates Then presets merge cleanly and empty sections stay excluded from bundleText',
+  mergedInitial.some((s) => s.title === 'Proposal' && s.isFixed) &&
+    !mergedInitial.some((s) => s.title === 'Budget') &&
+    mergedInitial.some(
+      (s) =>
+        s.title === 'Telemetry Audit' &&
+        !s.isFixed &&
+        s.description === 'Custom calibration evidence'
+    ) &&
+    bundleText(preTemplateWork).includes('Telemetry Audit') &&
+    !bundleText(preTemplateWork).includes('Empty Draft Section')
 );
 const builtSuggestion = buildSectionSuggestion(
   accepted.sections[0],

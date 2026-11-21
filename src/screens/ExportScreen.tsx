@@ -22,7 +22,7 @@ import { ENV } from '@/config/env';
 import { useTheme } from '@/hooks/useTheme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { RADIUS, SPACING } from '@/config/theme';
-import { fullArtifactBundleText } from '@/utils/drafting';
+import { fullArtifactBundleText, resolveApplicationNarrative } from '@/utils/drafting';
 import {
   buildSafeExportFilename,
   formatLocalExportContent,
@@ -69,12 +69,13 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
   const rawCompleted = draft.data?.completedSections;
   const rawBody = draft.data?.body;
   const runningAudit = ENV.DATA_SOURCE !== 'mock' && scan.data?.status === 'running';
+  const resolvedNarrative = resolveApplicationNarrative(local.exportDocument, work, rawBody);
 
   const { incompleteSections, confidenceScore, auditStale, unlocked } = useApplicationAuditState({
     requiredSections: rawRequired,
     completedSections: rawCompleted,
     work,
-    exportBody: local.exportDocument ?? rawBody ?? '',
+    exportBody: resolvedNarrative,
     contentRevision: local.contentRevision,
     auditedSignature: local.auditedSignature,
     profileRevisionId: activeApp?.profileRevisionId ?? activeProject?.currentRevisionId ?? 'latest',
@@ -104,7 +105,7 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
   }
 
   const selectedFormat = EXPORT_FORMATS.find((item) => item.id === format);
-  const documentBody = local.exportDocument ?? draft.data.body;
+  const documentBody = resolvedNarrative;
   const localBodyReady = Boolean(documentBody.trim()) && documentBody.length <= MAX_INPUT_CHARS;
   const activeProjectName = activeProject?.name ?? activeProjectId;
   const activeRevisionId =
@@ -128,7 +129,7 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
       setDownloadError('');
       setBundleNotice(
         triggered
-          ? `Downloaded ${filename}. Cloud DOCX/PDF export requires a connected document service.`
+          ? `Downloaded ${filename}.`
           : 'Direct file download is unavailable in this environment. Copy the application narrative below instead.'
       );
     } catch (e) {
@@ -151,22 +152,8 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
         </AppText>
         <GrantContext grantId={grantId} />
         <WorkspaceStudioBar />
-        {!serviceAvailable && (
-          <View style={[styles.notice, { backgroundColor: theme.subtle }]}>
-            <AppText variant="label" align="center">
-              Cloud document bundles unavailable
-            </AppText>
-            <AppText color="muted" align="center">
-              DOCX and PDF server bundles require a connected service. Use .txt or .md download
-              below.
-            </AppText>
-          </View>
-        )}
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={styles.rowBetween}>
-            <AppText variant="h3">Work Slot Multi-Artifact Bundle Composer</AppText>
-            <StatusBadge label={`Outputs: ${work.outputs.join(', ')}`} variant="neutral" />
-          </View>
+          <AppText variant="h3">Work Slot Multi-Artifact Bundle Composer</AppText>
           <AppText variant="caption" color="muted">
             Active Project: {activeProject?.name ?? activeProjectId} · Pinned Profile:{' '}
             {activeApp?.profileRevisionId ?? activeProject?.currentRevisionId} · Template Sections:{' '}
@@ -186,9 +173,6 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
               );
             }}
           />
-          <AppText variant="caption" color="muted">
-            Export files: {txtFilename} · {mdFilename}
-          </AppText>
           <View style={styles.rowWrap}>
             <AppButton
               size="sm"
@@ -254,7 +238,9 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
         )}
         <AppTextArea
           label="Application narrative"
+          placeholder="Write or load your application narrative before exporting..."
           value={documentBody}
+          editable={canEdit}
           onChangeText={(text) => {
             if (!canEdit) return;
             setDocument(slotKey, text);
@@ -340,13 +326,6 @@ const styles = StyleSheet.create({
   content: { gap: SPACING.md },
   centerBadge: { alignSelf: 'center' },
   card: { padding: SPACING.md, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACING.sm },
-  rowBetween: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-  },
   rowWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -365,5 +344,4 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     gap: SPACING.sm,
   },
-  notice: { borderRadius: RADIUS.md, padding: SPACING.lg, gap: SPACING.sm },
 });

@@ -13,12 +13,15 @@ import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { queryKeys } from '@/api/queryKeys';
 import { styles } from './workspacePageStyles';
 import { useTheme } from '@/hooks/useTheme';
-import { withAlpha } from '@/config/theme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { useDraftStore } from '@/store/useDraftStore';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
-import { applySelectedTemplate, type DraftWorkbench } from '@/utils/drafting';
+import {
+  applySelectedTemplate,
+  mergeTemplateInitialSections,
+  type EditableTemplateSection,
+} from '@/utils/drafting';
 import { canRolePerform, workSlotKey } from '@/utils/workspace';
 import {
   findKnownSection,
@@ -32,39 +35,12 @@ import {
 } from '@/utils/sectionCatalog';
 import type { CoWorkRole, OutputKind, ProjectKind } from '@/types/workspace';
 
-interface EditableTemplateSection {
-  title: string;
-  description: string;
-  isFixed: boolean;
-}
-
 const ROLE_LABELS: Record<CoWorkRole, string> = {
   owner: 'Owner',
   editor: 'Editor',
   reviewer: 'Reviewer',
   viewer: 'Viewer',
 };
-
-function buildInitialSections(work: DraftWorkbench): EditableTemplateSection[] {
-  if (work.sections.length > 0) {
-    return work.sections.map((section) => {
-      const resolved = resolveSectionDescription(section.title, section.description);
-      return {
-        title: section.title,
-        description: resolved.description,
-        isFixed: resolved.isFixed,
-      };
-    });
-  }
-  return TEMPLATE_TYPE_SECTIONS[work.kind].map((title) => {
-    const resolved = resolveSectionDescription(title);
-    return {
-      title,
-      description: resolved.description,
-      isFixed: resolved.isFixed,
-    };
-  });
-}
 
 export default function FormTemplatesScreen() {
   const workspace = useWorkspaceStore((state) => state.workspace);
@@ -112,7 +88,7 @@ function FormTemplatesEditor({
     work.outputs.length ? [...work.outputs] : ['application']
   );
   const [sections, setSections] = useState<EditableTemplateSection[]>(() =>
-    buildInitialSections(work)
+    mergeTemplateInitialSections(work)
   );
   const [showAllStandard, setShowAllStandard] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -298,14 +274,6 @@ function FormTemplatesEditor({
                     label={option.label}
                     selected={kind === option.id}
                     disabled={!canEdit}
-                    style={
-                      kind === option.id
-                        ? {
-                            borderColor: theme.primary,
-                            backgroundColor: withAlpha(theme.primary, 0.14),
-                          }
-                        : undefined
-                    }
                     onPress={() => handleSelectKind(option.id)}
                   />
                 ))}
@@ -326,14 +294,6 @@ function FormTemplatesEditor({
                       label={option.label}
                       selected={selected}
                       disabled={!canEdit}
-                      style={
-                        selected
-                          ? {
-                              borderColor: theme.primary,
-                              backgroundColor: withAlpha(theme.primary, 0.14),
-                            }
-                          : undefined
-                      }
                       onPress={() => toggleOutput(option.id)}
                     />
                   );

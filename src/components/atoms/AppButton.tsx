@@ -10,7 +10,7 @@ import {
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { AppText } from './AppText';
 import { useThemeStore } from '@/store/useThemeStore';
-import { PALETTE, RADIUS, SPACING } from '@/config/theme';
+import { PALETTE, RADIUS, SPACING, withAlpha } from '@/config/theme';
 import { MOTION, pressScale, webPressTransition } from '@/config/motion';
 
 export interface AppButtonProps {
@@ -63,9 +63,9 @@ export function AppButton({
         };
       case 'outline':
         return {
-          backgroundColor: selected ? theme.subtle : 'transparent',
+          backgroundColor: selected ? withAlpha(theme.primary, 0.14) : 'transparent',
           borderWidth: 1,
-          borderColor: selected ? theme.borderStrong : theme.border,
+          borderColor: selected ? theme.primary : theme.border,
           opacity: pressed ? 0.7 : 1,
         };
       case 'ghost':

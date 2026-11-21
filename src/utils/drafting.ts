@@ -6,7 +6,12 @@ import type {
   WorkSlotAuditSummary,
 } from '../types/workspace';
 import { isSafeExternalUrl } from './navigationHistory';
-import { isKnownSection, normalizeSectionTitle, resolveSectionDescription } from './sectionCatalog';
+import {
+  isKnownSection,
+  normalizeSectionTitle,
+  resolveSectionDescription,
+  TEMPLATE_TYPE_SECTIONS,
+} from './sectionCatalog';
 import { generateId } from './uuid';
 
 export interface DraftSection {
@@ -361,20 +366,92 @@ export function recordSubmission(
     ],
   };
 }
+export interface EditableTemplateSection {
+  title: string;
+  description: string;
+  isFixed: boolean;
+}
+
+/**
+ * Merges active template preset sections with any pre-template custom or edited sections
+ * when a formal template has not yet been applied to the work slot.
+ */
+export function mergeTemplateInitialSections(work: DraftWorkbench): EditableTemplateSection[] {
+  if (work.templateApplied && work.sections.length > 0) {
+    return work.sections.map((section) => {
+      const resolved = resolveSectionDescription(section.title, section.description);
+      return {
+        title: section.title,
+        description: resolved.description,
+        isFixed: resolved.isFixed,
+      };
+    });
+  }
+  const removedNorms = new Set(
+    (work.removedCatalogSections ?? []).map((title) => normalizeSectionTitle(title))
+  );
+  const workByNorm = new Map(
+    work.sections.map((section) => [normalizeSectionTitle(section.title), section])
+  );
+  const seen = new Set<string>();
+  const merged: EditableTemplateSection[] = [];
+  for (const title of TEMPLATE_TYPE_SECTIONS[work.kind]) {
+    const norm = normalizeSectionTitle(title);
+    if (removedNorms.has(norm) || seen.has(norm)) continue;
+    seen.add(norm);
+    const existing = workByNorm.get(norm);
+    const resolved = resolveSectionDescription(title, existing?.description);
+    merged.push({
+      title: existing?.title ?? title,
+      description: resolved.description,
+      isFixed: resolved.isFixed,
+    });
+  }
+  for (const section of work.sections) {
+    const norm = normalizeSectionTitle(section.title);
+    if (!section.title.trim() || seen.has(norm)) continue;
+    seen.add(norm);
+    const resolved = resolveSectionDescription(section.title, section.description);
+    merged.push({
+      title: section.title,
+      description: resolved.description,
+      isFixed: resolved.isFixed,
+    });
+  }
+  return merged;
+}
+
 export const bundleText = (work: DraftWorkbench) =>
   work.sections
-    .map((s) => `${s.title}\n${s.text}${s.evidence ? '\nSource: ' + s.evidence : ''}`)
+    .filter((s) => s.text.trim().length > 0)
+    .map((s) => `${s.title}\n${s.text.trim()}${s.evidence ? '\nSource: ' + s.evidence : ''}`)
     .join('\n\n');
+
+/**
+ * Resolves the active application narrative without leaking catalog opportunity summary text:
+ * explicit user edits take precedence, followed by authored section text, then non-empty server draft text.
+ */
+export function resolveApplicationNarrative(
+  localExportDocument: string | null | undefined,
+  work: DraftWorkbench,
+  serverDraftBody?: string | null
+): string {
+  if (localExportDocument !== null && localExportDocument !== undefined) {
+    return localExportDocument;
+  }
+  const authored = bundleText(work);
+  if (authored.trim().length > 0) {
+    return authored;
+  }
+  return (serverDraftBody ?? '').trim();
+}
 
 export function fullArtifactBundleText(
   work: DraftWorkbench,
   projectName = 'Active Project',
   profileRevisionId = 'latest'
 ): string {
-  const parts: string[] = [
-    `# Project Profile: ${projectName} (Revision: ${profileRevisionId})`,
-    `Requested Outputs: ${work.outputs.join(', ')}`,
-  ];
+  const parts: string[] = [`# Project Profile: ${projectName} (Revision: ${profileRevisionId})`];
   const narrative = bundleText(work);
   if (narrative.trim()) {
     parts.push(`## Application Narrative\n${narrative}`);
