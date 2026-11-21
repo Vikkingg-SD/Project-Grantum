@@ -3,11 +3,17 @@ import { getDataSource } from '../dataSource';
 import { AuditScanResponse } from '@/types/api';
 import { ENV } from '@/config/env';
 import { useDraftStore } from '@/store/useDraftStore';
+import { useWorkbenchStore } from '@/store/useWorkbenchStore';
+import { recordAuditHistoryEntry } from '@/utils/drafting';
 import { queryKeys } from '../queryKeys';
 
 export interface AuditTriggerInput {
   snapshotSignature?: string;
   allComplete?: boolean;
+  incompleteSectionTitles?: readonly string[];
+  confidenceScore?: number;
+  profileRevisionId?: string;
+  sectionVersionId?: string | null;
 }
 
 export function auditPollingInterval(
@@ -20,9 +26,9 @@ export function auditPollingInterval(
     : false;
 }
 
-export function useAuditStatus(grantId: string, isScanning = false) {
+export function useAuditStatus(grantId: string, isScanning = false, slotKey?: string) {
   return useQuery<AuditScanResponse | null>({
-    queryKey: queryKeys.audit(grantId),
+    queryKey: queryKeys.audit(grantId, slotKey),
     queryFn: async () => {
       const ds = getDataSource();
       return ds.getLatestAuditScan(grantId);
@@ -39,19 +45,39 @@ export function useTriggerAuditScan(grantId: string, slotKey?: string) {
     mutationFn: async (_input?: AuditTriggerInput | void) => {
       if (!grantId) throw new Error('Select a grant before running an audit.');
       const ds = getDataSource();
-      return ds.runAudit(grantId);
+      const initial = await ds.runAudit(grantId);
+      if (ENV.DATA_SOURCE === 'mock' && initial.status === 'running') {
+        return (await ds.getLatestAuditScan(grantId)) ?? initial;
+      }
+      return initial;
     },
     onSuccess: (scan, input) => {
-      queryClient.setQueryData(queryKeys.audit(grantId), scan);
+      queryClient.setQueryData(queryKeys.audit(grantId, slotKey), scan);
       void queryClient.invalidateQueries({ queryKey: queryKeys.draft(grantId) });
-      if (
-        slotKey &&
-        input &&
-        input.snapshotSignature &&
-        input.allComplete &&
-        scan.missingSections.length === 0
-      ) {
-        useDraftStore.getState().recordAuditSnapshot(slotKey, input.snapshotSignature);
+      if (slotKey && input && scan.status !== 'running') {
+        const missing =
+          ENV.DATA_SOURCE === 'mock'
+            ? [...new Set(input.incompleteSectionTitles ?? [])]
+            : [...new Set([...scan.missingSections, ...(input.incompleteSectionTitles ?? [])])];
+        const passed =
+          Boolean(input.allComplete) &&
+          missing.length === 0 &&
+          (ENV.DATA_SOURCE === 'mock' || scan.status !== 'failed');
+        if (passed && input.snapshotSignature) {
+          useDraftStore.getState().recordAuditSnapshot(slotKey, input.snapshotSignature);
+        }
+        useWorkbenchStore.getState().update(slotKey, (current) =>
+          recordAuditHistoryEntry(current, {
+            id: scan.scanId,
+            timestamp: scan.events[0]?.timestamp ?? new Date().toISOString(),
+            status: passed ? 'passed' : 'failed',
+            confidenceScore: input.confidenceScore ?? scan.confidenceScore,
+            missingSections: missing,
+            signature: input.snapshotSignature ?? '',
+            profileRevisionId: input.profileRevisionId ?? 'latest',
+            sectionVersionId: input.sectionVersionId,
+          })
+        );
       }
     },
   });

@@ -11,7 +11,8 @@ export const queryKeys = {
   grant: (grantId: string) => ['grant', grantId] as const,
   draft: (grantId: string) => ['proposal-draft', grantId] as const,
   sections: (grantId: string) => ['proposal-sections', grantId] as const,
-  audit: (grantId: string) => ['audit-status', grantId] as const,
+  audit: (grantId: string, slotKey?: string) =>
+    slotKey ? (['audit-status', grantId, slotKey] as const) : (['audit-status', grantId] as const),
   award: (grantId: string) => ['award', grantId] as const,
   dashboard: ['dashboard-summary'] as const,
   me: ['auth', 'me'] as const,

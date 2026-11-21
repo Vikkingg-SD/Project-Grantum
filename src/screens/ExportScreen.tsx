@@ -51,7 +51,7 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
   const activeRole = useWorkspaceStore((state) => state.activeRole);
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
   const draft = useProposalDraft(grantId);
-  const scan = useAuditStatus(grantId);
+  const scan = useAuditStatus(grantId, false, slotKey);
   const mutation = useExportBundle(grantId);
   const [format, setFormat] = useState<ExportFormat | null>(null);
   const [downloadError, setDownloadError] = useState('');
@@ -68,7 +68,7 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
   const rawRequired = draft.data?.requiredSections;
   const rawCompleted = draft.data?.completedSections;
   const rawBody = draft.data?.body;
-  const runningAudit = scan.data?.status === 'running';
+  const runningAudit = ENV.DATA_SOURCE !== 'mock' && scan.data?.status === 'running';
 
   const { incompleteSections, confidenceScore, auditStale, unlocked } = useApplicationAuditState({
     requiredSections: rawRequired,
@@ -77,6 +77,7 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
     exportBody: local.exportDocument ?? rawBody ?? '',
     contentRevision: local.contentRevision,
     auditedSignature: local.auditedSignature,
+    profileRevisionId: activeApp?.profileRevisionId ?? activeProject?.currentRevisionId ?? 'latest',
     scanStatus: scan.data?.status,
     running: runningAudit,
   });

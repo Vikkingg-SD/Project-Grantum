@@ -57,17 +57,13 @@ export function BudgetChecklistCard({ slotKey, canEdit }: BudgetChecklistCardPro
         <StatusBadge label={evaluation.statusLabel} variant={evaluation.statusVariant} />
       </View>
       <AppText variant="caption" color="muted">
-        Does not verify regional market prices or funder approval — check against funder terms.
+        Does not verify regional market prices or funder approval - based on funder&apos;s terms.
       </AppText>
-      <AppText variant="caption" color="muted">
-        {!hasSaved
-          ? 'Edit funding caps or add line items to update your budget check.'
-          : status === 'saving'
-            ? 'Saving itemized budget…'
-            : status === 'session-only'
-              ? 'Storage unavailable; budget changes apply to the current session.'
-              : 'Itemized budget saved.'}
-      </AppText>
+      {hasSaved && status === 'session-only' ? (
+        <AppText variant="caption" color="muted">
+          Storage unavailable; budget changes apply to the current session.
+        </AppText>
+      ) : null}
 
       <View style={styles.summaryRow}>
         <AppText variant="metric-sm">

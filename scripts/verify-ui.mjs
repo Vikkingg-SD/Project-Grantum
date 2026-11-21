@@ -434,10 +434,17 @@ try {
       await expect(page.getByTestId('chat-message-attachments')).toBeVisible();
       await expect(page.getByTestId('composer-attachment-tray')).toHaveCount(0);
       await page.getByRole('tab', { name: 'Audit', exact: true }).click();
+      await expect(page.getByTestId('workspace-studio-status-badge').last()).toHaveText(
+        'In Drafting'
+      );
       await page.getByRole('button', { name: 'Audit prompts', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Budget', exact: true })).toBeVisible();
       await page.getByRole('button', { name: 'Run audit', exact: true }).click();
       await expect(page.getByText('Checklist check passed', { exact: true })).toBeVisible();
+      await expect(page.getByTestId('workspace-studio-status-badge').last()).toHaveText('Saved');
+      await expect(
+        page.getByRole('button', { name: 'Audit history (1)', exact: true })
+      ).toBeVisible();
     }
   );
   await check(
@@ -472,11 +479,23 @@ try {
     }
   );
   await check(
-    'Given incomplete added section or edited Export narrative, when viewing Audit, then Action required and Checks incomplete reflect changes',
+    'Given incomplete added section or edited Export narrative, when viewing Audit, then Action required, Checks incomplete, and Audit history reflect changes',
     async () => {
       await page.goto(`${origin}/grants/1/audit-studio`);
       await page.getByRole('button', { name: 'Run audit', exact: true }).click();
       await expect(page.getByText('Checklist check passed', { exact: true })).toBeVisible();
+      await expect(
+        page.getByRole('button', { name: /Audit history \(\d+\)/, exact: true })
+      ).toBeVisible();
+      await expect(
+        page.getByText(
+          "Does not verify regional market prices or funder approval - based on funder's terms.",
+          { exact: true }
+        )
+      ).toBeVisible();
+      await expect(
+        page.getByText(/Review Studio Items|Review Items|Preview - section presence only/i)
+      ).toHaveCount(0);
       await page.getByRole('button', { name: 'Next navigation tabs' }).click();
       await page.getByRole('tab', { name: 'Export', exact: true }).click();
       await page
@@ -501,6 +520,16 @@ try {
       await expect(actionBadge).toBeVisible();
       const badgeColor = await actionBadge.evaluate((el) => getComputedStyle(el).color);
       assert.equal(badgeColor, 'rgb(255, 90, 95)');
+      const finishBtn = page
+        .getByRole('button', { name: 'Finish application (mark ready)', exact: true })
+        .last();
+      await expect(finishBtn).toBeDisabled();
+      await page.getByRole('button', { name: 'Run audit', exact: true }).last().click();
+      const historyToggle = page
+        .getByRole('button', { name: /Audit history \(\d+\)/, exact: true })
+        .last();
+      await historyToggle.click();
+      await expect(page.getByTestId('audit-history-dropdown').last()).toBeVisible();
     }
   );
   await context.close();
