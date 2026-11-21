@@ -172,6 +172,8 @@ export function pullProfileRevision(
   if (!app) throw new Error('Application not found');
   if (app.status === 'submitted' || app.submittedSnapshot !== null)
     throw new Error('Submitted applications are locked to their snapshot');
+  if (app.status === 'archived')
+    throw new Error('Archived applications cannot change profile revisions');
   const project = workspace.projects.find((item) => item.id === app.projectId);
   if (!project || project.archivedAt) throw new Error('Choose an active project');
   return {
@@ -181,6 +183,44 @@ export function pullProfileRevision(
         ? {
             ...item,
             profileRevisionId: project.currentRevisionId,
+            updatedAt: timestamp,
+          }
+        : item
+    ),
+  };
+}
+
+export function selectProfileRevision(
+  workspace: Workspace,
+  applicationId: string,
+  revisionId: string,
+  updatedAt: string
+): Workspace {
+  const timestamp = required(updatedAt, 'Update time');
+  const targetRevisionId = required(revisionId, 'Revision ID');
+  const app = workspace.applications.find((item) => item.id === applicationId);
+  if (!app) throw new Error('Application not found');
+  if (app.status === 'submitted' || app.submittedSnapshot !== null)
+    throw new Error('Submitted applications are locked to their snapshot');
+  if (app.status === 'archived')
+    throw new Error('Archived applications cannot change profile revisions');
+  const project = workspace.projects.find((item) => item.id === app.projectId);
+  if (!project || project.archivedAt) throw new Error('Choose an active project');
+  if (
+    !workspace.revisions.some(
+      (revision) => revision.id === targetRevisionId && revision.projectId === project.id
+    )
+  ) {
+    throw new Error('Profile revision does not belong to this project');
+  }
+  if (app.profileRevisionId === targetRevisionId) return workspace;
+  return {
+    ...workspace,
+    applications: workspace.applications.map((item) =>
+      item.id === applicationId
+        ? {
+            ...item,
+            profileRevisionId: targetRevisionId,
             updatedAt: timestamp,
           }
         : item

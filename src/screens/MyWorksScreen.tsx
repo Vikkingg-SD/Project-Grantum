@@ -20,7 +20,8 @@ import {
   workSlotKey,
 } from '@/utils/workspace';
 import { FINISH_REVERSIBILITY_NOTE } from '@/utils/finishReview';
-import { hasAuthoredDraft } from '@/utils/drafting';
+import { isWorkSlotReadyToFinish } from '@/utils/drafting';
+import { DEFAULT_REQUIRED_SECTIONS } from '@/config/constants';
 
 export default function MyWorksScreen() {
   const theme = useTheme();
@@ -255,7 +256,9 @@ export default function MyWorksScreen() {
                             ? 'Locked to Submission Snapshot'
                             : `Pull Latest Profile (${proj?.currentRevisionId})`
                         }
-                        disabled={app.status === 'submitted' || !canEditSlot}
+                        disabled={
+                          app.status === 'submitted' || app.status === 'archived' || !canEditSlot
+                        }
                         onPress={() => {
                           try {
                             pullWorkSlotProfile(app.id);
@@ -306,7 +309,10 @@ export default function MyWorksScreen() {
                             accessibilityLabel={`Finish application (mark ready) for ${proj?.name ?? app.projectId}`}
                             disabled={
                               !canRolePerform(projectRoles[app.projectId] ?? 'owner', 'review') ||
-                              !hasAuthoredDraft(work[workSlotKey(app.projectId, app.grantId)])
+                              !isWorkSlotReadyToFinish(
+                                work[workSlotKey(app.projectId, app.grantId)],
+                                DEFAULT_REQUIRED_SECTIONS
+                              )
                             }
                             onPress={() => {
                               try {

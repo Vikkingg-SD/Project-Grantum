@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { createDevicePersistence, type PersistenceStatus } from './devicePersistence';
 import { getDeviceStorage } from './deviceStorage';
+import { DEFAULT_REQUIRED_SECTIONS } from '@/config/constants';
 import { ENV } from '@/config/env';
-import { hasAuthoredDraft } from '@/utils/drafting';
+import { isWorkSlotReadyToFinish } from '@/utils/drafting';
 import { acknowledgeNotificationId, isNotificationReadIdList } from '@/utils/notifications';
 import { useWorkbenchStore } from './useWorkbenchStore';
 import type {
@@ -20,6 +21,7 @@ import {
   emptyWorkspace,
   pullProfileRevision,
   saveProject,
+  selectProfileRevision,
   workSlotKey,
   type Workspace,
 } from '@/utils/workspace';
@@ -259,8 +261,13 @@ export interface WorkspaceStoreState {
   toggleArchiveProject: (projectId: string) => void;
   ensureWorkSlot: (projectId: string, grantId: string, outputs?: OutputKind[]) => ApplicationBundle;
   pullWorkSlotProfile: (applicationId: string) => void;
+  setWorkSlotProfileRevision: (applicationId: string, revisionId: string) => void;
   markWorkSlotSubmitted: (applicationId: string, receiptReference: string) => void;
-  setWorkSlotReviewStatus: (applicationId: string, status: 'drafting' | 'review' | 'ready') => void;
+  setWorkSlotReviewStatus: (
+    applicationId: string,
+    status: 'drafting' | 'review' | 'ready',
+    requiredSections?: readonly string[]
+  ) => void;
   setRole: (role: CoWorkRole) => void;
   setProjectRole: (projectId: string, role: CoWorkRole) => void;
   setPersonalSettings: (nickname: string, digestEnabled: boolean) => void;
@@ -471,6 +478,23 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
         return { workspace: nextWorkspace, persistenceStatus };
       }),
 
+    setWorkSlotProfileRevision: (applicationId, revisionId) =>
+      set((state) => {
+        const target = state.workspace.applications.find((app) => app.id === applicationId);
+        if (target && !canRolePerform(state.projectRoles[target.projectId] ?? 'owner', 'edit')) {
+          throw new Error('Your project role cannot select profile revisions in this work slot.');
+        }
+        const nextWorkspace = selectProfileRevision(
+          state.workspace,
+          applicationId,
+          revisionId,
+          new Date().toISOString()
+        );
+        if (nextWorkspace === state.workspace) return state;
+        const persistenceStatus = persistState({ workspace: nextWorkspace });
+        return { workspace: nextWorkspace, persistenceStatus };
+      }),
+
     markWorkSlotSubmitted: (applicationId, receiptReference) =>
       set((state) => {
         const target = state.workspace.applications.find((app) => app.id === applicationId);
@@ -508,14 +532,14 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
         return { workspace: nextWorkspace, persistenceStatus };
       }),
 
-    setWorkSlotReviewStatus: (applicationId, nextStatus) =>
+    setWorkSlotReviewStatus: (applicationId, nextStatus, requiredSections) =>
       set((state) => {
         if (!['drafting', 'review', 'ready'].includes(nextStatus)) {
           throw new Error('Unsupported review status.');
         }
         const target = state.workspace.applications.find((app) => app.id === applicationId);
         if (!target) throw new Error('Application work slot not found.');
-        if (target.status === 'submitted') {
+        if (target.status === 'submitted' || target.submittedSnapshot !== null) {
           throw new Error('Submitted applications are locked to their receipt snapshot.');
         }
         if (target.status === 'archived') {
@@ -528,7 +552,11 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
         if (nextStatus === 'ready') {
           const slot = workSlotKey(target.projectId, target.grantId);
           const work = useWorkbenchStore.getState().work[slot];
-          if (!hasAuthoredDraft(work)) {
+          const expectedRequired =
+            requiredSections && requiredSections.length > 0
+              ? requiredSections
+              : DEFAULT_REQUIRED_SECTIONS;
+          if (!isWorkSlotReadyToFinish(work, expectedRequired)) {
             throw new Error('Write each draft section before marking the application ready.');
           }
         }

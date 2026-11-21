@@ -356,7 +356,8 @@ export function computeApplicationAuditSignature(input: {
   kind: ProjectKind;
   outputs: readonly OutputKind[];
   exportBody: string;
-  contentRevision: number;
+  contentRevision?: number;
+  profileRevisionId?: string;
 }): string {
   return JSON.stringify({
     kind: input.kind,
@@ -369,6 +370,6 @@ export function computeApplicationAuditSignature(input: {
       description: section.description ?? '',
     })),
     exportBody: input.exportBody,
-    contentRevision: input.contentRevision,
+    profileRevisionId: input.profileRevisionId ?? 'latest',
   });
 }

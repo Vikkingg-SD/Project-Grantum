@@ -49,6 +49,13 @@ export function AppButton({
   const getVariantStyle = (pressed: boolean): ViewStyle => {
     switch (variant) {
       case 'primary':
+        if (disabled && !isLoading) {
+          return {
+            backgroundColor: theme.subtle,
+            borderWidth: 1,
+            borderColor: theme.border,
+          };
+        }
         return {
           backgroundColor: theme.primary,
           borderWidth: 0,
@@ -90,6 +97,7 @@ export function AppButton({
   };
 
   const getTextColor = (): 'main' | 'muted' | 'primary' | 'primaryForeground' | 'failureText' => {
+    if (variant === 'primary' && disabled && !isLoading) return 'muted';
     if (variant === 'primary' || variant === 'gold') return 'primaryForeground';
     if (variant === 'ghost') return 'muted';
     return 'main';
@@ -111,7 +119,9 @@ export function AppButton({
         styles[size],
         getVariantStyle(pressed),
         pressScale(pressed, reduceMotion, size === 'lg' ? MOTION.pressScaleLarge : undefined),
-        (disabled || isLoading) && styles.disabled,
+        (disabled || isLoading) &&
+          !(variant === 'primary' && disabled && !isLoading) &&
+          styles.disabled,
         style,
       ]}
     >

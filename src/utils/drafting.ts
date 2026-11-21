@@ -25,6 +25,21 @@ export interface DraftVersion {
   sections: DraftSection[];
   outputs: OutputKind[];
 }
+
+export interface AuditRunRecord {
+  id: string;
+  turn: number;
+  timestamp: string;
+  status: 'passed' | 'failed';
+  statusLabel: 'Checklist check passed' | 'Action required';
+  confidenceScore: number;
+  missingSections: string[];
+  message: string;
+  signature: string;
+  profileRevisionId: string;
+  sectionVersionId?: string | null;
+}
+
 export interface DraftWorkbench {
   kind: ProjectKind;
   outputs: OutputKind[];
@@ -34,6 +49,8 @@ export interface DraftWorkbench {
   pitchSlides?: PitchSlide[];
   requirementMappings?: RequirementMapping[];
   versions: DraftVersion[];
+  auditHistory?: AuditRunRecord[];
+  auditedSignature?: string | null;
   submissions: {
     id: string;
     recordedAt: string;
@@ -71,6 +88,8 @@ export const emptyWorkbench = (): DraftWorkbench => ({
   pitchSlides: DEFAULT_PITCH_SLIDES.map((s) => ({ ...s })),
   requirementMappings: [],
   versions: [],
+  auditHistory: [],
+  auditedSignature: null,
   submissions: [],
 });
 export function applyTemplate(
@@ -383,8 +402,86 @@ export function fullArtifactBundleText(
   return parts.join('\n\n');
 }
 
+export function recordAuditHistoryEntry(
+  work: DraftWorkbench,
+  input: {
+    id?: string;
+    timestamp?: string;
+    status: 'passed' | 'failed';
+    confidenceScore: number;
+    missingSections: readonly string[];
+    signature: string;
+    profileRevisionId: string;
+    sectionVersionId?: string | null;
+  }
+): DraftWorkbench {
+  const existing = work.auditHistory ?? [];
+  const nextTurn = existing.reduce((max, item) => Math.max(max, item.turn), 0) + 1;
+  const missing = [...input.missingSections];
+  const passed = input.status === 'passed' && missing.length === 0;
+  const entry: AuditRunRecord = {
+    id: input.id ?? generateId('audit-run'),
+    turn: nextTurn,
+    timestamp: input.timestamp ?? new Date().toISOString(),
+    status: passed ? 'passed' : 'failed',
+    statusLabel: passed ? 'Checklist check passed' : 'Action required',
+    confidenceScore: input.confidenceScore,
+    missingSections: missing,
+    message: passed
+      ? 'All required sections are marked present'
+      : `Missing: ${missing.length > 0 ? missing.join(', ') : 'Incomplete sections'}`,
+    signature: input.signature,
+    profileRevisionId: input.profileRevisionId || 'latest',
+    sectionVersionId: input.sectionVersionId ?? work.versions[work.versions.length - 1]?.id ?? null,
+  };
+  const nextHistory = [...existing, entry].slice(-50);
+  return {
+    ...work,
+    auditHistory: nextHistory,
+    auditedSignature: passed ? input.signature : (work.auditedSignature ?? null),
+  };
+}
+
 export function hasAuthoredDraft(work: Pick<DraftWorkbench, 'sections'> | undefined): boolean {
   return Boolean(work?.sections.length && work.sections.every((section) => section.text.trim()));
+}
+
+export function isWorkSlotReadyToFinish(
+  work: Pick<DraftWorkbench, 'sections' | 'templateApplied' | 'removedCatalogSections'> | undefined,
+  catalogRequired: readonly string[] = []
+): boolean {
+  if (!work) return false;
+  if (!work.templateApplied && catalogRequired.length === 0) {
+    return hasAuthoredDraft(work);
+  }
+  const activeTitles = work.templateApplied
+    ? work.sections.map((s) => s.title.trim()).filter(Boolean)
+    : (() => {
+        const removedSet = new Set((work.removedCatalogSections ?? []).map(normalizeSectionTitle));
+        const seen = new Set<string>();
+        const combined: string[] = [];
+        for (const title of catalogRequired) {
+          const clean = title.trim();
+          const norm = normalizeSectionTitle(clean);
+          if (!clean || removedSet.has(norm) || seen.has(norm)) continue;
+          seen.add(norm);
+          combined.push(clean);
+        }
+        for (const section of work.sections) {
+          const clean = section.title.trim();
+          const norm = normalizeSectionTitle(clean);
+          if (!clean || seen.has(norm)) continue;
+          seen.add(norm);
+          combined.push(clean);
+        }
+        return combined;
+      })();
+  if (activeTitles.length === 0) return false;
+  const byNorm = new Map(work.sections.map((s) => [normalizeSectionTitle(s.title), s]));
+  return activeTitles.every((title) => {
+    const sec = byNorm.get(normalizeSectionTitle(title));
+    return Boolean(sec && sec.text.trim().length > 0);
+  });
 }
 
 export function evaluateWorkSlotAudit(work: DraftWorkbench, syncLag: number): WorkSlotAuditSummary {

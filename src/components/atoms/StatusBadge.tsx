@@ -8,9 +8,10 @@ export interface StatusBadgeProps {
   label: string;
   style?: StyleProp<ViewStyle>;
   variant?: 'verified' | 'pending' | 'failure' | 'neutral' | 'brand' | 'gold';
+  testID?: string;
 }
 
-export function StatusBadge({ label, variant = 'neutral', style }: StatusBadgeProps) {
+export function StatusBadge({ label, variant = 'neutral', style, testID }: StatusBadgeProps) {
   const mode = useThemeStore((s) => s.mode);
   const theme = PALETTE[mode];
 
@@ -55,7 +56,10 @@ export function StatusBadge({ label, variant = 'neutral', style }: StatusBadgePr
   const colors = getColors();
 
   return (
-    <View style={[styles.badge, { backgroundColor: colors.bg, borderColor: colors.border }, style]}>
+    <View
+      testID={testID}
+      style={[styles.badge, { backgroundColor: colors.bg, borderColor: colors.border }, style]}
+    >
       <AppText
         variant="caption"
         accessibilityLabel={label}

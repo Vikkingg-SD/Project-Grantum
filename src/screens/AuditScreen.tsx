@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
@@ -12,6 +12,7 @@ import { ChatMessageBubble } from '@/components/molecules/ChatMessageBubble';
 import { ChatInputRow } from '@/components/molecules/ChatInputRow';
 import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import { BudgetChecklistCard } from '@/components/organisms/BudgetChecklistCard';
+import { ProjectVersionSelectorCard } from '@/components/organisms/ProjectVersionSelectorCard';
 import { useProposalDraft } from '@/api/hooks/useProposalDraft';
 import { useAuditStatus, useTriggerAuditScan } from '@/api/hooks/useAuditScan';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
@@ -21,15 +22,14 @@ import { useActiveGrantId } from '@/hooks/useActiveGrantId';
 import { useApplicationAuditState } from '@/hooks/useApplicationAuditState';
 import { useEscapeDismiss } from '@/hooks/useEscapeDismiss';
 import { useTheme } from '@/hooks/useTheme';
-import { RADIUS, SPACING } from '@/config/theme';
+import { RADIUS, SPACING, withAlpha } from '@/config/theme';
 import { AUDIT_COPY } from '@/config/copy';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { GrantContext } from '@/components/molecules/GrantContext';
 import { ENV } from '@/config/env';
-import { evaluateWorkSlotAudit, hasAuthoredDraft } from '@/utils/drafting';
-import { evaluateFinishReview } from '@/utils/finishReview';
+import { formatEventDate } from '@/utils/presentation';
 import { normalizeSectionTitle } from '@/utils/sectionCatalog';
-import { canRolePerform, getProfileSyncLag, workSlotKey } from '@/utils/workspace';
+import { canRolePerform, workSlotKey } from '@/utils/workspace';
 
 export default function AuditScreen() {
   const grantId = useActiveGrantId();
@@ -42,15 +42,14 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
   const theme = useTheme();
   const { mobile } = useLayoutMetrics();
   const [promptsOpen, setPromptsOpen] = useState(false);
-  const [finishInfoOpen, setFinishInfoOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   useEscapeDismiss(mobile && promptsOpen, () => setPromptsOpen(false));
-  useEscapeDismiss(finishInfoOpen, () => setFinishInfoOpen(false));
-  const [slotNotice, setSlotNotice] = useState('');
-  const [slotError, setSlotError] = useState('');
+  useEscapeDismiss(historyOpen, () => setHistoryOpen(false));
   const scrollRef = useRef<ScrollView>(null);
   const scrollAfterNote = useRef(false);
   const draft = useProposalDraft(grantId);
-  const scan = useAuditStatus(grantId);
+  const scan = useAuditStatus(grantId, false, slotKey);
   const trigger = useTriggerAuditScan(grantId, slotKey);
   const local = useDraftStore((state) => state.drafts[slotKey] ?? EMPTY_DRAFT);
   const addNote = useDraftStore((state) => state.addAuditMessage);
@@ -58,10 +57,7 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const activeRole = useWorkspaceStore((state) => state.activeRole);
-  const pullWorkSlotProfile = useWorkspaceStore((state) => state.pullWorkSlotProfile);
-  const setWorkSlotReviewStatus = useWorkspaceStore((state) => state.setWorkSlotReviewStatus);
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
-  const updateWorkbench = useWorkbenchStore((state) => state.update);
   const [message, setMessage] = useState('');
 
   const activeProject =
@@ -69,19 +65,13 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
   const activeApp = workspace.applications.find(
     (app) => app.projectId === activeProjectId && app.grantId === grantId
   );
-  const syncLag = activeApp ? getProfileSyncLag(workspace, activeApp.id) : 0;
-  const slotAudit = useMemo(() => evaluateWorkSlotAudit(work, syncLag), [syncLag, work]);
-  const finishReview = useMemo(
-    () =>
-      evaluateFinishReview({
-        status: activeApp?.status ?? 'drafting',
-        filledSections: slotAudit.filledSections,
-        totalSections: slotAudit.totalSections,
-        approvedRequirements: slotAudit.approvedRequirements,
-        totalRequirements: slotAudit.totalRequirements,
-        syncLag,
-      }),
-    [activeApp?.status, slotAudit, syncLag]
+  const pinnedProfileRevisionId =
+    activeApp?.profileRevisionId ?? activeProject?.currentRevisionId ?? 'latest';
+  const isLocked = Boolean(
+    activeApp &&
+    (activeApp.status === 'submitted' ||
+      activeApp.status === 'archived' ||
+      activeApp.submittedSnapshot)
   );
   const canReview = canRolePerform(activeRole, 'review');
   const canEdit = canRolePerform(activeRole, 'edit');
@@ -89,17 +79,22 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
   const rawRequired = draft.data?.requiredSections;
   const rawCompleted = draft.data?.completedSections;
   const rawBody = draft.data?.body;
-  const running = trigger.isPending || scan.data?.status === 'running';
+  const running =
+    trigger.isPending || (ENV.DATA_SOURCE !== 'mock' && scan.data?.status === 'running');
 
   const {
     sectionItems,
     completeSections,
     incompleteSections,
+    filledSections,
+    allSectionsFilled,
     confidenceScore,
     currentSignature,
     auditStale,
+    latestAuditFailedCurrent,
     failed,
     passed,
+    auditHistory,
   } = useApplicationAuditState({
     requiredSections: rawRequired,
     completedSections: rawCompleted,
@@ -107,6 +102,7 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
     exportBody: local.exportDocument ?? rawBody ?? '',
     contentRevision: local.contentRevision,
     auditedSignature: local.auditedSignature,
+    profileRevisionId: pinnedProfileRevisionId,
     scanStatus: scan.data?.status,
     running,
   });
@@ -153,6 +149,12 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
           ? 'verified'
           : 'neutral';
 
+  const latestHistoryEntry = auditHistory[auditHistory.length - 1];
+  const inspectedHistoryEntry =
+    (selectedHistoryId
+      ? auditHistory.find((entry) => entry.id === selectedHistoryId)
+      : undefined) ?? latestHistoryEntry;
+
   return (
     <ScreenContainer scrollable={false}>
       <ScrollView
@@ -170,9 +172,79 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
           <AppText variant="h1" align="center">
             {AUDIT_COPY.title}
           </AppText>
-          <StatusBadge label={statusLabel} variant={statusVariant} style={styles.centerBadge} />
-          {auditStale && failed && (
-            <StatusBadge label="Checks incomplete" variant="pending" style={styles.centerBadge} />
+          <View style={styles.statusRow}>
+            <StatusBadge label={statusLabel} variant={statusVariant} style={styles.centerBadge} />
+            {auditStale && failed && (
+              <StatusBadge label="Checks incomplete" variant="pending" style={styles.centerBadge} />
+            )}
+            <AppButton
+              size="sm"
+              variant="outline"
+              label={`Audit history (${auditHistory.length})`}
+              expanded={historyOpen}
+              onPress={() => setHistoryOpen((current) => !current)}
+            />
+          </View>
+          {historyOpen && (
+            <View
+              testID="audit-history-dropdown"
+              style={[
+                styles.historyPanel,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+            >
+              <AppText variant="label">Audit run history</AppText>
+              {auditHistory.length === 0 ? (
+                <AppText variant="caption" color="muted">
+                  No audit turns recorded yet. Run an audit to log turn-by-turn results.
+                </AppText>
+              ) : (
+                auditHistory
+                  .slice()
+                  .reverse()
+                  .map((entry) => {
+                    const selected = inspectedHistoryEntry?.id === entry.id;
+                    return (
+                      <View
+                        key={entry.id}
+                        style={[
+                          styles.historyRow,
+                          {
+                            borderBottomColor: theme.border,
+                            backgroundColor: selected
+                              ? withAlpha(theme.primary, 0.1)
+                              : theme.subtle,
+                          },
+                        ]}
+                      >
+                        <View style={styles.rowBetween}>
+                          <AppButton
+                            size="sm"
+                            variant="outline"
+                            selected={selected}
+                            label={`Turn #${entry.turn} · ${entry.statusLabel}`}
+                            accessibilityLabel={`Turn #${entry.turn} · ${entry.statusLabel}. Inspect audit run`}
+                            onPress={() => setSelectedHistoryId(entry.id)}
+                          />
+                          <StatusBadge
+                            label={`${entry.confidenceScore}%`}
+                            variant={entry.status === 'passed' ? 'verified' : 'failure'}
+                          />
+                        </View>
+                        <AppText variant="caption">
+                          {entry.message} · {formatEventDate(entry.timestamp)}
+                        </AppText>
+                        <AppText variant="caption" color="muted">
+                          Profile: {entry.profileRevisionId}
+                          {entry.sectionVersionId
+                            ? ` · Draft commit: ${entry.sectionVersionId}`
+                            : ''}
+                        </AppText>
+                      </View>
+                    );
+                  })
+              )}
+            </View>
           )}
         </View>
         <GrantContext grantId={grantId} />
@@ -232,19 +304,26 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
               align="center"
               accessibilityLiveRegion="polite"
             >
-              Checks incomplete — sections, descriptions, or Export text changed since your last
-              audit. Run audit again before exporting.
+              {latestAuditFailedCurrent
+                ? 'Latest audit reported incomplete sections. Complete all required sections and run audit again before exporting.'
+                : 'Checks incomplete — sections, descriptions, profile version, or Export text changed since your last audit. Run audit again before exporting.'}
             </AppText>
           )}
           <AppButton
             variant="primary"
             label={running ? 'Scanning…' : 'Run audit'}
             isLoading={running}
-            disabled={!sectionItems.length}
+            disabled={!sectionItems.length || !canReview || isLocked}
             onPress={() => {
+              if (!sectionItems.length || !canReview || isLocked) return;
+              setSelectedHistoryId(null);
               trigger.mutate({
                 snapshotSignature: currentSignature,
                 allComplete: incompleteSections.length === 0,
+                incompleteSectionTitles: incompleteSections.map((item) => item.title),
+                confidenceScore,
+                profileRevisionId: pinnedProfileRevisionId,
+                sectionVersionId: work.versions[work.versions.length - 1]?.id ?? null,
               });
             }}
           />
@@ -261,173 +340,31 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
               }}
             />
           )}
-          {scan.data?.events.map((event) => (
-            <AuditLogLine key={event.id} {...event} />
-          ))}
-        </View>
-
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={styles.rowBetween}>
-            <AppText variant="h3">Work Slot Grounding &amp; Reviewer Compliance</AppText>
-            <View style={styles.chipsRow}>
-              <StatusBadge
-                label={finishReview.status.toUpperCase()}
-                variant={
-                  finishReview.status === 'submitted' || finishReview.status === 'ready'
-                    ? 'verified'
-                    : 'pending'
-                }
-              />
-              <StatusBadge
-                label={slotAudit.readyForHandoff ? 'Handoff Ready' : 'Review Items'}
-                variant={slotAudit.readyForHandoff ? 'verified' : 'pending'}
-              />
-            </View>
-          </View>
-          <AppText variant="caption" color="muted">
-            Active Slot: {slotKey} · Project: {activeProject?.name ?? activeProjectId} · Pinned
-            Profile: {activeApp?.profileRevisionId ?? activeProject?.currentRevisionId}
-          </AppText>
-          <AppText variant="body">
-            • Sections drafted: {slotAudit.filledSections}/{slotAudit.totalSections}
-            {'\n'}• Requirement Matrix Approvals: {slotAudit.approvedRequirements}/
-            {slotAudit.totalRequirements} approved
-            {'\n'}• File Attachments: {local.attachments.length} staged
-            {'\n'}• Finish review checks: {finishReview.passedCount}/{finishReview.totalCount} ready
-          </AppText>
-          <AppButton
-            size="sm"
-            variant="ghost"
-            label={finishReview.reversibilityTitle}
-            expanded={finishInfoOpen}
-            onPress={() => setFinishInfoOpen(!finishInfoOpen)}
-          />
-          {finishInfoOpen && (
-            <AppText variant="caption" color="muted">
-              {finishReview.reversibilityNote}
-            </AppText>
-          )}
-          {slotError ? (
-            <AppText color="failureText" accessibilityRole="alert">
-              {slotError}
-            </AppText>
-          ) : null}
-          {slotNotice ? <AppText color="verified">{slotNotice}</AppText> : null}
-          {activeApp && (
-            <View style={styles.chipsRow}>
-              <AppButton
-                size="sm"
-                variant="outline"
-                label="Mark in review"
-                disabled={
-                  !finishReview.canTransition ||
-                  (!canEdit && !canReview) ||
-                  finishReview.status === 'review'
-                }
-                onPress={() => {
-                  try {
-                    setWorkSlotReviewStatus(activeApp.id, 'review');
-                    setSlotError('');
-                    setSlotNotice('Application marked IN REVIEW. Editing remains reversible.');
-                  } catch (e) {
-                    setSlotError(e instanceof Error ? e.message : 'Unable to update status');
-                  }
-                }}
-              />
-              <AppButton
-                size="sm"
-                variant="primary"
-                label="Finish application (mark ready)"
-                disabled={
-                  !finishReview.canTransition ||
-                  (!canEdit && !canReview) ||
-                  !hasAuthoredDraft(work) ||
-                  finishReview.status === 'ready'
-                }
-                onPress={() => {
-                  try {
-                    setWorkSlotReviewStatus(activeApp.id, 'ready');
-                    setSlotError('');
-                    setSlotNotice(
-                      'Application marked READY. You can reopen it at any time; nothing was sent externally.'
-                    );
-                  } catch (e) {
-                    setSlotError(e instanceof Error ? e.message : 'Unable to finish application');
-                  }
-                }}
-              />
-              <AppButton
-                size="sm"
-                variant="outline"
-                label="Reopen for drafting"
-                disabled={
-                  !finishReview.canTransition || !canEdit || finishReview.status === 'drafting'
-                }
-                onPress={() => {
-                  try {
-                    setWorkSlotReviewStatus(activeApp.id, 'drafting');
-                    setSlotError('');
-                    setSlotNotice('Work slot reopened to DRAFTING for further edits.');
-                  } catch (e) {
-                    setSlotError(e instanceof Error ? e.message : 'Unable to reopen application');
-                  }
-                }}
-              />
-            </View>
-          )}
-          {syncLag > 0 && activeApp && (
-            <View
-              style={[styles.subBox, { backgroundColor: theme.subtle, borderColor: theme.border }]}
-            >
-              <AppText variant="caption" color="pending">
-                Cross-Slot Profile Sync Lag: Project Profile is {syncLag} commit(s) ahead of this
-                application slot ({activeApp.profileRevisionId} → {activeProject?.currentRevisionId}
-                ).
-              </AppText>
-              <AppButton
-                size="sm"
-                variant="outline"
-                label="Pull Latest Profile Revision"
-                disabled={!canEdit || activeApp.status === 'submitted'}
-                onPress={() => {
-                  try {
-                    pullWorkSlotProfile(activeApp.id);
-                    setSlotError('');
-                    setSlotNotice(
-                      `Pulled latest profile revision ${activeProject?.currentRevisionId} into work slot.`
-                    );
-                  } catch (e) {
-                    setSlotError(
-                      e instanceof Error ? e.message : 'Unable to pull profile revision'
-                    );
-                  }
-                }}
-              />
-            </View>
-          )}
-          {slotAudit.pendingRequirements > 0 && (
-            <AppButton
-              size="sm"
-              variant="outline"
-              label={`Approve All Mapped Requirements (${slotAudit.pendingRequirements} pending)`}
-              disabled={!canReview}
-              onPress={() => {
-                updateWorkbench(slotKey, (current) => ({
-                  ...current,
-                  requirementMappings: (current.requirementMappings ?? []).map((m) => ({
-                    ...m,
-                    reviewStatus: 'approved',
-                  })),
-                }));
-                setSlotNotice(
-                  `Approved all ${slotAudit.totalRequirements} requirement mappings as ${activeRole.toUpperCase()}.`
-                );
-              }}
+          {inspectedHistoryEntry ? (
+            <AuditLogLine
+              key={inspectedHistoryEntry.id}
+              agent="agent-2-deterministic"
+              message={`Turn #${inspectedHistoryEntry.turn}: ${inspectedHistoryEntry.message}`}
+              status={inspectedHistoryEntry.status}
+              timestamp={inspectedHistoryEntry.timestamp}
             />
-          )}
+          ) : ENV.DATA_SOURCE !== 'mock' ? (
+            scan.data?.events.map((event) => <AuditLogLine key={event.id} {...event} />)
+          ) : null}
         </View>
 
-        <BudgetChecklistCard slotKey={slotKey} canEdit={canEdit} />
+        <ProjectVersionSelectorCard
+          slotKey={slotKey}
+          grantId={grantId}
+          sectionItems={sectionItems}
+          filledSections={filledSections}
+          allSectionsFilled={allSectionsFilled}
+          canEdit={canEdit}
+          canReview={canReview}
+          isLocked={isLocked}
+        />
+
+        <BudgetChecklistCard slotKey={slotKey} canEdit={canEdit && !isLocked} />
 
         <View style={styles.chat}>
           <AppText variant="h3" align="center">
@@ -480,9 +417,28 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
 const styles = StyleSheet.create({
   content: { padding: SPACING.lg, gap: SPACING.lg },
   heading: { alignItems: 'center', gap: SPACING.sm },
+  statusRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+  },
+  historyPanel: {
+    width: '100%',
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    gap: SPACING.sm,
+  },
+  historyRow: {
+    padding: SPACING.sm,
+    borderRadius: RADIUS.sm,
+    borderBottomWidth: 1,
+    gap: SPACING.xs,
+  },
   centerBadge: { alignSelf: 'center' },
   card: { padding: SPACING.md, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACING.md },
-  subBox: { padding: SPACING.sm, borderRadius: RADIUS.sm, borderWidth: 1, gap: SPACING.xs },
   rowBetween: {
     flexDirection: 'row',
     flexWrap: 'wrap',
