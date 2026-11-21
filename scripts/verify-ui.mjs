@@ -452,6 +452,15 @@ try {
     async () => {
       await page.getByRole('button', { name: 'Next navigation tabs' }).click();
       await page.getByRole('tab', { name: 'Export', exact: true }).click();
+      await expect(
+        page.getByText(
+          /Downloads unavailable|Preview - edits stay in this session|Cloud document bundles unavailable|Outputs:\s*application|Local files:|Export files:|Server DOCX\/PDF export remains unavailable in sample mode/i
+        )
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole('textbox', { name: 'Application narrative', exact: true })
+      ).toHaveValue('');
+      await expect(page.getByRole('button', { name: 'Download .txt', exact: true })).toBeDisabled();
       await page.getByRole('radio', { name: /PDF/ }).click();
       await expect(page.getByRole('button', { name: 'Export bundle', exact: true })).toBeDisabled();
       await page.getByRole('tab', { name: 'Post-award', exact: true }).click();

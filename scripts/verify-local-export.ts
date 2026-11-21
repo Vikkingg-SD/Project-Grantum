@@ -1,4 +1,10 @@
 import { buildSafeExportFilename, formatLocalExportContent } from '../src/utils/localExport';
+import { seedExportDoc } from '../src/mock/seeds';
+import {
+  emptyWorkbench,
+  resolveApplicationNarrative,
+  upsertWorkbenchSection,
+} from '../src/utils/drafting';
 
 const check = (name: string, condition: boolean) => {
   if (!condition) throw new Error(`FAIL: ${name}`);
@@ -22,10 +28,12 @@ function main() {
     body: 'Project summary content.',
   });
   check(
-    'Given Markdown export input When formatted Then heading, provenance metadata, and body appear',
+    'Given Markdown export input When formatted Then heading, provenance metadata, and body appear without service boilerplate',
     mdContent.includes('# CleanWater AI Infrastructure (Grant #1)') &&
       mdContent.includes('Pinned Profile Revision: rev-p1-v2') &&
-      mdContent.includes('Project summary content.')
+      mdContent.includes('Project summary content.') &&
+      !mdContent.includes('pending service connection') &&
+      !mdContent.includes('sample mode')
   );
 
   const txtContent = formatLocalExportContent({
@@ -36,9 +44,26 @@ function main() {
     body: 'Plain text narrative.',
   });
   check(
-    'Given TXT export input When formatted Then plain-text header and body appear',
+    'Given TXT export input When formatted Then plain-text header and body appear without service boilerplate',
     txtContent.includes('CleanWater AI Infrastructure (Grant #1)') &&
-      txtContent.includes('Plain text narrative.')
+      txtContent.includes('Plain text narrative.') &&
+      !txtContent.includes('pending service connection') &&
+      !txtContent.includes('sample mode')
+  );
+
+  const emptyWork = emptyWorkbench();
+  const authoredWork = upsertWorkbenchSection(emptyWork, {
+    title: 'Mission',
+    text: 'Deliver resilient water telemetry to rural municipalities.',
+  });
+  check(
+    'Given unauthored application When resolving narrative Then seed does not leak catalog summary and authored sections flow cleanly',
+    seedExportDoc() === '' &&
+      resolveApplicationNarrative(null, emptyWork, seedExportDoc()) === '' &&
+      resolveApplicationNarrative(null, authoredWork, seedExportDoc()) ===
+        'Mission\nDeliver resilient water telemetry to rural municipalities.' &&
+      resolveApplicationNarrative('Custom edited narrative', authoredWork, seedExportDoc()) ===
+        'Custom edited narrative'
   );
 
   let emptyErr = '';

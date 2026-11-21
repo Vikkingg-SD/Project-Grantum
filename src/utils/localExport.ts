@@ -32,7 +32,7 @@ export function formatLocalExportContent(input: {
       `# ${project} (Grant #${input.grantId})`,
       '',
       `- Pinned Profile Revision: ${input.profileRevisionId}`,
-      '- Export Type: Markdown draft export (cloud DOCX/PDF pending service connection)',
+      '- Export Type: Markdown draft export',
       '',
       '---',
       '',
@@ -43,7 +43,7 @@ export function formatLocalExportContent(input: {
   return [
     `${project} (Grant #${input.grantId})`,
     `Pinned Profile Revision: ${input.profileRevisionId}`,
-    'Export Type: Plain-text draft export (cloud DOCX/PDF pending service connection)',
+    'Export Type: Plain-text draft export',
     '------------------------------------------------------------',
     '',
     trimmed,

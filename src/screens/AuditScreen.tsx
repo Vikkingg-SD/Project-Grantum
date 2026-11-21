@@ -28,6 +28,7 @@ import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { GrantContext } from '@/components/molecules/GrantContext';
 import { ENV } from '@/config/env';
 import { formatEventDate } from '@/utils/presentation';
+import { resolveApplicationNarrative } from '@/utils/drafting';
 import { normalizeSectionTitle } from '@/utils/sectionCatalog';
 import { canRolePerform, workSlotKey } from '@/utils/workspace';
 
@@ -99,7 +100,7 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
     requiredSections: rawRequired,
     completedSections: rawCompleted,
     work,
-    exportBody: local.exportDocument ?? rawBody ?? '',
+    exportBody: resolveApplicationNarrative(local.exportDocument, work, rawBody),
     contentRevision: local.contentRevision,
     auditedSignature: local.auditedSignature,
     profileRevisionId: pinnedProfileRevisionId,
