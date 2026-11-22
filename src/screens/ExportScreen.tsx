@@ -13,6 +13,7 @@ import { useExportBundle } from '@/api/hooks/useExportBundle';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { useProgressStore } from '@/store/useProgressStore';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
 import { useApplicationAuditState } from '@/hooks/useApplicationAuditState';
 import { MAX_INPUT_CHARS, TIERS } from '@/config/constants';
@@ -48,7 +49,12 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
   const setDocument = useDraftStore((state) => state.setExportDocument);
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const projectRoles = useWorkspaceStore((state) => state.projectRoles);
   const activeRole = useWorkspaceStore((state) => state.activeRole);
+  const effectiveRole = projectRoles[activeProjectId] ?? activeRole;
+  const nickname = useWorkspaceStore((state) => state.nickname);
+  const recordActivity = useProgressStore((state) => state.recordActivity);
+  const recordExportDownload = useProgressStore((state) => state.recordExportDownload);
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
   const draft = useProposalDraft(grantId);
   const scan = useAuditStatus(grantId, false, slotKey);
@@ -63,7 +69,7 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
   const activeApp = workspace.applications.find(
     (app) => app.projectId === activeProjectId && app.grantId === grantId
   );
-  const canEdit = canRolePerform(activeRole, 'edit');
+  const canEdit = canRolePerform(effectiveRole, 'edit');
 
   const rawRequired = draft.data?.requiredSections;
   const rawCompleted = draft.data?.completedSections;
@@ -126,6 +132,9 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
       const mimeType =
         localFormat === 'md' ? 'text/markdown;charset=utf-8' : 'text/plain;charset=utf-8';
       const triggered = triggerWebTextDownload(filename, content, mimeType);
+      if (canEdit) {
+        recordExportDownload(slotKey, localFormat, filename, nickname || 'Founder Lead');
+      }
       setDownloadError('');
       setBundleNotice(
         triggered
@@ -168,6 +177,11 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
             onPress={() => {
               const serialized = fullArtifactBundleText(work, activeProjectName, activeRevisionId);
               setDocument(slotKey, serialized);
+              recordActivity(slotKey, {
+                actor: nickname || 'Founder Lead',
+                agent: 'system',
+                message: 'Loaded work slot bundle into Export',
+              });
               setBundleNotice(
                 'Loaded Narrative, Pitch Deck Slide Outline, and Requirement Compliance Annex into Export.'
               );

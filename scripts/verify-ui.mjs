@@ -74,7 +74,7 @@ const routes = [
   ['drafting', 'Drafting workspace'],
   ['audit-studio', 'Application check'],
   ['export-humanizer', 'Review & export'],
-  ['post-award-tracker', 'Reporting & activity'],
+  ['progress-tracking', 'Progress-Tracking'],
 ];
 async function check(name, fn) {
   try {
@@ -327,12 +327,14 @@ try {
       await expect(page.getByRole('tab', { name: 'Audit', exact: true })).toHaveText('Audit…');
       await page.getByRole('button', { name: 'Next navigation tabs' }).click();
       await expect(page.getByRole('tab', { name: 'Export', exact: true })).toHaveText('…Export');
-      await expect(page.getByRole('tab', { name: 'Post-award', exact: true })).toHaveText(
-        'Post-award'
+      await expect(page.getByRole('tab', { name: 'Progress-Tracking', exact: true })).toHaveText(
+        'Progress-Tracking'
       );
       await expect(page.getByRole('button', { name: 'Next navigation tabs' })).toBeDisabled();
-      await page.getByRole('tab', { name: 'Post-award', exact: true }).click();
-      await expect(page.getByRole('heading', { name: 'Reporting & activity' })).toBeVisible();
+      await page.getByRole('tab', { name: 'Progress-Tracking', exact: true }).click();
+      await expect(
+        page.getByRole('heading', { name: 'Progress-Tracking', exact: true })
+      ).toBeVisible();
       await page.getByRole('button', { name: 'Previous navigation tabs' }).click();
       await page.getByRole('button', { name: 'Previous navigation tabs' }).click();
       await page.getByRole('tab', { name: 'Dashboard', exact: true }).click();
@@ -463,7 +465,12 @@ try {
       await expect(page.getByRole('button', { name: 'Download .txt', exact: true })).toBeDisabled();
       await page.getByRole('radio', { name: /PDF/ }).click();
       await expect(page.getByRole('button', { name: 'Export bundle', exact: true })).toBeDisabled();
-      await page.getByRole('tab', { name: 'Post-award', exact: true }).click();
+      await page.getByRole('tab', { name: 'Progress-Tracking', exact: true }).click();
+      await expect(
+        page.getByText(
+          /Sample award record|Report submission status is not available|Contract countersigned|Work Slot Submission Snapshot & Deliverable Ledger|Save milestone dates|Financial Expenditure & Co-Funding Report/i
+        )
+      ).toHaveCount(0);
       await page.getByRole('button', { name: 'Recommendations', exact: true }).click();
       await expect(
         page.getByText('No recommendations available for this application.', { exact: true })
@@ -559,7 +566,7 @@ try {
             'src/screens/DraftingScreen.tsx',
             'src/screens/AuditScreen.tsx',
             'src/screens/ExportScreen.tsx',
-            'src/screens/PostAwardScreen.tsx',
+            'src/screens/ProgressTrackingScreen.tsx',
             'src/components/molecules/GrantCard.tsx',
             'src/components/molecules/InfoCard.tsx',
             'src/components/molecules/AttachmentOptionGrid.tsx',

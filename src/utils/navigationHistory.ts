@@ -7,7 +7,7 @@ export const LIFECYCLE_VIEW_PATHS = [
   'drafting',
   'audit-studio',
   'export-humanizer',
-  'post-award-tracker',
+  'progress-tracking',
 ] as const;
 
 const LIFECYCLE_VIEW_SET = new Set<string>(LIFECYCLE_VIEW_PATHS);

@@ -12,6 +12,7 @@ import type { ActiveSectionItem } from '@/hooks/useApplicationAuditState';
 import { useDraftStore } from '@/store/useDraftStore';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { useProgressStore } from '@/store/useProgressStore';
 import {
   evaluateWorkSlotAudit,
   restoreVersion,
@@ -69,6 +70,7 @@ export function ProjectVersionSelectorCard({
   const setWorkSlotReviewStatus = useWorkspaceStore((state) => state.setWorkSlotReviewStatus);
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
   const updateWorkbench = useWorkbenchStore((state) => state.update);
+  const recordActivity = useProgressStore((state) => state.recordActivity);
 
   const activeProject =
     workspace.projects.find((p) => p.id === activeProjectId) ?? workspace.projects[0];
@@ -169,6 +171,11 @@ export function ProjectVersionSelectorCard({
                   try {
                     setWorkSlotProfileRevision(activeApp.id, rev.id);
                     markContentChanged(slotKey);
+                    recordActivity(slotKey, {
+                      actor: nickname || 'Founder Lead',
+                      agent: 'system',
+                      message: `Pinned profile commit #${stepNum} (${rev.id})`,
+                    });
                     setSlotError('');
                     setSlotNotice(
                       `Pinned work slot to profile commit #${stepNum} (${rev.id}: ${rev.summary}).`
@@ -257,6 +264,11 @@ export function ProjectVersionSelectorCard({
                         })
                       );
                       markContentChanged(slotKey);
+                      recordActivity(slotKey, {
+                        actor: nickname || 'Founder Lead',
+                        agent: 'agent-1-narrative',
+                        message: `Updated section text: ${selectedSectionItem.title}`,
+                      });
                       setSectionDraftState(null);
                       setSlotError('');
                       setSlotNotice(
@@ -316,6 +328,11 @@ export function ProjectVersionSelectorCard({
                   );
                 });
                 if (editedActive) markContentChanged(slotKey);
+                recordActivity(slotKey, {
+                  actor: nickname || 'Founder Lead',
+                  agent: 'system',
+                  message: `Committed section version #${nextStep}: ${summaryText}`,
+                });
                 setSectionDraftState(null);
                 setCommitSummary('');
                 setSlotError('');
@@ -346,6 +363,11 @@ export function ProjectVersionSelectorCard({
                         );
                         setSectionDraftState(null);
                         markContentChanged(slotKey);
+                        recordActivity(slotKey, {
+                          actor: nickname || 'Founder Lead',
+                          agent: 'system',
+                          message: `Restored section version #${stepNum} (${ver.summary})`,
+                        });
                         setSlotError('');
                         setSlotNotice(
                           `Restored section text from commit #${stepNum} (${ver.summary}).`
@@ -407,6 +429,11 @@ export function ProjectVersionSelectorCard({
               if (!finishReview.canTransition || (!canEditSlot && !canReviewSlot)) return;
               try {
                 setWorkSlotReviewStatus(activeApp.id, 'review');
+                recordActivity(slotKey, {
+                  actor: nickname || 'Founder Lead',
+                  agent: 'system',
+                  message: 'Marked application IN REVIEW',
+                });
                 setSlotError('');
                 setSlotNotice('Application marked IN REVIEW. Editing remains reversible.');
               } catch (e) {
@@ -432,6 +459,11 @@ export function ProjectVersionSelectorCard({
                   'ready',
                   sectionItems.map((item) => item.title)
                 );
+                recordActivity(slotKey, {
+                  actor: nickname || 'Founder Lead',
+                  agent: 'system',
+                  message: 'Finished application review checks (marked READY)',
+                });
                 setSlotError('');
                 setSlotNotice(
                   'Application marked READY. You can reopen it at any time; nothing was sent externally.'
@@ -452,6 +484,12 @@ export function ProjectVersionSelectorCard({
               if (!finishReview.canTransition || !canEditSlot) return;
               try {
                 setWorkSlotReviewStatus(activeApp.id, 'drafting');
+                recordActivity(slotKey, {
+                  actor: nickname || 'Founder Lead',
+                  agent: 'system',
+                  status: 'running',
+                  message: 'Reopened application to DRAFTING',
+                });
                 setSlotError('');
                 setSlotNotice('Work slot reopened to DRAFTING for further edits.');
               } catch (e) {
@@ -477,6 +515,11 @@ export function ProjectVersionSelectorCard({
               try {
                 pullWorkSlotProfile(activeApp.id);
                 markContentChanged(slotKey);
+                recordActivity(slotKey, {
+                  actor: nickname || 'Founder Lead',
+                  agent: 'system',
+                  message: `Pulled latest profile revision ${activeProject?.currentRevisionId}`,
+                });
                 setSlotError('');
                 setSlotNotice(
                   `Pulled latest profile revision ${activeProject?.currentRevisionId} into work slot.`
@@ -503,6 +546,11 @@ export function ProjectVersionSelectorCard({
                 reviewStatus: 'approved',
               })),
             }));
+            recordActivity(slotKey, {
+              actor: nickname || 'Founder Lead',
+              agent: 'agent-2-deterministic',
+              message: `Approved all ${slotAudit.totalRequirements} requirement mappings`,
+            });
             setSlotNotice(
               `Approved all ${slotAudit.totalRequirements} requirement mappings as ${activeRole.toUpperCase()}.`
             );

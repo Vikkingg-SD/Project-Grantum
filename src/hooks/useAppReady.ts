@@ -3,6 +3,7 @@ import { useFonts } from 'expo-font';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useWorkspaceStore, hydrateWorkspace } from '@/store/useWorkspaceStore';
 import { useWorkbenchStore, hydrateWorkbench } from '@/store/useWorkbenchStore';
+import { useProgressStore, hydrateProgress } from '@/store/useProgressStore';
 import {
   useEligibilityPreflightStore,
   hydrateEligibilityPreflight,
@@ -13,12 +14,14 @@ function subscribeToHydration(notify: () => void) {
   const finish = useThemeStore.persist.onFinishHydration(notify);
   const workspace = useWorkspaceStore.subscribe(notify);
   const workbench = useWorkbenchStore.subscribe(notify);
+  const progress = useProgressStore.subscribe(notify);
   const preflight = useEligibilityPreflightStore.subscribe(notify);
   return () => {
     start();
     finish();
     workspace();
     workbench();
+    progress();
     preflight();
   };
 }
@@ -26,6 +29,7 @@ const hydrationSnapshot = () =>
   useThemeStore.persist.hasHydrated() &&
   useWorkspaceStore.getState().hydrated &&
   useWorkbenchStore.getState().hydrated &&
+  useProgressStore.getState().hydrated &&
   useEligibilityPreflightStore.getState().hydrated;
 const serverHydrationSnapshot = () => false;
 
@@ -33,6 +37,7 @@ export function useAppReady(): boolean {
   useEffect(() => {
     void hydrateWorkspace();
     void hydrateWorkbench();
+    void hydrateProgress();
     void hydrateEligibilityPreflight();
   }, []);
   const [fontsLoaded] = useFonts({

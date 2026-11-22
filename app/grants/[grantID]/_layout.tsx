@@ -1,17 +1,18 @@
 import React, { useEffect } from 'react';
-import { Stack, usePathname, useRouter } from 'expo-router';
+import { Stack, useGlobalSearchParams, usePathname, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
 import { useActiveView } from '@/hooks/useActiveView';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
+import { isValidGrantId } from '@/utils/navigationHistory';
 import { WorkspaceShell } from '@/components/templates/WorkspaceShell';
 import { useRememberLifecycle, useWorkspaceNavigation } from '@/hooks/useWorkspaceNavigation';
 import { useDraftStore } from '@/store/useDraftStore';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 import { queryKeys } from '@/api/queryKeys';
-import { ROUTE_COPY } from '@/config/copy';
+import { ROUTE_COPY, NAV_COPY } from '@/config/copy';
 import type { Grant } from '@/types/grant';
 import {
   TopTabNavigation,
@@ -25,13 +26,21 @@ export const unstable_settings = { screenErrorBoundary: AppScreenErrorBoundary }
 export default function GrantLayout() {
   // Preserve the existing layout-level recovery probe across the route flip.
   useRecoveryProbe('tab');
-  const grantID = useActiveGrantId();
+  const localGrantId = useActiveGrantId();
+  const { grantID: rawGlobalGrantId } = useGlobalSearchParams<{ grantID?: string | string[] }>();
   const pathname = usePathname();
+  const hasGlobalGrantParam = rawGlobalGrantId !== undefined;
+  const globalGrantId =
+    typeof rawGlobalGrantId === 'string' && isValidGrantId(rawGlobalGrantId)
+      ? rawGlobalGrantId
+      : '';
+  const grantID =
+    pathname.startsWith('/grants/') && hasGlobalGrantParam ? globalGrantId : localGrantId;
   const queryClient = useQueryClient();
   const grant = useGrantDetail(grantID);
   const router = useRouter();
   const selectedName = useActiveView();
-  const navigation = useAppNavigation();
+  const navigation = useAppNavigation(grantID);
   const { markInvalidPath } = useWorkspaceNavigation();
   const setLastGrantId = useDraftStore((state) => state.setLastGrantId);
   const isLoading = Boolean(grantID) && grant.isPending;
@@ -85,6 +94,7 @@ export default function GrantLayout() {
           }
         >
           <Stack.Screen name="index" />
+          <Stack.Screen name="post-award-tracker" options={{ title: NAV_COPY.progressTracking }} />
           {items.map((item) => (
             <Stack.Screen key={item.name} name={item.routePath} options={{ title: item.label }} />
           ))}

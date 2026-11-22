@@ -20,6 +20,7 @@ import { useProposalDraft, useMutateProposalSections } from '@/api/hooks/useProp
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { useProgressStore } from '@/store/useProgressStore';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
 import { buildActiveSectionItems } from '@/hooks/useApplicationAuditState';
 import { useEscapeDismiss } from '@/hooks/useEscapeDismiss';
@@ -76,6 +77,8 @@ function DraftingSession({ grantId, slotKey }: { grantId: string; slotKey: strin
   const updateWorkbench = useWorkbenchStore((state) => state.update);
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const nickname = useWorkspaceStore((state) => state.nickname);
+  const recordActivity = useProgressStore((state) => state.recordActivity);
 
   useEffect(() => {
     if (local.attachments.length > 0 && prevAttachmentCount.current === 0) {
@@ -177,6 +180,11 @@ function DraftingSession({ grantId, slotKey }: { grantId: string; slotKey: strin
       })
     );
     markContentChanged(slotKey);
+    recordActivity(slotKey, {
+      actor: nickname || 'Founder Lead',
+      agent: 'agent-1-narrative',
+      message: `Added required section: ${displayTitle}`,
+    });
     if (
       ENV.DATA_SOURCE !== 'mock' &&
       query.data?.requiredSections.includes(displayTitle) === false
@@ -517,6 +525,11 @@ function DraftingSession({ grantId, slotKey }: { grantId: string; slotKey: strin
                         })
                       );
                       markContentChanged(slotKey);
+                      recordActivity(slotKey, {
+                        actor: nickname || 'Founder Lead',
+                        agent: 'agent-1-narrative',
+                        message: `Updated section requirement: ${selectedItem.title}`,
+                      });
                       setDetailNotice('Saved custom section description.');
                     }}
                   />
@@ -546,6 +559,11 @@ function DraftingSession({ grantId, slotKey }: { grantId: string; slotKey: strin
                       })
                     );
                     markContentChanged(slotKey);
+                    recordActivity(slotKey, {
+                      actor: nickname || 'Founder Lead',
+                      agent: 'agent-1-narrative',
+                      message: `Saved section draft: ${selectedItem.title}`,
+                    });
                     setDetailNotice('Section draft saved. Run Audit again before exporting.');
                   }}
                 />
@@ -602,6 +620,12 @@ function DraftingSession({ grantId, slotKey }: { grantId: string; slotKey: strin
               const target = deleteSection;
               updateWorkbench(slotKey, (current) => removeWorkbenchSection(current, target));
               markContentChanged(slotKey);
+              recordActivity(slotKey, {
+                actor: nickname || 'Founder Lead',
+                agent: 'system',
+                status: 'running',
+                message: `Deleted section: ${target}`,
+              });
               if (ENV.DATA_SOURCE !== 'mock' && query.data.requiredSections.includes(target)) {
                 mutation.mutate(
                   { action: 'deleteRequirement', sectionName: target },

@@ -69,7 +69,7 @@ export interface ExportResponse {
 
 export interface AwardRecord {
   grantId: string;
-  status: 'awarded' | 'submitted' | 'in_review';
+  status: 'awarded' | 'submitted' | 'in_review' | 'declined' | 'rejected';
   submittedAt: string;
   nextReportAt: string;
   amount: string;

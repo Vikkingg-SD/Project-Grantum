@@ -19,7 +19,7 @@ const leaves = [
   'drafting',
   'audit-studio',
   'export-humanizer',
-  'post-award-tracker',
+  'progress-tracking',
 ];
 let passed = 0;
 const check = async (name, action) => {
@@ -44,7 +44,7 @@ await check('route tree uses six pure screen re-exports and no legacy tabs', () 
 });
 await check('grant identity and history have a single route owner', () => {
   assert.doesNotMatch(read('src/config/constants.ts'), /HISTORY_CAP/);
-  for (const name of ['Drafting', 'Audit', 'Export', 'PostAward']) {
+  for (const name of ['Drafting', 'Audit', 'Export', 'ProgressTracking']) {
     assert.match(read(`src/screens/${name}Screen.tsx`), /useActiveGrantId\(\)/);
   }
   assert.match(read('src/hooks/useActiveGrantId.ts'), /useLocalSearchParams/);
@@ -395,6 +395,14 @@ try {
     await page.waitForURL(url('2', 'dashboard'));
     await page.goForward();
     await page.waitForURL(url('1', 'drafting'));
+  });
+  await check('legacy /post-award-tracker redirects cleanly to /progress-tracking', async () => {
+    await page.goto(url('2', 'post-award-tracker'));
+    await page.waitForURL(url('2', 'progress-tracking'));
+    await expect(
+      page.getByRole('heading', { name: 'Progress-Tracking', exact: true })
+    ).toBeVisible();
+    await visible('Community Health Access');
   });
   await check('a grant index redirects to its own dashboard', async () => {
     await page.goto(`${origin}/grants/2`);
