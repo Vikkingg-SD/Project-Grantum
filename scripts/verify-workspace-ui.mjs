@@ -252,8 +252,17 @@ try {
         leadBounds.y >= 0 && leadBounds.y + leadBounds.height <= 900,
         'Fix action must reveal the actual input'
       );
-      await lead.fill('Project lead for application');
-      await expect(page.getByText('100% complete', { exact: true })).toBeVisible();
+      await lead.fill('Alex Rivera, Principal Systems Lead');
+      await expect(
+        page.getByText('100% detailed · Review required', { exact: true })
+      ).toBeVisible();
+      await expect(
+        page.getByText('Review required, go to audit', { exact: true }).first()
+      ).toBeVisible();
+      await expect(page.getByText('Complete', { exact: true })).toHaveCount(0);
+      await page.getByRole('button', { name: 'Audit project profile', exact: true }).click();
+      await expect(page.getByText('100% complete · Audited', { exact: true })).toBeVisible();
+      await expect(page.getByText('Complete', { exact: true }).first()).toBeVisible();
       await expect(
         page.getByText('Unsaved changes · save to update linked badges.', { exact: true })
       ).toBeVisible();
@@ -328,14 +337,17 @@ try {
       await page.getByRole('button', { name: /^Role for / }).click();
       await page.getByRole('button', { name: 'Owner', exact: true }).click();
       await page.goto(`${origin}/my-works`);
+      await expect(page.getByText('Search your work', { exact: true })).toHaveCount(0);
       await page
-        .getByRole('textbox', { name: 'Search your work', exact: true })
+        .getByRole('textbox', { name: 'Search projects and applications', exact: true })
         .fill('no-matching-project');
       await expect(page.getByText('No projects match this search.', { exact: true })).toBeVisible();
       await expect(
         page.getByText('No applications match this filter.', { exact: true })
       ).toBeVisible();
-      await page.getByRole('textbox', { name: 'Search your work', exact: true }).fill('');
+      await page
+        .getByRole('textbox', { name: 'Search projects and applications', exact: true })
+        .fill('');
       await page.getByRole('button', { name: 'Archived Projects', exact: true }).click();
       await expect(page.getByText('No projects match this search.', { exact: true })).toBeVisible();
       await page.getByRole('button', { name: 'All Works', exact: true }).click();

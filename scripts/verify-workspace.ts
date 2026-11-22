@@ -1,13 +1,24 @@
 import {
   addApplication,
+  addVaultDoc,
   archiveProject,
+  auditProjectProfile,
   buildProfileComparison,
   canRolePerform,
   computeProfileReadiness,
   emptyWorkspace,
+  evaluateProfileField,
+  formatProfileRegions,
   getProfileSyncLag,
+  PROFILE_FIELD_DEFINITIONS,
+  hasProfileChanges,
+  isProfileAuditMap,
+  MAX_PROJECT_DOCS,
+  parseProfileRegions,
   parseVaultDocs,
   pullProfileRevision,
+  removeVaultDoc,
+  sanitizeVaultDocName,
   saveProject,
   searchProjects,
   toggleVaultDoc,
@@ -180,4 +191,173 @@ assert.equal(matchReport.referenceUrl, null);
 assert.equal(
   matchReport.eligibilityGates.some((item) => item.status === 'pass'),
   false
+);
+
+// Section 9: real profile detail evaluation, anti-filler, regions, paperclip docs, spam guard & profile audit
+const longSentence = (tag: string, minLen: number) => {
+  const words = [
+    tag,
+    'municipal',
+    'telemetry',
+    'sensors',
+    'deployment',
+    'utilities',
+    'pressure',
+    'calibration',
+    'monitoring',
+    'consortium',
+    'milestones',
+    'verification',
+    'resilience',
+    'metrics',
+    'infrastructure',
+    'district',
+    'engineering',
+    'compliance',
+    'impact',
+    'budget',
+  ];
+  let out = '';
+  let idx = 0;
+  while (out.length < minLen || idx < 22) {
+    out += (out ? ' ' : '') + words[idx % words.length] + `-${idx}`;
+    idx += 1;
+  }
+  return out;
+};
+
+const missionDef = PROFILE_FIELD_DEFINITIONS.find((d) => d.key === 'mission')!;
+assert.equal(evaluateProfileField(missionDef, 'Too short sentence').filled, false);
+assert.equal(evaluateProfileField(missionDef, 'a'.repeat(250)).filled, false);
+assert.equal(evaluateProfileField(missionDef, 'test '.repeat(60)).filled, false);
+assert.equal(
+  evaluateProfileField(missionDef, 'We build clean water sensors for urban cities. '.repeat(6))
+    .filled,
+  false
+);
+assert.equal(evaluateProfileField(missionDef, 'test, test. test! test? '.repeat(15)).filled, false);
+const cjkValid =
+  '本项目致力于在老旧市政供水管网中部署低功耗声学泄漏遥测传感节点，使水务部门能够在数分钟内精准定位地下主干管道破裂与隐蔽渗漏位置，将净化饮用水输送损耗降低一半以上，全面提升沿海与内陆高损耗社区及公立诊所的供水系统韧性、应急响应效率、压力阀门自动隔离水平、水资源计量审计透明度与长期可持续发展能力。我们计划在十二座城市分阶段推进声学硬件校准与实地运维培训，联合地方水务工程团队建立连续监测指标体系与应急调度规程，确保偏远居民区长期受益。';
+assert.equal(cjkValid.length >= 200, true);
+assert.equal(evaluateProfileField(missionDef, cjkValid).filled, true);
+assert.equal(evaluateProfileField(missionDef, longSentence('water', 210)).filled, true);
+
+const longPdfName = `${'a'.repeat(190)}.pdf`;
+assert.equal(sanitizeVaultDocName(longPdfName).length, 180);
+assert.equal(sanitizeVaultDocName(longPdfName).endsWith('.pdf'), true);
+
+const regions = parseProfileRegions('Global, East Europe, global, CIS');
+assert.equal(regions.length, 3);
+assert.equal(formatProfileRegions(regions), 'Global, East Europe, CIS');
+
+let docRaw = '';
+docRaw = addVaultDoc(docRaw, 'Financial|Statement.pdf').next;
+assert.equal(parseVaultDocs(docRaw)[0], 'Financial-Statement.pdf');
+const dup = addVaultDoc(docRaw, 'financial-statement.pdf');
+assert.equal(Boolean(dup.error), true);
+for (let idx = 1; idx < MAX_PROJECT_DOCS; idx++) {
+  docRaw = addVaultDoc(docRaw, `Annex-${idx}.pdf`).next;
+}
+const overflowDoc = addVaultDoc(docRaw, 'Extra.pdf');
+assert.equal(Boolean(overflowDoc.error), true);
+docRaw = removeVaultDoc(docRaw, 'Financial-Statement.pdf');
+assert.equal(parseVaultDocs(docRaw).length, MAX_PROJECT_DOCS - 1);
+
+const fullFields: Record<string, string> = {
+  mission: longSentence('mission', 210),
+  problem: longSentence('problem', 210),
+  solution: longSentence('solution', 210),
+  beneficiaries: longSentence('beneficiaries', 130),
+  budget: longSentence('budget', 90),
+  region: 'Global, East Europe',
+  entityType: 'For-profit Startup (C-Corp / LLC)',
+  teamLead: 'Alex Rivera, Principal Systems Lead',
+};
+let profileWs = saveProject(emptyWorkspace(), {
+  projectId: 'p-audit',
+  revisionId: 'r-audit-1',
+  name: 'Audit Test Project',
+  kind: 'startup',
+  authorId: 'Tester',
+  createdAt: '2026-11-22T00:00:00Z',
+  summary: 'Initial complete fields',
+  fields: fullFields,
+});
+const pAudit = profileWs.projects[0];
+const rAudit = profileWs.revisions[0];
+assert.equal(
+  hasProfileChanges(pAudit, rAudit, {
+    name: '  Audit Test Project  ',
+    kind: 'startup',
+    fields: { ...fullFields, region: 'East Europe, Global' },
+  }),
+  false
+);
+const preAudit = computeProfileReadiness(pAudit, rAudit);
+assert.equal(preAudit.score, 100);
+assert.equal(preAudit.auditedScore, 0);
+assert.equal(preAudit.auditStatus, 'not-audited');
+assert.equal(
+  preAudit.checklist.every((item) => item.status === 'review-required'),
+  true
+);
+const auditRec = auditProjectProfile({
+  projectId: pAudit.id,
+  revisionId: rAudit.id,
+  name: pAudit.name,
+  kind: pAudit.kind,
+  fields: rAudit.fields,
+  actor: 'Tester',
+  auditedAt: '2026-11-22T01:00:00Z',
+});
+assert.equal(auditRec.allPassed, true);
+const postAudit = computeProfileReadiness(pAudit, rAudit, auditRec);
+assert.equal(postAudit.auditStatus, 'audited');
+assert.equal(postAudit.auditedScore, 100);
+assert.equal(
+  postAudit.checklist.every((item) => item.status === 'audited'),
+  true
+);
+profileWs = saveProject(profileWs, {
+  projectId: 'p-audit',
+  revisionId: 'r-audit-2',
+  name: pAudit.name,
+  kind: pAudit.kind,
+  authorId: 'Tester',
+  createdAt: '2026-11-22T02:00:00Z',
+  summary: 'Update mission',
+  fields: { ...fullFields, mission: longSentence('revised', 215) },
+});
+const staleReadiness = computeProfileReadiness(
+  profileWs.projects[0],
+  profileWs.revisions[1],
+  auditRec
+);
+assert.equal(staleReadiness.auditStatus, 'stale');
+assert.equal(
+  staleReadiness.checklist.find((item) => item.key === 'mission')?.status,
+  'review-required'
+);
+assert.equal(staleReadiness.checklist.find((item) => item.key === 'solution')?.status, 'audited');
+assert.equal(
+  isProfileAuditMap({
+    'p-audit': { ...auditRec, recommendations: [123] },
+  }),
+  false
+);
+assert.equal(
+  isProfileAuditMap({
+    'p-audit': { ...auditRec, fieldResults: [] },
+  }),
+  false
+);
+assert.equal(
+  isProfileAuditMap({
+    'other-id': auditRec,
+  }),
+  false
+);
+assert.equal(isProfileAuditMap({ 'p-audit': auditRec }), true);
+console.info(
+  'PASS Given real detail checks, filler rejection, normalized diffs, regions, docs, and profile audit When updated Then review-required, audited, and stale states stay consistent'
 );

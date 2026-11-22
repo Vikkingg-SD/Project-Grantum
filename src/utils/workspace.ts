@@ -3,13 +3,34 @@ import type {
   ApplicationBundle,
   CoWorkAction,
   CoWorkRole,
-  ProfileReadinessReport,
   ProfileRevision,
   ProjectKind,
   ProjectProfile,
-  ReadinessChecklistItem,
   ProfileComparisonReport,
 } from '../types/workspace';
+import { normalizeProfileFieldValue } from './profileAudit';
+
+export {
+  KNOWN_ENTITY_TYPES,
+  KNOWN_PROJECT_REGIONS,
+  MAX_PROJECT_DOCS,
+  PROFILE_FIELD_DEFINITIONS,
+  addVaultDoc,
+  auditProjectProfile,
+  computeProfileContentSignature,
+  computeProfileFieldFingerprints,
+  computeProfileReadiness,
+  evaluateProfileField,
+  formatProfileRegions,
+  isProfileAuditMap,
+  normalizeProfileFieldValue,
+  parseProfileRegions,
+  parseVaultDocs,
+  removeVaultDoc,
+  sanitizeVaultDocName,
+  toggleVaultDoc,
+} from './profileAudit';
+export type { ProfileFieldDefinition, ProfileFieldEvaluation } from './profileAudit';
 
 export interface Workspace {
   projects: ProjectProfile[];
@@ -43,7 +64,9 @@ export function hasProfileChanges(
   }
   const keys = Object.keys({ ...revision.fields, ...draft.fields });
   return keys.some(
-    (key) => (revision.fields[key] ?? '').trim() !== (draft.fields[key] ?? '').trim()
+    (key) =>
+      normalizeProfileFieldValue(key, revision.fields[key]) !==
+      normalizeProfileFieldValue(key, draft.fields[key])
   );
 }
 
@@ -228,95 +251,6 @@ export function selectProfileRevision(
   };
 }
 
-export const PROFILE_FIELD_DEFINITIONS: readonly {
-  key: string;
-  label: string;
-  weight: number;
-  impact: 'high' | 'medium';
-  guidance: string;
-}[] = [
-  {
-    key: 'mission',
-    label: 'Mission',
-    weight: 16,
-    impact: 'high',
-    guidance: 'State the organization mission and measurable outcome in 2-3 sentences.',
-  },
-  {
-    key: 'problem',
-    label: 'Problem evidence',
-    weight: 15,
-    impact: 'high',
-    guidance: 'Include baseline metrics, affected population, and cited empirical sources.',
-  },
-  {
-    key: 'solution',
-    label: 'Approach',
-    weight: 15,
-    impact: 'high',
-    guidance: 'Describe implementation architecture, milestones, and operational readiness.',
-  },
-  {
-    key: 'beneficiaries',
-    label: 'Beneficiaries',
-    weight: 12,
-    impact: 'high',
-    guidance: 'Specify primary beneficiaries, deployment geography, and inclusion criteria.',
-  },
-  {
-    key: 'budget',
-    label: 'Budget',
-    weight: 14,
-    impact: 'high',
-    guidance: 'Provide direct/indirect cost breakdown and confirmed matching funds.',
-  },
-  {
-    key: 'region',
-    label: 'Region',
-    weight: 10,
-    impact: 'medium',
-    guidance: 'List registered operating regions (such as Global, East Europe, CIS).',
-  },
-  {
-    key: 'entityType',
-    label: 'Legal entity',
-    weight: 10,
-    impact: 'medium',
-    guidance: 'Confirm nonprofit, research institute, or commercial entity classification.',
-  },
-  {
-    key: 'teamLead',
-    label: 'Project lead',
-    weight: 8,
-    impact: 'medium',
-    guidance: 'Identify lead key personnel, credentials, and prior grant delivery track record.',
-  },
-];
-
-export function computeProfileReadiness(
-  project: ProjectProfile,
-  revision: ProfileRevision
-): ProfileReadinessReport {
-  let earned = 0;
-  const checklist: ReadinessChecklistItem[] = PROFILE_FIELD_DEFINITIONS.map((def) => {
-    const value = (revision.fields[def.key] ?? '').trim();
-    const filled = value.length >= 8;
-    if (filled) earned += def.weight;
-    return {
-      key: def.key,
-      label: def.label,
-      filled,
-      impact: def.impact,
-      guidance: def.guidance,
-    };
-  });
-  return {
-    score: earned,
-    profileRevisionId: revision.id,
-    checklist,
-  };
-}
-
 export function buildProfileComparison(
   grant: Grant,
   project: ProjectProfile,
@@ -432,22 +366,4 @@ const ROLE_CAPABILITIES: Record<CoWorkRole, readonly CoWorkAction[]> = {
 
 export function canRolePerform(role: CoWorkRole, action: CoWorkAction): boolean {
   return ROLE_CAPABILITIES[role]?.includes(action) ?? false;
-}
-
-export function parseVaultDocs(raw: string | undefined): string[] {
-  if (!raw) return [];
-  return raw
-    .split('|')
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-export function toggleVaultDoc(raw: string | undefined, docName: string): string {
-  const clean = docName.trim();
-  if (!clean) return raw ?? '';
-  const current = parseVaultDocs(raw);
-  const next = current.includes(clean)
-    ? current.filter((item) => item !== clean)
-    : [...current, clean];
-  return next.join(' | ');
 }

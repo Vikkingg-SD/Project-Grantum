@@ -105,18 +105,47 @@ export interface RequirementMapping {
   reviewStatus: 'drafting' | 'in-review' | 'approved';
 }
 
+export type ProfileChecklistStatus = 'needs-detail' | 'review-required' | 'audited';
+export type ProfileAuditStatus = 'not-audited' | 'stale' | 'audited' | 'action-required';
+
 export interface ReadinessChecklistItem {
   key: string;
   label: string;
   filled: boolean;
+  status: ProfileChecklistStatus;
   impact: 'high' | 'medium';
   guidance: string;
+  charCount: number;
+  minChars: number;
+  detailReason: string;
 }
 
 export interface ProfileReadinessReport {
   score: number;
+  auditedScore: number;
+  auditStatus: ProfileAuditStatus;
   profileRevisionId: string;
   checklist: ReadinessChecklistItem[];
+}
+
+export interface ProjectProfileAuditFieldResult {
+  readonly passed: boolean;
+  readonly message: string;
+}
+
+export interface ProjectProfileAuditRecord {
+  readonly projectId: string;
+  readonly revisionId: string;
+  readonly contentSignature: string;
+  readonly fieldFingerprints: Readonly<Record<string, string>>;
+  readonly auditedAt: string;
+  readonly actor: string;
+  readonly score: number;
+  readonly passedCount: number;
+  readonly totalCount: number;
+  readonly allPassed: boolean;
+  readonly fieldResults: Readonly<Record<string, ProjectProfileAuditFieldResult>>;
+  readonly recommendations: readonly string[];
 }
 
 export interface MatchEligibilityItem {

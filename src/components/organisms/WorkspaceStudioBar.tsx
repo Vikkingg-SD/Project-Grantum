@@ -36,6 +36,7 @@ export function WorkspaceStudioBar() {
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const projectRoles = useWorkspaceStore((state) => state.projectRoles);
   const activeRole = useWorkspaceStore((state) => state.activeRole);
+  const profileAudits = useWorkspaceStore((state) => state.profileAudits);
   const persistenceStatus = useWorkspaceStore((state) => state.persistenceStatus);
   const setActiveProject = useWorkspaceStore((state) => state.setActiveProject);
   const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
@@ -53,9 +54,9 @@ export function WorkspaceStudioBar() {
   const readiness = useMemo(
     () =>
       activeProject && activeRevision
-        ? computeProfileReadiness(activeProject, activeRevision)
+        ? computeProfileReadiness(activeProject, activeRevision, profileAudits[activeProject.id])
         : null,
-    [activeProject, activeRevision]
+    [activeProject, activeRevision, profileAudits]
   );
 
   const effectiveRole = projectRoles[activeProjectId] ?? activeRole;

@@ -73,23 +73,80 @@ if (process.argv.includes('--api')) {
   state().setRole('owner');
   const project = state().workspace.projects.find((item) => item.id === 'project-1')!;
   const before = state().workspace.revisions.find((item) => item.id === project.currentRevisionId)!;
-  equal(computeProfileReadiness(project, before).score, 92);
+  const beforeReadiness = computeProfileReadiness(
+    project,
+    before,
+    state().profileAudits[project.id]
+  );
+  equal(beforeReadiness.score, 92);
+  equal(beforeReadiness.auditStatus, 'not-audited');
+  equal(beforeReadiness.auditedScore, 0);
+  equal(
+    beforeReadiness.checklist.find((item) => item.key === 'mission')?.status,
+    'review-required'
+  );
+  equal(beforeReadiness.checklist.find((item) => item.key === 'teamLead')?.status, 'needs-detail');
+  const revCountBefore = state().workspace.revisions.length;
+  state().saveProjectProfile({
+    projectId: project.id,
+    name: project.name,
+    kind: project.kind,
+    summary: 'Note only with no field change',
+    fields: { ...before.fields },
+  });
+  equal(state().workspace.revisions.length, revCountBefore);
+
+  state().setProjectRole(project.id, 'viewer');
+  throws(() =>
+    state().runProfileAudit({
+      projectId: project.id,
+      name: project.name,
+      kind: project.kind,
+      fields: before.fields,
+    })
+  );
+  state().setProjectRole(project.id, 'owner');
+  throws(() =>
+    state().runProfileAudit({
+      projectId: 'unsaved-project-id',
+      name: 'Unsaved',
+      kind: 'grant',
+      fields: before.fields,
+    })
+  );
+
   state().saveProjectProfile({
     projectId: project.id,
     name: project.name,
     kind: project.kind,
     summary: 'Complete team lead',
-    fields: { ...before.fields, teamLead: 'Verified team lead contact' },
+    fields: { ...before.fields, teamLead: 'Alex Rivera, Principal Systems Lead' },
   });
   const saved = state().workspace.projects.find((item) => item.id === project.id)!;
   const revision = state().workspace.revisions.find((item) => item.id === saved.currentRevisionId)!;
-  equal(computeProfileReadiness(saved, revision).score, 100);
+  const preAudit = computeProfileReadiness(saved, revision, state().profileAudits[saved.id]);
+  equal(preAudit.score, 100);
+  equal(preAudit.auditStatus, 'not-audited');
+  const auditResult = state().runProfileAudit({
+    projectId: saved.id,
+    name: saved.name,
+    kind: saved.kind,
+    fields: revision.fields,
+  });
+  equal(auditResult.allPassed, true);
+  const postAudit = computeProfileReadiness(saved, revision, state().profileAudits[saved.id]);
+  equal(postAudit.auditStatus, 'audited');
+  equal(postAudit.auditedScore, 100);
+  equal(
+    postAudit.checklist.every((item) => item.status === 'audited'),
+    true
+  );
   equal(
     state().workspace.revisions.some((item) => item.id === before.id),
     true
   );
   process.stdout.write(
-    'PASS Given an incomplete profile When saved Then readiness updates and prior revisions remain\n'
+    'PASS Given an incomplete profile When saved and audited Then readiness, review-required, audited states, RBAC, and spam guards behave deterministically\n'
   );
 
   state().setPersonalSettings('  New display name  ', false);

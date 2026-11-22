@@ -462,7 +462,11 @@ export async function auditInterfaces(browser, origin, runtime) {
       });
       await record('My Works filters expand results and recover from empty search', async () => {
         await goto('/my-works');
-        const search = page.getByRole('textbox', { name: 'Search your work', exact: true });
+        await expect(page.getByText('Search your work', { exact: true })).toHaveCount(0);
+        const search = page.getByRole('textbox', {
+          name: 'Search projects and applications',
+          exact: true,
+        });
         await search.fill('no-matching-work-123');
         await expect(button('Open in Drafting Studio')).toHaveCount(0);
         await search.fill('');
