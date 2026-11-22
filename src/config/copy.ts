@@ -49,7 +49,7 @@ export const NAV_COPY = {
   drafting: 'Drafting',
   audit: 'Audit',
   export: 'Export',
-  postAward: 'Post-award',
+  progressTracking: 'Progress-Tracking',
 } as const;
 export const MODAL_COPY = {
   close: 'Close',

@@ -4,6 +4,7 @@ import { AuditScanResponse } from '@/types/api';
 import { ENV } from '@/config/env';
 import { useDraftStore } from '@/store/useDraftStore';
 import { useWorkbenchStore } from '@/store/useWorkbenchStore';
+import { useProgressStore } from '@/store/useProgressStore';
 import { recordAuditHistoryEntry } from '@/utils/drafting';
 import { queryKeys } from '../queryKeys';
 
@@ -14,6 +15,7 @@ export interface AuditTriggerInput {
   confidenceScore?: number;
   profileRevisionId?: string;
   sectionVersionId?: string | null;
+  actor?: string;
 }
 
 export function auditPollingInterval(
@@ -78,6 +80,15 @@ export function useTriggerAuditScan(grantId: string, slotKey?: string) {
             sectionVersionId: input.sectionVersionId,
           })
         );
+        const resolvedScore = input.confidenceScore ?? scan.confidenceScore;
+        useProgressStore.getState().recordActivity(slotKey, {
+          actor: input.actor || 'Founder Lead',
+          agent: 'agent-2-deterministic',
+          status: passed ? 'passed' : 'failed',
+          message: `Ran application audit (${resolvedScore}% · ${
+            passed ? 'Checklist check passed' : 'Action required'
+          })`,
+        });
       }
     },
   });

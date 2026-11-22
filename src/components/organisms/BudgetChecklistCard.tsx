@@ -7,6 +7,8 @@ import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { RADIUS, SPACING } from '@/config/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { hydrateBudget, useBudgetStore } from '@/store/useBudgetStore';
+import { useProgressStore } from '@/store/useProgressStore';
+import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { buildDefaultBudgetRecord, evaluateWorkSlotBudget, formatUsd } from '@/utils/budget';
 
 export interface BudgetChecklistCardProps {
@@ -22,6 +24,8 @@ export function BudgetChecklistCard({ slotKey, canEdit }: BudgetChecklistCardPro
   const addLineItem = useBudgetStore((state) => state.addLineItem);
   const removeLineItem = useBudgetStore((state) => state.removeLineItem);
   const saveCaps = useBudgetStore((state) => state.saveCaps);
+  const recordActivity = useProgressStore((state) => state.recordActivity);
+  const nickname = useWorkspaceStore((state) => state.nickname);
 
   useEffect(() => {
     void hydrateBudget();
@@ -127,6 +131,11 @@ export function BudgetChecklistCard({ slotKey, canEdit }: BudgetChecklistCardPro
               overheadPctCap: overheadPctCapInput,
               overheadAmount: overheadAmountInput,
             });
+            recordActivity(slotKey, {
+              actor: nickname || 'Founder Lead',
+              agent: 'agent-2-deterministic',
+              message: 'Updated budget sheet caps and overhead settings',
+            });
             setCapEdits({ slotKey });
             setError('');
             setNotice('Budget caps and overhead settings updated.');
@@ -166,6 +175,12 @@ export function BudgetChecklistCard({ slotKey, canEdit }: BudgetChecklistCardPro
               disabled={!canEdit}
               onPress={() => {
                 removeLineItem(slotKey, line.id);
+                recordActivity(slotKey, {
+                  actor: nickname || 'Founder Lead',
+                  agent: 'agent-2-deterministic',
+                  status: 'running',
+                  message: `Removed budget line: ${line.description}`,
+                });
                 setError('');
                 setNotice(`Removed "${line.description}" from itemized budget.`);
               }}
@@ -218,6 +233,11 @@ export function BudgetChecklistCard({ slotKey, canEdit }: BudgetChecklistCardPro
                 description: newDescription,
                 quantity: newQuantity,
                 unitRate: newUnitRate,
+              });
+              recordActivity(slotKey, {
+                actor: nickname || 'Founder Lead',
+                agent: 'agent-2-deterministic',
+                message: `Added budget line: ${newDescription.trim()}`,
               });
               setNewDescription('');
               setNewQuantity('1');

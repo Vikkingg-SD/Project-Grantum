@@ -7,6 +7,7 @@ function equal(actual: unknown, expected: unknown) {
 
 for (const value of [
   '/grants/2/drafting',
+  '/grants/2/progress-tracking',
   '/grants/grant%2Fwith%20spaces/drafting',
   '/form-templates',
   '/settings',
@@ -16,6 +17,7 @@ for (const value of [
 ]) {
   equal(workspaceReturnPath(value), value);
 }
+equal(workspaceReturnPath('/grants/2/post-award-tracker'), '/grants/2/progress-tracking');
 for (const value of [
   undefined,
   '',

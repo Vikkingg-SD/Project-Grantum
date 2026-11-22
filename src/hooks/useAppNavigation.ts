@@ -2,9 +2,10 @@ import { useRouter } from 'expo-router';
 import { useActiveGrantId } from './useActiveGrantId';
 import { useActiveView, VIEW_PATHS, type AppView } from './useActiveView';
 
-export function useAppNavigation() {
+export function useAppNavigation(overrideGrantID?: string) {
   const router = useRouter();
-  const grantID = useActiveGrantId();
+  const localGrantID = useActiveGrantId();
+  const grantID = overrideGrantID ?? localGrantID;
   const view = useActiveView();
   return {
     navigateTo: (next: AppView, nextGrantID = grantID) => {

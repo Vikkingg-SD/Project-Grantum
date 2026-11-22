@@ -58,6 +58,7 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const activeRole = useWorkspaceStore((state) => state.activeRole);
+  const nickname = useWorkspaceStore((state) => state.nickname);
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
   const [message, setMessage] = useState('');
 
@@ -325,6 +326,7 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
                 confidenceScore,
                 profileRevisionId: pinnedProfileRevisionId,
                 sectionVersionId: work.versions[work.versions.length - 1]?.id ?? null,
+                actor: nickname || 'Founder Lead',
               });
             }}
           />

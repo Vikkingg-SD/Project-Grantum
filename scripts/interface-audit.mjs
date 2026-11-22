@@ -26,7 +26,7 @@ export async function auditInterfaces(browser, origin, runtime) {
       'drafting',
       'audit-studio',
       'export-humanizer',
-      'post-award-tracker',
+      'progress-tracking',
     ].map((leaf) => `/grants/1/${leaf}`),
     '/dev-gallery',
     '/missing-page',
@@ -145,7 +145,7 @@ export async function auditInterfaces(browser, origin, runtime) {
         '/grants/1/drafting': 'Drafting workspace',
         '/grants/1/audit-studio': 'Application check',
         '/grants/1/export-humanizer': 'Review & export',
-        '/grants/1/post-award-tracker': 'Reporting & activity',
+        '/grants/1/progress-tracking': 'Progress-Tracking',
         '/dev-gallery': 'Dev Gallery',
         '/missing-page': 'Signal lost',
       };
@@ -469,23 +469,22 @@ export async function auditInterfaces(browser, origin, runtime) {
         for (const label of ['Archived Projects', 'All Works']) await button(label).click();
         await expect(button('Open in Drafting Studio').first()).toBeVisible();
       });
-      await record('Reporting tabs and local date validation recover', async () => {
-        await goto('/grants/1/post-award-tracker');
-        for (const label of ['Notifications', 'Recommendations', 'Details'])
-          await button(label).click();
-        const date = page.getByRole('textbox', {
-          name: 'Expected result date (YYYY-MM-DD)',
-          exact: true,
-        });
-        await date.fill('invalid');
-        await button('Save milestone dates').click();
-        await expect(page.getByRole('alert')).toBeVisible();
-        await date.fill('2027-01-20');
-        await button('Save milestone dates').click();
-        await expect(page.getByRole('alert')).toHaveCount(0);
-        await page.reload();
-        await expect(date).toHaveValue('2027-01-20');
-      });
+      await record(
+        'Progress-Tracking tabs, state-aware status, workplan & reload persistence',
+        async () => {
+          await goto('/grants/1/progress-tracking');
+          for (const label of ['Notifications', 'Recommendations', 'Details'])
+            await button(label).click();
+          await expect(page.getByTestId('submission-status-badge')).toContainText(
+            /Status - Drafting/
+          );
+          await button('Mark done: Complete budget sheet').click();
+          await expect(page.getByText(/DONE \(OVERRIDE\)/)).toBeVisible();
+          await expect(page.getByText(/Closed to-do: Complete budget sheet/)).toBeVisible();
+          await page.reload();
+          await expect(page.getByText(/Closed to-do: Complete budget sheet/)).toBeVisible();
+        }
+      );
       await record('Budget line editing persists and each export format selects', async () => {
         await goto('/grants/1/audit-studio');
         await page

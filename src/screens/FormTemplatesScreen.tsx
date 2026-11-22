@@ -9,6 +9,7 @@ import { AppInput } from '@/components/atoms/AppInput';
 import { AppText } from '@/components/atoms/AppText';
 import { AppTextArea } from '@/components/atoms/AppTextArea';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
+import { WorkspaceStudioBar } from '@/components/organisms/WorkspaceStudioBar';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { queryKeys } from '@/api/queryKeys';
 import { styles } from './workspacePageStyles';
@@ -17,6 +18,7 @@ import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { useDraftStore } from '@/store/useDraftStore';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { useProgressStore } from '@/store/useProgressStore';
 import {
   applySelectedTemplate,
   mergeTemplateInitialSections,
@@ -71,6 +73,7 @@ function FormTemplatesEditor({
 
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const nickname = useWorkspaceStore((state) => state.nickname);
   const projectRoles = useWorkspaceStore((state) => state.projectRoles);
   const activeRole = useWorkspaceStore((state) => state.activeRole);
   const effectiveRole: CoWorkRole = projectRoles[activeProjectId] ?? activeRole;
@@ -79,6 +82,7 @@ function FormTemplatesEditor({
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
   const updateWorkbench = useWorkbenchStore((state) => state.update);
   const markContentChanged = useDraftStore((state) => state.markContentChanged);
+  const recordActivity = useProgressStore((state) => state.recordActivity);
 
   const activeProject =
     workspace.projects.find((p) => p.id === activeProjectId) ?? workspace.projects[0];
@@ -217,6 +221,11 @@ function FormTemplatesEditor({
         )
       );
       markContentChanged(slotKey);
+      recordActivity(slotKey, {
+        actor: nickname || 'Founder Lead',
+        agent: 'agent-1-narrative',
+        message: `Applied ${kind} template (${sections.length} required sections)`,
+      });
       void queryClient.invalidateQueries({ queryKey: queryKeys.audit(targetGrantId) });
       setError('');
       setNotice('Template applied. Open Drafting workspace to review required sections.');
@@ -258,6 +267,8 @@ function FormTemplatesEditor({
             {notice}
           </AppText>
         ) : null}
+
+        <WorkspaceStudioBar />
 
         <View testID="workspace-columns" style={[styles.columns, desktop && styles.desktopColumns]}>
           <View style={styles.mainColumn}>

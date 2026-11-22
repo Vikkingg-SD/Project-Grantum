@@ -34,8 +34,8 @@ export const NAVIGATION_ITEMS: readonly Omit<NavigationItem, 'href'>[] = [
   { name: 'audit', label: NAV_COPY.audit, icon: ShieldCheck },
   { name: 'export', label: NAV_COPY.export, icon: FileCheck },
   {
-    name: 'post-award',
-    label: NAV_COPY.postAward,
+    name: 'progress-tracking',
+    label: NAV_COPY.progressTracking,
     icon: Award,
   },
 ];

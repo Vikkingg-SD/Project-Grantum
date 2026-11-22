@@ -14,7 +14,7 @@ const GRANT_RETURN_VIEWS = new Set([
   'drafting',
   'audit-studio',
   'export-humanizer',
-  'post-award-tracker',
+  'progress-tracking',
 ]);
 
 // Accept only safe local user workspace destinations, never arbitrary links,
@@ -24,14 +24,11 @@ export function workspaceReturnPath(value: string | string[] | undefined): Href 
   if (!candidate || /[?#\\]/.test(candidate)) return '/dashboard';
   if (STATIC_RETURN_PATHS.has(candidate)) return candidate as Href;
   const parts = candidate.split('/');
-  if (
-    parts.length === 4 &&
-    parts[0] === '' &&
-    parts[1] === 'grants' &&
-    isValidGrantId(parts[2]) &&
-    GRANT_RETURN_VIEWS.has(parts[3])
-  ) {
-    return candidate as Href;
+  if (parts.length === 4 && parts[0] === '' && parts[1] === 'grants' && isValidGrantId(parts[2])) {
+    const view = parts[3] === 'post-award-tracker' ? 'progress-tracking' : parts[3];
+    if (GRANT_RETURN_VIEWS.has(view)) {
+      return `/grants/${parts[2]}/${view}` as Href;
+    }
   }
   return '/dashboard';
 }

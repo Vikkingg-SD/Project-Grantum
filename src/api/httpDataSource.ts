@@ -116,9 +116,9 @@ function validPayload(path: string, value: unknown): boolean {
   if (route.endsWith('/award'))
     return shape({
       grantId: identifier,
-      status: enumeration('awarded', 'submitted', 'in_review'),
+      status: enumeration('awarded', 'submitted', 'in_review', 'declined', 'rejected'),
       submittedAt: date,
-      nextReportAt: date,
+      nextReportAt: (item) => item === '' || date(item),
       amount: text,
       contractStatus: text,
       events: array(event),

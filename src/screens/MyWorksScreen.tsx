@@ -10,6 +10,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { useWorkbenchStore } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { useProgressStore } from '@/store/useProgressStore';
 import { styles } from './workspacePageStyles';
 import { useGrants } from '@/api/hooks/useGrants';
 import {
@@ -37,11 +38,13 @@ export default function MyWorksScreen() {
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const projectRoles = useWorkspaceStore((state) => state.projectRoles);
+  const nickname = useWorkspaceStore((state) => state.nickname);
   const setActiveProject = useWorkspaceStore((state) => state.setActiveProject);
   const pullWorkSlotProfile = useWorkspaceStore((state) => state.pullWorkSlotProfile);
   const setWorkSlotReviewStatus = useWorkspaceStore((state) => state.setWorkSlotReviewStatus);
   const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
   const work = useWorkbenchStore((state) => state.work);
+  const recordActivity = useProgressStore((state) => state.recordActivity);
 
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'sync-needed' | 'archived'>('all');
@@ -262,6 +265,11 @@ export default function MyWorksScreen() {
                         onPress={() => {
                           try {
                             pullWorkSlotProfile(app.id);
+                            recordActivity(workSlotKey(app.projectId, app.grantId), {
+                              actor: nickname || 'Founder Lead',
+                              agent: 'system',
+                              message: `Pulled latest profile revision ${proj?.currentRevisionId} from My Works`,
+                            });
                             setError('');
                             setNotice(
                               `Synced work slot ${app.id} to latest profile revision ${proj?.currentRevisionId}.`
@@ -289,12 +297,12 @@ export default function MyWorksScreen() {
                     <AppButton
                       size="sm"
                       variant="outline"
-                      label="Open Post-Award & Deadlines"
-                      accessibilityLabel={`Open Post-Award & Deadlines for ${proj?.name ?? app.projectId}`}
+                      label="Open Progress-Tracking"
+                      accessibilityLabel={`Open Progress-Tracking for ${proj?.name ?? app.projectId}`}
                       onPress={() => {
                         setActiveProject(app.projectId);
                         router.navigate({
-                          pathname: '/grants/[grantID]/post-award-tracker',
+                          pathname: '/grants/[grantID]/progress-tracking',
                           params: { grantID: app.grantId },
                         });
                       }}
@@ -317,6 +325,11 @@ export default function MyWorksScreen() {
                             onPress={() => {
                               try {
                                 setWorkSlotReviewStatus(app.id, 'ready');
+                                recordActivity(workSlotKey(app.projectId, app.grantId), {
+                                  actor: nickname || 'Founder Lead',
+                                  agent: 'system',
+                                  message: 'Marked application READY from My Works',
+                                });
                                 setError('');
                                 setNotice(
                                   `Marked "${proj?.name ?? app.projectId}" READY. ${FINISH_REVERSIBILITY_NOTE}`
@@ -341,6 +354,12 @@ export default function MyWorksScreen() {
                             onPress={() => {
                               try {
                                 setWorkSlotReviewStatus(app.id, 'drafting');
+                                recordActivity(workSlotKey(app.projectId, app.grantId), {
+                                  actor: nickname || 'Founder Lead',
+                                  agent: 'system',
+                                  status: 'running',
+                                  message: 'Reopened application to DRAFTING from My Works',
+                                });
                                 setError('');
                                 setNotice(
                                   `Reopened "${proj?.name ?? app.projectId}" to DRAFTING for further editing.`

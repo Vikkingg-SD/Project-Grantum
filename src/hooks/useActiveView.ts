@@ -6,13 +6,14 @@ export const VIEW_PATHS = {
   drafting: 'drafting',
   audit: 'audit-studio',
   export: 'export-humanizer',
-  'post-award': 'post-award-tracker',
+  'progress-tracking': 'progress-tracking',
 } as const;
 export type AppView = keyof typeof VIEW_PATHS;
 
 export function useActiveView(): AppView | undefined {
   const segments = useSegments();
   if (segments[0] !== 'grants') return undefined;
-  const leaf = segments[segments.length - 1];
+  const rawLeaf = segments[segments.length - 1];
+  const leaf = rawLeaf === 'post-award-tracker' ? 'progress-tracking' : rawLeaf;
   return (Object.keys(VIEW_PATHS) as AppView[]).find((view) => VIEW_PATHS[view] === leaf);
 }
