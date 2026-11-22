@@ -15,6 +15,7 @@ export async function auditInterfaces(browser, origin, runtime) {
   const routes = [
     '/onboarding',
     '/plans',
+    '/affiliate-campaign',
     '/discover',
     '/my-works',
     '/project-profile',
@@ -134,7 +135,8 @@ export async function auditInterfaces(browser, origin, runtime) {
       await page.goto(`${origin}${route}`);
       const titles = {
         '/onboarding': /Explore funding opportunities\./,
-        '/plans': 'Subscriptions, regional pricing & token economics',
+        '/plans': 'Subscriptions | Regional Pricing',
+        '/affiliate-campaign': 'Affiliate campaign',
         '/discover': 'Find your next opportunity',
         '/my-works': 'My Works',
         '/project-profile': 'Project Profile',
@@ -208,6 +210,7 @@ export async function auditInterfaces(browser, origin, runtime) {
       for (const [label, route] of [
         ['Personal settings', '/settings'],
         ['Subscriptions & plans', '/plans'],
+        ['Affiliate campaign', '/affiliate-campaign'],
         ['Project team', '/project-profile'],
         ['Staff administration', '/admin'],
       ]) {
@@ -518,19 +521,30 @@ export async function auditInterfaces(browser, origin, runtime) {
         }
       });
       await record(
-        'Plans simulator keeps full shell, removes public roadmap, and /roadmap redirects',
+        'Plans pricing, world-region dropdown & Affiliate campaign eligibility keep full shell and return cleanly',
         async () => {
           await goto('/plans');
           await expect(button('Open public roadmap')).toHaveCount(0);
           await expect(button('Go back')).toBeVisible();
           await expect(button('Resume last grant view')).toBeVisible();
+          await button('Eastern Europe').click();
+          await expect(page.getByTestId('tier-price-t2')).toHaveText('$29.99');
+          await button('More regions').click();
+          await page
+            .getByRole('textbox', { name: 'Filter billing regions', exact: true })
+            .fill('Latin');
+          await button('Latin America & Caribbean').click();
+          await expect(page.getByTestId('tier-price-t1')).toHaveText('PPP rate pending');
+          await button('Global').click();
+          await expect(page.getByTestId('tier-price-t3')).toHaveText('$99.99');
+          await goto('/affiliate-campaign');
           for (const label of [
-            'Affiliate invited count: 0',
-            'Affiliate invited count: 8',
-            'Affiliate tier: Free',
-            'Affiliate tier: Tier 3',
-            'Affiliate subscribed months: 0',
-            'Affiliate subscribed months: 6',
+            '0 invited · Affiliate invited count',
+            '8 invited · Affiliate invited count',
+            'Free · Affiliate tier',
+            'Tier 3 · Affiliate tier',
+            '0 mo · Affiliate subscribed months',
+            '6 mo · Affiliate subscribed months',
           ]) {
             await button(label).click();
             await expect(button(label)).toHaveAttribute('aria-pressed', 'true');

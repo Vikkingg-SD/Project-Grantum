@@ -58,6 +58,7 @@ await check('workspace workflows have independent page routes', () => {
     ['discover', 'Discovery'],
     ['settings', 'PersonalSettings'],
     ['admin', 'Admin'],
+    ['affiliate-campaign', 'AffiliateCampaign'],
   ]) {
     assert.equal(
       read(`app/(workspace)/${leaf}.tsx`).trim(),
@@ -303,12 +304,40 @@ try {
       await page.keyboard.press('Escape');
       await expect(page).toHaveURL(url('2', 'drafting'));
       await visible('Community Health Access');
-      // Settings -> Plans preserves returnTo=/settings
+      await page.goto(url('2', 'drafting'));
+      await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+      await menu.getByRole('button', { name: 'Affiliate campaign', exact: true }).click();
+      await expect(page).toHaveURL(/\/affiliate-campaign\?/);
+      await expect(
+        page.getByRole('heading', { name: 'Affiliate campaign', exact: true })
+      ).toBeVisible();
+      await page.getByRole('button', { name: 'Subscriptions & plans', exact: true }).click();
+      await expect(page).toHaveURL(/\/plans\?returnTo=%2Fgrants%2F2%2Fdrafting/);
+      const moreBtn = page.getByRole('button', { name: 'More regions', exact: true });
+      await moreBtn.click();
+      const regionSearch = page.getByRole('textbox', {
+        name: 'Filter billing regions',
+        exact: true,
+      });
+      await expect(regionSearch).toBeVisible();
+      await regionSearch.focus();
+      await page.keyboard.press('Escape');
+      await expect(regionSearch).not.toBeFocused();
+      await expect(regionSearch).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(regionSearch).toHaveCount(0);
+      await expect(moreBtn).toBeFocused();
+      await page.getByRole('button', { name: 'Back to workspace', exact: true }).click();
+      await expect(page).toHaveURL(url('2', 'drafting'));
+      // Settings -> Plans -> Account menu Affiliate campaign preserves returnTo=/settings
       await page.goto(`${origin}/settings`);
       await page
         .getByRole('button', { name: 'Subscriptions & plans overview', exact: true })
         .click();
       await expect(page).toHaveURL(/\/plans\?returnTo=%2Fsettings/);
+      await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+      await menu.getByRole('button', { name: 'Affiliate campaign', exact: true }).click();
+      await expect(page).toHaveURL(/\/affiliate-campaign\?returnTo=%2Fsettings/);
       await page.getByRole('button', { name: 'Back to workspace', exact: true }).click();
       await expect(page).toHaveURL(`${origin}/settings`);
       // Cold /plans Back is disabled and /roadmap redirects to Dashboard roadmap
