@@ -1,5 +1,5 @@
 import type { Href } from 'expo-router';
-import { isValidGrantId } from '@/utils/navigationHistory';
+import { isValidGrantId, normalizePathname } from '@/utils/navigationHistory';
 
 const STATIC_RETURN_PATHS = new Set([
   '/form-templates',
@@ -31,4 +31,34 @@ export function workspaceReturnPath(value: string | string[] | undefined): Href 
     }
   }
   return '/dashboard';
+}
+
+export function workspaceReturnHref(
+  pathname: '/plans' | '/affiliate-campaign',
+  returnTo: string | string[] | undefined
+): Href {
+  const safeReturn = workspaceReturnPath(returnTo);
+  if (safeReturn !== '/dashboard') {
+    return { pathname, params: { returnTo: String(safeReturn) } };
+  }
+  return pathname;
+}
+
+export function returnToWorkspace(params: {
+  returnTo: string | string[] | undefined;
+  canGoBack: boolean;
+  previousHref: string | null;
+  goBack: () => void;
+  replace: (href: Href) => void;
+}): void {
+  const returnPath = workspaceReturnPath(params.returnTo);
+  if (
+    params.canGoBack &&
+    params.previousHref &&
+    normalizePathname(params.previousHref) === normalizePathname(String(returnPath))
+  ) {
+    params.goBack();
+    return;
+  }
+  params.replace(returnPath);
 }

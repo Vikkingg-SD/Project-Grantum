@@ -18,6 +18,7 @@ const WORKSPACE_BACKABLE_PATHS = new Set<string>([
   '/project-profile',
   '/settings',
   '/plans',
+  '/affiliate-campaign',
 ]);
 
 export interface NavVisit {

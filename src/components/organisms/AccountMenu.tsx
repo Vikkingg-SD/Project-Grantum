@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, Platform, Pressable, View, StyleSheet, useWindowDimensions } from 'react-native';
-import { usePathname, useRouter } from 'expo-router';
+import { useGlobalSearchParams, usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
@@ -10,7 +10,7 @@ import { ENV } from '@/config/env';
 import { LAYOUT } from '@/config/layout';
 import { RADIUS, SPACING } from '@/config/theme';
 import { normalizePathname } from '@/utils/navigationHistory';
-import { workspaceReturnPath } from '@/utils/workspaceReturn';
+import { workspaceReturnHref } from '@/utils/workspaceReturn';
 
 export function AccountMenu() {
   const [open, setOpen] = useState(false);
@@ -18,18 +18,18 @@ export function AccountMenu() {
   const theme = useTheme();
   const router = useRouter();
   const pathname = normalizePathname(usePathname());
+  const { returnTo } = useGlobalSearchParams<{ returnTo?: string | string[] }>();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const navigate = (path: '/settings' | '/project-profile' | '/admin' | '/plans') => {
+  const navigate = (
+    path: '/settings' | '/project-profile' | '/admin' | '/plans' | '/affiliate-campaign'
+  ) => {
     setOpen(false);
     if (pathname === path) return;
-    if (path === '/plans') {
-      const safeReturn = workspaceReturnPath(pathname);
-      if (safeReturn !== '/dashboard') {
-        router.push({ pathname: '/plans', params: { returnTo: String(safeReturn) } });
-      } else {
-        router.push('/plans');
-      }
+    if (path === '/plans' || path === '/affiliate-campaign') {
+      const originTarget =
+        pathname === '/plans' || pathname === '/affiliate-campaign' ? returnTo : pathname;
+      router.push(workspaceReturnHref(path, originTarget));
       return;
     }
     router.push(path);
@@ -100,6 +100,11 @@ export function AccountMenu() {
               label="Subscriptions & plans"
               variant="ghost"
               onPress={() => navigate('/plans')}
+            />
+            <AppButton
+              label="Affiliate campaign"
+              variant="ghost"
+              onPress={() => navigate('/affiliate-campaign')}
             />
             <AppButton
               label="Project team"

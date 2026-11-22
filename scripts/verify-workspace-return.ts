@@ -1,4 +1,4 @@
-import { workspaceReturnPath } from '../src/utils/workspaceReturn';
+import { workspaceReturnHref, workspaceReturnPath } from '../src/utils/workspaceReturn';
 
 function equal(actual: unknown, expected: unknown) {
   if (actual !== expected)
@@ -36,6 +36,15 @@ for (const value of [
   equal(workspaceReturnPath(value), '/dashboard');
 }
 equal(workspaceReturnPath(['/grants/2/audit-studio']), '/grants/2/audit-studio');
+const forwarded = workspaceReturnHref('/affiliate-campaign', '/grants/2/drafting');
+equal(
+  typeof forwarded === 'object' &&
+    forwarded !== null &&
+    forwarded.pathname === '/affiliate-campaign' &&
+    forwarded.params?.returnTo === '/grants/2/drafting',
+  true
+);
+equal(workspaceReturnHref('/plans', '/admin'), '/plans');
 console.info(
   'PASS Given a plans return target, when validated, then grant identity is preserved and unsafe or privileged paths fall back'
 );
