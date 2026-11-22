@@ -20,4 +20,9 @@ export const styles = StyleSheet.create({
   checklistGrid: { gap: SPACING.sm },
   checkItem: { paddingVertical: SPACING.sm, borderBottomWidth: 1, gap: SPACING.xs },
   syncAlert: { padding: SPACING.sm, borderBottomWidth: 1, gap: SPACING.sm },
+  saveRow: { flexDirection: 'column', gap: SPACING.sm, alignItems: 'stretch' },
+  desktopSaveRow: { flexDirection: 'row', alignItems: 'flex-end' },
+  saveInputSlot: { flex: 1, minWidth: 0 },
+  saveButtonSlot: { flexShrink: 0 },
+  saveButtonDesktopOffset: { marginBottom: 4 },
 });

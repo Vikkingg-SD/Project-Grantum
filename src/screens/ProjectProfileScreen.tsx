@@ -1,61 +1,115 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { View, type TextInput } from 'react-native';
+import { Platform, View, type TextInput } from 'react-native';
+import { useRouter } from 'expo-router';
 import { ProjectRolePicker } from '@/components/molecules/ProjectRolePicker';
+import {
+  ProjectSelectDropdown,
+  type ProjectSelectHandle,
+} from '@/components/molecules/ProjectSelectDropdown';
+import {
+  ProjectDocumentPicker,
+  type PickedProjectFile,
+} from '@/components/molecules/ProjectDocumentPicker';
+import { ProjectProfileAuditCard } from '@/components/organisms/ProjectProfileAuditCard';
 import { ENV } from '@/config/env';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppInput } from '@/components/atoms/AppInput';
+import { AppTextArea } from '@/components/atoms/AppTextArea';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { useTheme } from '@/hooks/useTheme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { useProgressStore } from '@/store/useProgressStore';
 import { styles } from './workspacePageStyles';
-import { AppTextArea } from '@/components/atoms/AppTextArea';
 import {
-  canRolePerform,
+  KNOWN_ENTITY_TYPES,
+  KNOWN_PROJECT_REGIONS,
   PROFILE_FIELD_DEFINITIONS,
+  addVaultDoc,
+  canRolePerform,
   computeProfileReadiness,
   hasProfileChanges,
   parseVaultDocs,
-  toggleVaultDoc,
+  removeVaultDoc,
+  sanitizeVaultDocName,
+  workSlotKey,
 } from '@/utils/workspace';
 import type { ProjectKind } from '@/types/workspace';
 import { PROJECT_KIND_OPTIONS } from '@/utils/sectionCatalog';
 
-const FIELD_LABELS = PROFILE_FIELD_DEFINITIONS.map(({ key, label }) => ({
-  key,
-  label,
-  multiline: ['mission', 'problem', 'solution'].includes(key),
-}));
-
 export default function ProjectProfileScreen() {
-  const theme = useTheme();
-  const { desktop } = useLayoutMetrics();
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
-  const activeRole = useWorkspaceStore((state) => state.activeRole);
-  const projectRoles = useWorkspaceStore((state) => state.projectRoles);
-  const nickname = useWorkspaceStore((state) => state.nickname);
-  const setProjectRole = useWorkspaceStore((state) => state.setProjectRole);
-  const inputs = useRef<Record<string, TextInput | null>>({});
-  const setActiveProject = useWorkspaceStore((state) => state.setActiveProject);
-  const saveProjectProfile = useWorkspaceStore((state) => state.saveProjectProfile);
-  const toggleArchiveProject = useWorkspaceStore((state) => state.toggleArchiveProject);
+  const hydrated = useWorkspaceStore((state) => state.hydrated);
+  const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
 
   const activeProject =
     workspace.projects.find((p) => p.id === activeProjectId) ?? workspace.projects[0];
-  const activeRevision = workspace.revisions.find((r) => r.id === activeProject?.currentRevisionId);
 
-  const [editingProjectId, setEditingProjectId] = useState(activeProject?.id ?? 'project-1');
-  const [name, setName] = useState(activeProject?.name ?? '');
-  const [kind, setKind] = useState<ProjectKind>(activeProject?.kind ?? 'startup');
+  return (
+    <ProjectProfileEditor
+      key={`${activeProject?.id ?? 'project-1'}:${hydrated ? 'hydrated' : 'loading'}`}
+      initialProjectId={activeProject?.id ?? 'project-1'}
+      notice={notice}
+      error={error}
+      setNotice={setNotice}
+      setError={setError}
+    />
+  );
+}
+
+function ProjectProfileEditor({
+  initialProjectId,
+  notice,
+  error,
+  setNotice,
+  setError,
+}: {
+  initialProjectId: string;
+  notice: string;
+  error: string;
+  setNotice: (msg: string) => void;
+  setError: (msg: string) => void;
+}) {
+  const theme = useTheme();
+  const router = useRouter();
+  const { mobile, desktop } = useLayoutMetrics();
+  const reduceMotion = useReduceMotion();
+  const workspace = useWorkspaceStore((state) => state.workspace);
+  const activeRole = useWorkspaceStore((state) => state.activeRole);
+  const projectRoles = useWorkspaceStore((state) => state.projectRoles);
+  const profileAudits = useWorkspaceStore((state) => state.profileAudits);
+  const nickname = useWorkspaceStore((state) => state.nickname);
+  const setProjectRole = useWorkspaceStore((state) => state.setProjectRole);
+  const setActiveProject = useWorkspaceStore((state) => state.setActiveProject);
+  const saveProjectProfile = useWorkspaceStore((state) => state.saveProjectProfile);
+  const runProfileAudit = useWorkspaceStore((state) => state.runProfileAudit);
+  const toggleArchiveProject = useWorkspaceStore((state) => state.toggleArchiveProject);
+  const recordActivity = useProgressStore((state) => state.recordActivity);
+
+  const initialProject =
+    workspace.projects.find((p) => p.id === initialProjectId) ?? workspace.projects[0];
+  const initialRevision = workspace.revisions.find(
+    (r) => r.id === initialProject?.currentRevisionId
+  );
+
+  const inputs = useRef<Record<string, TextInput | null>>({});
+  const selectRefs = useRef<Record<string, ProjectSelectHandle | null>>({});
+  const auditSectionRef = useRef<View>(null);
+
+  const [editingProjectId, setEditingProjectId] = useState(initialProject?.id ?? initialProjectId);
+  const [name, setName] = useState(initialProject?.name ?? '');
+  const [kind, setKind] = useState<ProjectKind>(initialProject?.kind ?? 'startup');
   const [fields, setFields] = useState<Record<string, string>>({
-    ...(activeRevision?.fields ?? {}),
+    ...(initialRevision?.fields ?? {}),
   });
   const [summary, setSummary] = useState('');
-  const [notice, setNotice] = useState('');
-  const [error, setError] = useState('');
+  const [attachError, setAttachError] = useState('');
+  const [sessionFileSizes, setSessionFileSizes] = useState<Record<string, number>>({});
 
   const syncSelection = (projectId: string) => {
     const proj = workspace.projects.find((p) => p.id === projectId);
@@ -67,12 +121,19 @@ export default function ProjectProfileScreen() {
     setKind(proj.kind);
     setFields({ ...(rev?.fields ?? {}) });
     setSummary('');
+    setAttachError('');
+    setSessionFileSizes({});
     setError('');
     setNotice(`Switched active project slot to "${proj.name}".`);
   };
 
   const startNewSlot = () => {
-    const newId = `project-${workspace.projects.length + 1}`;
+    let suffix = workspace.projects.length + 1;
+    let newId = `project-${suffix}`;
+    while (workspace.projects.some((p) => p.id === newId)) {
+      suffix += 1;
+      newId = `project-${suffix}`;
+    }
     setEditingProjectId(newId);
     setName('');
     setKind('grant');
@@ -82,25 +143,47 @@ export default function ProjectProfileScreen() {
       solution: '',
       beneficiaries: '',
       budget: '',
-      region: 'Global',
+      region: '',
       entityType: '',
       teamLead: '',
+      vaultDocs: '',
     });
-    setSummary('Initial project profile dossier v1');
+    setSummary('');
+    setAttachError('');
+    setSessionFileSizes({});
     setError('');
-    setNotice('Creating a new reusable Project Profile Slot.');
+    setNotice('Creating a new Project Profile.');
+  };
+
+  const focusField = (key: string) => {
+    const def = PROFILE_FIELD_DEFINITIONS.find((item) => item.key === key);
+    if (def && (def.inputKind === 'region-multi' || def.inputKind === 'entity-select')) {
+      requestAnimationFrame(() => selectRefs.current[key]?.focus());
+      return;
+    }
+    requestAnimationFrame(() => inputs.current[key]?.focus());
+  };
+
+  const scrollToAuditSection = () => {
+    if (Platform.OS === 'web') {
+      const node = auditSectionRef.current as unknown as HTMLElement | null;
+      node?.scrollIntoView?.({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+      node?.querySelector<HTMLElement>('button, [role="button"]')?.focus();
+    }
   };
 
   const currentProject = workspace.projects.find((p) => p.id === editingProjectId);
   const currentRevision = workspace.revisions.find(
     (r) => r.id === currentProject?.currentRevisionId
   );
+  const currentAuditRecord = profileAudits[editingProjectId];
+
   const previewReadiness = useMemo(
     () =>
       computeProfileReadiness(
         currentProject ?? {
           id: editingProjectId,
-          name: name || 'New Project Slot',
+          name: name || 'New Project',
           kind,
           currentRevisionId: 'draft',
           archivedAt: null,
@@ -109,13 +192,23 @@ export default function ProjectProfileScreen() {
           id: currentRevision?.id ?? 'draft-preview',
           projectId: editingProjectId,
           parentRevisionId: null,
-          authorId: 'You',
+          authorId: nickname || 'Founder Lead',
           createdAt: new Date().toISOString(),
           summary: 'Live preview',
           fields,
-        }
+        },
+        currentAuditRecord
       ),
-    [currentProject, currentRevision?.id, editingProjectId, fields, kind, name]
+    [
+      currentAuditRecord,
+      currentProject,
+      currentRevision?.id,
+      editingProjectId,
+      fields,
+      kind,
+      name,
+      nickname,
+    ]
   );
 
   const projectRevisions = useMemo(
@@ -127,10 +220,104 @@ export default function ProjectProfileScreen() {
     [editingProjectId, workspace.revisions]
   );
 
+  const activeSlotForProject = useMemo(
+    () => workspace.applications.find((app) => app.projectId === editingProjectId),
+    [editingProjectId, workspace.applications]
+  );
+
   const unsaved = hasProfileChanges(currentProject, currentRevision, { name, kind, fields });
   const editingRole = currentProject ? (projectRoles[currentProject.id] ?? 'owner') : activeRole;
   const canEdit = canRolePerform(editingRole, 'edit');
+  const canReview = canRolePerform(editingRole, 'review');
   const canManageProject = canRolePerform(editingRole, 'manage-project');
+
+  const detailedCount = previewReadiness.checklist.filter((item) => item.filled).length;
+  const auditedCount = previewReadiness.checklist.filter(
+    (item) => item.status === 'audited'
+  ).length;
+  const checklistByKey = useMemo(
+    () => new Map(previewReadiness.checklist.map((item) => [item.key, item])),
+    [previewReadiness.checklist]
+  );
+  const attachedDocs = useMemo(() => parseVaultDocs(fields.vaultDocs), [fields.vaultDocs]);
+
+  const handleAttachFiles = (picked: PickedProjectFile[], pickerIssue = '') => {
+    if (!canEdit) return;
+    let nextRaw = fields.vaultDocs ?? '';
+    let firstIssue = pickerIssue;
+    const addedSizes: Record<string, number> = {};
+    for (const file of picked) {
+      const res = addVaultDoc(nextRaw, file.name);
+      if (res.error) {
+        firstIssue = firstIssue || res.error;
+      } else {
+        const cleanName = sanitizeVaultDocName(file.name);
+        nextRaw = res.next;
+        if (cleanName) addedSizes[cleanName] = file.size;
+      }
+    }
+    setAttachError(firstIssue);
+    if (Object.keys(addedSizes).length > 0) {
+      setSessionFileSizes((sizes) => ({ ...sizes, ...addedSizes }));
+    }
+    if (nextRaw !== (fields.vaultDocs ?? '')) {
+      setFields((prev) => ({ ...prev, vaultDocs: nextRaw }));
+    }
+  };
+
+  const handleSaveProfile = () => {
+    if (!canEdit || !unsaved || !name.trim()) return;
+    try {
+      const cleanSummary = summary.trim() || 'Updated project profile details';
+      saveProjectProfile({
+        projectId: editingProjectId,
+        name,
+        kind,
+        summary: cleanSummary,
+        fields,
+      });
+      if (activeSlotForProject) {
+        recordActivity(workSlotKey(activeSlotForProject.projectId, activeSlotForProject.grantId), {
+          actor: nickname || 'Founder Lead',
+          agent: 'system',
+          message: `Saved project profile update: ${cleanSummary}`,
+        });
+      }
+      setSummary('');
+      setError('');
+      setNotice('Profile saved. Linked applications can now review these updates.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to save project profile');
+    }
+  };
+
+  const handleRunAudit = () => {
+    if (!canReview) return;
+    try {
+      const record = runProfileAudit({
+        projectId: editingProjectId,
+        name: name || 'Untitled project',
+        kind,
+        fields,
+      });
+      if (activeSlotForProject) {
+        recordActivity(workSlotKey(activeSlotForProject.projectId, activeSlotForProject.grantId), {
+          actor: nickname || 'Founder Lead',
+          agent: 'agent-2-deterministic',
+          status: record.allPassed ? 'passed' : 'failed',
+          message: `Audited project profile (${record.passedCount}/${record.totalCount} checks passed)`,
+        });
+      }
+      setError('');
+      setNotice(
+        record.allPassed
+          ? `Project profile audit passed (${record.passedCount}/${record.totalCount} checks Complete).`
+          : `Project profile audit finished: ${record.passedCount}/${record.totalCount} checks passed. Review remaining items.`
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to audit project profile');
+    }
+  };
 
   return (
     <ScreenContainer insetEdges={[]}>
@@ -167,6 +354,7 @@ export default function ProjectProfileScreen() {
                   <AppButton
                     key={proj.id}
                     size="sm"
+                    variant="outline"
                     selected={editingProjectId === proj.id}
                     label={`${proj.name}${proj.archivedAt ? ' (Archived)' : ''}`}
                     onPress={() => syncSelection(proj.id)}
@@ -174,7 +362,7 @@ export default function ProjectProfileScreen() {
                 ))}
                 <AppButton
                   size="sm"
-                  variant="outline"
+                  variant="surface"
                   label="New project"
                   disabled={!canManageProject}
                   onPress={startNewSlot}
@@ -188,13 +376,17 @@ export default function ProjectProfileScreen() {
               <View style={styles.rowBetween}>
                 <AppText variant="h3">Profile checklist</AppText>
                 <StatusBadge
-                  label={`${previewReadiness.score}% complete`}
-                  variant={previewReadiness.score >= 75 ? 'verified' : 'pending'}
+                  label={
+                    previewReadiness.auditStatus === 'audited'
+                      ? `${previewReadiness.score}% complete · Audited`
+                      : `${previewReadiness.score}% detailed · Review required`
+                  }
+                  variant={previewReadiness.auditStatus === 'audited' ? 'verified' : 'pending'}
                 />
               </View>
               <AppText variant="caption" color="muted">
-                {previewReadiness.checklist.filter((item) => item.filled).length} of{' '}
-                {previewReadiness.checklist.length} profile fields complete.
+                {detailedCount} of {previewReadiness.checklist.length} profile fields meet detail
+                minimums · {auditedCount} audited.
               </AppText>
               <View style={styles.checklistGrid}>
                 {unsaved && (
@@ -202,43 +394,62 @@ export default function ProjectProfileScreen() {
                     Unsaved changes · save to update linked badges.
                   </AppText>
                 )}
-                {previewReadiness.checklist.map((item) => (
-                  <View key={item.key} style={[styles.checkItem, { borderColor: theme.border }]}>
-                    <View style={styles.rowBetween}>
-                      <AppText variant="body">{item.label}</AppText>
-                      <AppText variant="caption" color={item.filled ? 'verified' : 'gold'}>
-                        {item.filled ? 'Complete' : 'Needs detail'}
-                      </AppText>
-                    </View>
-                    {item.filled ? (
-                      <AppText
-                        testID={`check-preview-${item.key}`}
-                        variant="caption"
-                        color="muted"
-                        numberOfLines={1}
-                      >
-                        {fields[item.key]}
-                      </AppText>
-                    ) : (
-                      <>
-                        <AppText variant="caption" color="gold">
-                          {item.guidance}
+                {previewReadiness.checklist.map((item) => {
+                  const statusText =
+                    item.status === 'audited'
+                      ? 'Complete'
+                      : item.status === 'review-required'
+                        ? 'Review required, go to audit'
+                        : 'Needs detail';
+                  const statusColor = item.status === 'audited' ? 'verified' : 'gold';
+                  return (
+                    <View key={item.key} style={[styles.checkItem, { borderColor: theme.border }]}>
+                      <View style={styles.rowBetween}>
+                        <AppText variant="body">{item.label}</AppText>
+                        <AppText variant="caption" color={statusColor}>
+                          {statusText}
                         </AppText>
-                        <AppButton
-                          size="sm"
-                          variant="ghost"
-                          label={`Fix ${item.label}`}
-                          disabled={!canEdit}
-                          onPress={() => {
-                            requestAnimationFrame(() => inputs.current[item.key]?.focus());
-                          }}
-                        />
-                      </>
-                    )}
-                  </View>
-                ))}
+                      </View>
+                      {item.filled ? (
+                        <>
+                          <AppText
+                            testID={`check-preview-${item.key}`}
+                            variant="caption"
+                            color="muted"
+                            numberOfLines={1}
+                          >
+                            {fields[item.key]}
+                          </AppText>
+                          {item.status === 'review-required' ? (
+                            <AppButton
+                              size="sm"
+                              variant="ghost"
+                              label="Go to audit"
+                              accessibilityLabel={`Go to audit for ${item.label}`}
+                              onPress={scrollToAuditSection}
+                            />
+                          ) : null}
+                        </>
+                      ) : (
+                        <>
+                          <AppText variant="caption" color="gold">
+                            {item.detailReason}
+                          </AppText>
+                          <AppButton
+                            size="sm"
+                            variant="ghost"
+                            label={`Fix ${item.label}`}
+                            disabled={!canEdit}
+                            onPress={() => focusField(item.key)}
+                          />
+                        </>
+                      )}
+                    </View>
+                  );
+                })}
               </View>
             </View>
+
             <View
               testID="project-team"
               style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
@@ -254,13 +465,14 @@ export default function ProjectProfileScreen() {
                   setNotice(`Project access changed to ${role}.`);
                 }}
               />
-              <AppText variant="caption" color="muted">
-                {ENV.DATA_SOURCE === 'mock'
-                  ? 'Choose your active role for this project. Other projects keep their own roles.'
-                  : 'Team membership and role changes require your connected service.'}
-              </AppText>
+              {ENV.DATA_SOURCE !== 'mock' ? (
+                <AppText variant="caption" color="muted">
+                  Team membership and role changes require your connected service.
+                </AppText>
+              ) : null}
             </View>
           </View>
+
           <View testID="profile-editor" style={styles.mainColumn}>
             <View
               style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
@@ -278,6 +490,7 @@ export default function ProjectProfileScreen() {
                   <AppButton
                     key={item.id}
                     size="sm"
+                    variant="outline"
                     label={item.label}
                     selected={kind === item.id}
                     disabled={!canEdit}
@@ -286,96 +499,135 @@ export default function ProjectProfileScreen() {
                 ))}
               </View>
 
-              {FIELD_LABELS.map((field) =>
-                field.multiline ? (
-                  <AppTextArea
-                    key={field.key}
-                    label={field.label}
-                    inputRef={(input) => {
-                      inputs.current[field.key] = input;
-                    }}
-                    value={fields[field.key] ?? ''}
-                    charLimit={2000}
-                    editable={canEdit}
-                    onChangeText={(text) => setFields((prev) => ({ ...prev, [field.key]: text }))}
-                  />
-                ) : (
-                  <AppInput
-                    key={field.key}
-                    label={field.label}
-                    inputRef={(input) => {
-                      inputs.current[field.key] = input;
-                    }}
-                    value={fields[field.key] ?? ''}
-                    editable={canEdit}
-                    onChangeText={(text) => setFields((prev) => ({ ...prev, [field.key]: text }))}
-                  />
-                )
-              )}
-
-              <View style={[styles.checkItem, { borderColor: theme.border }]}>
-                <AppText variant="label">Reference documents</AppText>
-                <AppText variant="caption" color="muted">
-                  Attach or select reference documents relevant to this project.
-                </AppText>
-                <View style={styles.rowWrap}>
-                  {[
-                    'Audited_Financials_FY2025.pdf',
-                    'Utility_CoFunding_MoU.pdf',
-                    'TRL4_Hydrophone_Telemetry_Spec.pdf',
-                    'Nonprofit_501c3_Determination.pdf',
-                    'Rural_Clinic_Letters_of_Support.pdf',
-                  ].map((docName) => {
-                    const activeDocs = parseVaultDocs(fields.vaultDocs);
-                    const included = activeDocs.includes(docName);
-                    return (
-                      <AppButton
-                        key={docName}
-                        size="sm"
-                        selected={included}
-                        disabled={!canEdit}
-                        label={included ? `✓ ${docName}` : `+ ${docName}`}
-                        onPress={() =>
-                          setFields((prev) => ({
-                            ...prev,
-                            vaultDocs: toggleVaultDoc(prev.vaultDocs, docName),
-                          }))
-                        }
+              {PROFILE_FIELD_DEFINITIONS.map((def) => {
+                if (def.inputKind === 'region-multi') {
+                  return (
+                    <ProjectSelectDropdown
+                      key={def.key}
+                      testID="profile-region-dropdown"
+                      triggerRef={(handle) => {
+                        selectRefs.current[def.key] = handle;
+                      }}
+                      label={def.label}
+                      mode="multi"
+                      options={KNOWN_PROJECT_REGIONS}
+                      value={fields[def.key] ?? ''}
+                      disabled={!canEdit}
+                      placeholder="Select operating regions"
+                      searchPlaceholder="Search regions..."
+                      onChange={(nextValue) =>
+                        setFields((prev) => ({ ...prev, [def.key]: nextValue }))
+                      }
+                    />
+                  );
+                }
+                if (def.inputKind === 'entity-select') {
+                  return (
+                    <ProjectSelectDropdown
+                      key={def.key}
+                      testID="profile-entity-dropdown"
+                      triggerRef={(handle) => {
+                        selectRefs.current[def.key] = handle;
+                      }}
+                      label={def.label}
+                      mode="single"
+                      options={KNOWN_ENTITY_TYPES}
+                      value={fields[def.key] ?? ''}
+                      disabled={!canEdit}
+                      placeholder="Select legal entity type"
+                      allowCustom
+                      onChange={(nextValue) =>
+                        setFields((prev) => ({ ...prev, [def.key]: nextValue }))
+                      }
+                    />
+                  );
+                }
+                if (def.inputKind === 'textarea') {
+                  const statusItem = checklistByKey.get(def.key);
+                  const count = statusItem?.charCount ?? 0;
+                  return (
+                    <View key={def.key}>
+                      <AppTextArea
+                        label={def.label}
+                        inputRef={(input) => {
+                          inputs.current[def.key] = input;
+                        }}
+                        value={fields[def.key] ?? ''}
+                        charLimit={2000}
+                        editable={canEdit}
+                        onChangeText={(text) => setFields((prev) => ({ ...prev, [def.key]: text }))}
                       />
-                    );
-                  })}
+                      <AppText variant="caption" color={count >= def.minChars ? 'muted' : 'gold'}>
+                        {count >= def.minChars
+                          ? `Detail requirement met (${count} characters)`
+                          : `Minimum ${def.minChars} characters required (${count}/${def.minChars})`}
+                      </AppText>
+                    </View>
+                  );
+                }
+                return (
+                  <AppInput
+                    key={def.key}
+                    label={def.label}
+                    placeholder="Full name, role, and relevant delivery credentials"
+                    inputRef={(input) => {
+                      inputs.current[def.key] = input;
+                    }}
+                    value={fields[def.key] ?? ''}
+                    editable={canEdit}
+                    onChangeText={(text) => setFields((prev) => ({ ...prev, [def.key]: text }))}
+                  />
+                );
+              })}
+
+              <ProjectDocumentPicker
+                docs={attachedDocs}
+                disabled={!canEdit}
+                error={attachError}
+                fileSizes={sessionFileSizes}
+                onAddFiles={handleAttachFiles}
+                onPickerError={setAttachError}
+                onRemoveDoc={(docName) => {
+                  if (!canEdit) return;
+                  setAttachError('');
+                  setFields((prev) => ({
+                    ...prev,
+                    vaultDocs: removeVaultDoc(prev.vaultDocs, docName),
+                  }));
+                }}
+              />
+            </View>
+
+            <View
+              testID="profile-save-bar"
+              style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            >
+              <View style={[styles.saveRow, !mobile && styles.desktopSaveRow]}>
+                <View style={styles.saveInputSlot}>
+                  <AppInput
+                    label="Change summary"
+                    placeholder="Note what changed in this version"
+                    value={summary}
+                    editable={canEdit}
+                    onChangeText={setSummary}
+                  />
+                </View>
+                <View style={[styles.saveButtonSlot, !mobile && styles.saveButtonDesktopOffset]}>
+                  <AppButton
+                    label="Save profile"
+                    variant="primary"
+                    disabled={!canEdit || !unsaved || !name.trim()}
+                    onPress={handleSaveProfile}
+                  />
                 </View>
               </View>
-              <AppInput
-                label="Change summary"
-                placeholder="Added utility co-funding letter and updated problem metrics"
-                value={summary}
-                editable={canEdit}
-                onChangeText={setSummary}
-              />
-              <View style={styles.rowWrap}>
-                <AppButton
-                  label="Save profile"
-                  variant="primary"
-                  disabled={!canEdit || !unsaved || !name.trim()}
-                  onPress={() => {
-                    try {
-                      saveProjectProfile({
-                        projectId: editingProjectId,
-                        name,
-                        kind,
-                        summary: summary.trim() || 'Updated project profile dossier fields',
-                        fields,
-                      });
-                      setSummary('');
-                      setError('');
-                      setNotice('Profile saved. Linked applications can now review these updates.');
-                    } catch (e) {
-                      setError(e instanceof Error ? e.message : 'Unable to save project profile');
-                    }
-                  }}
-                />
-                {currentProject && (
+              {!unsaved && summary.trim().length > 0 ? (
+                <AppText variant="caption" color="muted" accessibilityLiveRegion="polite">
+                  Edit profile details before saving a new profile version.
+                </AppText>
+              ) : null}
+              {currentProject ? (
+                <View style={styles.rowWrap}>
                   <AppButton
                     label={
                       currentProject.archivedAt ? 'Restore Project Slot' : 'Archive Project Slot'
@@ -396,9 +648,30 @@ export default function ProjectProfileScreen() {
                       }
                     }}
                   />
-                )}
-              </View>
+                </View>
+              ) : null}
             </View>
+
+            <ProjectProfileAuditCard
+              containerRef={auditSectionRef}
+              readiness={previewReadiness}
+              auditRecord={currentAuditRecord}
+              unsaved={unsaved}
+              canEdit={canEdit}
+              canReview={canReview}
+              projectSaved={Boolean(currentProject)}
+              onRunAudit={handleRunAudit}
+              onFixField={focusField}
+              onOpenApplicationAudit={
+                activeSlotForProject
+                  ? () =>
+                      router.navigate({
+                        pathname: '/grants/[grantID]/audit-studio',
+                        params: { grantID: activeSlotForProject.grantId },
+                      })
+                  : undefined
+              }
+            />
 
             <View
               style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}

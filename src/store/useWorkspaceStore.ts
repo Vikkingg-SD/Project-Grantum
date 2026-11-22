@@ -13,12 +13,15 @@ import type {
   CoWorkRole,
   OutputKind,
   ProjectKind,
+  ProjectProfileAuditRecord,
 } from '@/types/workspace';
 import {
   addApplication,
   archiveProject,
+  auditProjectProfile,
   canRolePerform,
   emptyWorkspace,
+  isProfileAuditMap,
   pullProfileRevision,
   saveProject,
   selectProfileRevision,
@@ -39,9 +42,12 @@ function buildInitialWorkspace(): Workspace {
     createdAt: '2026-11-10T09:00:00Z',
     summary: 'Initial project profile dossier v1',
     fields: {
-      mission: 'Deploy low-power acoustic leak telemetry across municipal water grids.',
-      problem: 'Aging municipal pipes lose 28% of treated water before reaching households.',
-      solution: 'Edge-AI hydrophone sensors with automated pressure-valve isolation.',
+      mission:
+        'Deploy low-power acoustic leak telemetry across aging municipal water grids so utilities detect underground pipe ruptures within minutes, cut treated-water loss by over half, and stabilize resilient regional water service.',
+      problem:
+        'Aging municipal distribution pipes lose 28% of treated drinking water before reaching households, causing $420M in annual utility waste, frequent pressure drops across underserved wards, and delayed emergency leak isolation crews.',
+      solution:
+        'Install battery-powered edge-AI hydrophone sensor nodes along primary feeder mains, correlate transient acoustic signatures in real time, and trigger automated district-meter pressure-valve isolation with utility dispatch telemetry.',
       region: 'Global, East Europe',
       beneficiaries: '',
       budget: '',
@@ -58,16 +64,19 @@ function buildInitialWorkspace(): Workspace {
     createdAt: '2026-11-11T14:30:00Z',
     summary: 'Add co-funding budget envelope and entity registration details (v2)',
     fields: {
-      mission: 'Deploy low-power acoustic leak telemetry across municipal water grids.',
-      problem: 'Aging municipal pipes lose 28% of treated water before reaching households.',
-      solution: 'Edge-AI hydrophone sensors with automated pressure-valve isolation.',
+      mission:
+        'Deploy low-power acoustic leak telemetry across aging municipal water grids so utilities detect underground pipe ruptures within minutes, cut treated-water loss by over half, and stabilize resilient regional water service.',
+      problem:
+        'Aging municipal distribution pipes lose 28% of treated drinking water before reaching households, causing $420M in annual utility waste, frequent pressure drops across underserved wards, and delayed emergency leak isolation crews.',
+      solution:
+        'Install battery-powered edge-AI hydrophone sensor nodes along primary feeder mains, correlate transient acoustic signatures in real time, and trigger automated district-meter pressure-valve isolation with utility dispatch telemetry.',
       region: 'Global, East Europe',
-      beneficiaries: '12 municipal water utilities serving 1.4M residents.',
-      budget: '$240,000 direct R&D + $60,000 confirmed utility co-funding',
-      entityType: 'Registered Deep-Tech C-Corp / Municipal Consortium',
+      beneficiaries:
+        'Twelve municipal water utilities serving 1.4M residential and institutional residents across high-loss coastal and inland districts, prioritizing public clinics and low-income neighborhoods.',
+      budget:
+        '$240,000 direct R&D hardware and calibration engineering plus $60,000 confirmed municipal utility co-funding and field maintenance match.',
+      entityType: 'For-profit Startup (C-Corp / LLC)',
       teamLead: '',
-      vaultDocs:
-        'Audited_Financials_FY2025.pdf | Utility_CoFunding_MoU.pdf | TRL4_Hydrophone_Telemetry_Spec.pdf',
     },
   });
   ws = saveProject(ws, {
@@ -79,15 +88,20 @@ function buildInitialWorkspace(): Workspace {
     createdAt: '2026-11-11T10:15:00Z',
     summary: 'Initial regional STEM & rural clinic resilience profile v1',
     fields: {
-      mission: 'Equip rural clinics and secondary schools with solar diagnostics and STEM kits.',
-      problem: 'Regional clinics lack backup cold-chain telemetry and diagnostic training.',
-      solution: 'Modular solar micro-labs paired with accredited practitioner training.',
+      mission:
+        'Equip underserved rural clinics and technical secondary schools with modular solar diagnostics, cold-chain monitoring, and hands-on STEM training labs so local practitioners sustain independent preventive care year-round.',
+      problem:
+        'Over 60% of regional rural clinics face weekly grid outages that compromise vaccine cold storage, force costly patient referrals across 80km corridors, and leave vocational students without accredited diagnostic lab instrumentation.',
+      solution:
+        'Deploy pre-wired solar micro-labs with low-voltage cold-chain telemetry, point-of-care diagnostic benches, and accredited curriculum modules enabling local clinical staff and instructors to maintain hardware without external contractors.',
       region: 'East Europe, CIS',
-      beneficiaries: '45 rural clinics and 3,200 vocational students.',
-      budget: '$150,000 program grant request',
-      entityType: '501(c)(3) / Registered Nonprofit Foundation',
-      teamLead: 'Dr. Elena Rostova, Principal Program Lead',
-      vaultDocs: 'Nonprofit_501c3_Determination.pdf | Rural_Clinic_Letters_of_Support.pdf',
+      beneficiaries:
+        'Forty-five rural primary care clinics, 3,200 vocational health and engineering students, and 180,000 residents across remote agricultural municipalities.',
+      budget:
+        '$150,000 program grant request covering solar micro-lab kits, regional training workshops, and 12-month calibration support.',
+      entityType: 'Nonprofit / 501(c)(3) Foundation',
+      teamLead:
+        'Dr. Elena Rostova, Principal Program Lead — 12 years leading rural clinical grants',
     },
   });
 
@@ -192,6 +206,7 @@ interface PersistedSlice {
   readNotificationIds?: string[];
   adminQueue?: AdminQueueItem[];
   adminAuditLog?: AdminAuditEntry[];
+  profileAudits?: Record<string, ProjectProfileAuditRecord>;
 }
 
 const VALID_ROLES = new Set<CoWorkRole>(['owner', 'editor', 'reviewer', 'viewer']);
@@ -250,6 +265,7 @@ export interface WorkspaceStoreState {
   hydrated: boolean;
   adminQueue: AdminQueueItem[];
   adminAuditLog: AdminAuditEntry[];
+  profileAudits: Record<string, ProjectProfileAuditRecord>;
   setActiveProject: (projectId: string) => void;
   saveProjectProfile: (input: {
     projectId: string;
@@ -258,6 +274,12 @@ export interface WorkspaceStoreState {
     summary: string;
     fields: Record<string, string>;
   }) => void;
+  runProfileAudit: (input: {
+    projectId: string;
+    name: string;
+    kind: ProjectKind;
+    fields: Record<string, string>;
+  }) => ProjectProfileAuditRecord;
   toggleArchiveProject: (projectId: string) => void;
   ensureWorkSlot: (projectId: string, grantId: string, outputs?: OutputKind[]) => ApplicationBundle;
   pullWorkSlotProfile: (applicationId: string) => void;
@@ -302,6 +324,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
       readNotificationIds: next.readNotificationIds ?? current.readNotificationIds,
       adminQueue: next.adminQueue ?? current.adminQueue,
       adminAuditLog: next.adminAuditLog ?? current.adminAuditLog,
+      profileAudits: next.profileAudits ?? current.profileAudits,
     };
     return persistence.save(merged, (persistenceStatus) => set({ persistenceStatus }));
   };
@@ -340,6 +363,9 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
             },
           ])
         : [],
+    profileAudits: isProfileAuditMap(initialLoad.slice?.profileAudits)
+      ? initialLoad.slice.profileAudits
+      : {},
 
     setActiveProject: (projectId) =>
       set((state) => {
@@ -396,6 +422,47 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
           persistenceStatus,
         };
       }),
+
+    runProfileAudit: (input) => {
+      const state = get();
+      const projectId = input.projectId.trim();
+      if (!projectId) throw new Error('Project ID is required.');
+      const existing = state.workspace.projects.find((p) => p.id === projectId);
+      if (!existing) throw new Error('Save the project before auditing this profile.');
+      if (existing.archivedAt) {
+        throw new Error('Restore the project before auditing this profile.');
+      }
+      const targetRole = state.projectRoles[projectId] ?? 'owner';
+      if (!canRolePerform(targetRole, 'review')) {
+        throw new Error('Your project role cannot audit this project profile.');
+      }
+      const record = auditProjectProfile({
+        projectId,
+        revisionId: existing.currentRevisionId,
+        name: input.name,
+        kind: input.kind,
+        fields: input.fields,
+        actor: state.nickname || 'Founder Lead',
+        auditedAt: new Date().toISOString(),
+      });
+      const nextAudits: Record<string, ProjectProfileAuditRecord> = {
+        ...state.profileAudits,
+        [projectId]: record,
+      };
+      const keys = Object.keys(nextAudits);
+      if (keys.length > 100) {
+        const dropKeys = keys
+          .filter((key) => key !== projectId)
+          .sort((a, b) =>
+            (nextAudits[a].auditedAt || '').localeCompare(nextAudits[b].auditedAt || '')
+          )
+          .slice(0, keys.length - 100);
+        for (const key of dropKeys) delete nextAudits[key];
+      }
+      const persistenceStatus = persistState({ profileAudits: nextAudits });
+      set({ profileAudits: nextAudits, persistenceStatus });
+      return record;
+    },
 
     toggleArchiveProject: (projectId) =>
       set((state) => {
@@ -708,6 +775,7 @@ export async function hydrateWorkspace() {
         slice.workspace.projects,
         slice.activeRole
       ),
+      profileAudits: isProfileAuditMap(slice.profileAudits) ? slice.profileAudits : {},
     });
   });
   useWorkspaceStore.setState({ hydrated: true, persistenceStatus: persistence.status });

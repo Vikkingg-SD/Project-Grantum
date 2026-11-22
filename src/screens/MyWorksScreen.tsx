@@ -22,6 +22,7 @@ import {
 } from '@/utils/workspace';
 import { FINISH_REVERSIBILITY_NOTE } from '@/utils/finishReview';
 import { isWorkSlotReadyToFinish } from '@/utils/drafting';
+import { matchTier } from '@/utils/scoring';
 import { DEFAULT_REQUIRED_SECTIONS } from '@/config/constants';
 
 export default function MyWorksScreen() {
@@ -38,6 +39,7 @@ export default function MyWorksScreen() {
   const workspace = useWorkspaceStore((state) => state.workspace);
   const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const projectRoles = useWorkspaceStore((state) => state.projectRoles);
+  const profileAudits = useWorkspaceStore((state) => state.profileAudits);
   const nickname = useWorkspaceStore((state) => state.nickname);
   const setActiveProject = useWorkspaceStore((state) => state.setActiveProject);
   const pullWorkSlotProfile = useWorkspaceStore((state) => state.pullWorkSlotProfile);
@@ -101,8 +103,8 @@ export default function MyWorksScreen() {
           </View>
         )}
         <AppInput
-          label="Search your work"
-          placeholder="Filter by project name, grant title, or status..."
+          accessibilityLabel="Search projects and applications"
+          placeholder="Filter projects, grants, or status..."
           value={query}
           onChangeText={setQuery}
         />
@@ -119,6 +121,7 @@ export default function MyWorksScreen() {
             <AppButton
               key={key}
               size="sm"
+              variant="outline"
               label={label}
               selected={filter === key}
               onPress={() => setFilter(key)}
@@ -152,7 +155,9 @@ export default function MyWorksScreen() {
             )}
             {visibleProjects.map((proj) => {
               const rev = workspace.revisions.find((r) => r.id === proj.currentRevisionId);
-              const readiness = rev ? computeProfileReadiness(proj, rev).score : 0;
+              const readiness = rev
+                ? computeProfileReadiness(proj, rev, profileAudits[proj.id]).score
+                : 0;
               const isActive = proj.id === activeProjectId;
               return (
                 <View key={proj.id} style={[styles.checkItem, { borderColor: theme.border }]}>
@@ -160,19 +165,17 @@ export default function MyWorksScreen() {
                     <AppText variant="body">
                       {proj.name} ({proj.kind.toUpperCase()})
                     </AppText>
-                    <StatusBadge
-                      label={`${readiness}% ready · ${proj.currentRevisionId}`}
-                      variant={isActive ? 'verified' : 'neutral'}
-                    />
+                    <StatusBadge label={`${readiness}% ready`} variant={matchTier(readiness)} />
                   </View>
                   <AppText variant="caption" color="muted">
-                    Latest commit: {rev?.summary ?? 'Initial'}
+                    Latest update: {rev?.summary ?? 'Initial'}
                   </AppText>
                   <View style={styles.rowWrap}>
                     <AppButton
                       size="sm"
+                      variant="outline"
                       selected={isActive}
-                      label={isActive ? 'Active Project Slot' : 'Set as Active Project'}
+                      label={isActive ? 'Active project' : 'Set as active project'}
                       onPress={() => {
                         setActiveProject(proj.id);
                         setNotice(`Active Project Profile set to "${proj.name}".`);
@@ -182,7 +185,7 @@ export default function MyWorksScreen() {
                       <AppButton
                         size="sm"
                         variant="outline"
-                        label={`Start/Open Work Slot for Grant #${grants[0].id}`}
+                        label={`Open ${grants[0].title}`}
                         onPress={() => {
                           const slot = ensureWorkSlot(proj.id, grants[0].id);
                           setActiveProject(proj.id);
@@ -204,7 +207,7 @@ export default function MyWorksScreen() {
               { backgroundColor: theme.surface, borderColor: theme.border },
             ]}
           >
-            <AppText variant="h3">Application Work Slots ({visibleApps.length})</AppText>
+            <AppText variant="h3">Applications ({visibleApps.length})</AppText>
             {visibleApps.length === 0 && (
               <AppText color="muted">No applications match this filter.</AppText>
             )}
@@ -218,7 +221,7 @@ export default function MyWorksScreen() {
                 <View key={app.id} style={[styles.checkItem, { borderColor: theme.border }]}>
                   <View style={styles.rowBetween}>
                     <AppText variant="body">
-                      {proj?.name ?? app.projectId} → {grant?.title ?? `Grant #${app.grantId}`}
+                      {proj?.name ?? app.projectId} → {grant?.title ?? `Opportunity ${app.grantId}`}
                     </AppText>
                     <StatusBadge
                       label={app.status.toUpperCase()}
@@ -231,11 +234,7 @@ export default function MyWorksScreen() {
                   </View>
                   <View style={styles.rowWrap}>
                     {app.artifacts.map((art) => (
-                      <StatusBadge
-                        key={art.id}
-                        label={`${art.title} (${art.revisionId})`}
-                        variant="neutral"
-                      />
+                      <StatusBadge key={art.id} label={art.title} variant="neutral" />
                     ))}
                   </View>
 
@@ -247,9 +246,8 @@ export default function MyWorksScreen() {
                       ]}
                     >
                       <AppText variant="caption">
-                        Cross-Slot Sync Alert: Project Profile &quot;{proj?.name}&quot; is {lag}{' '}
-                        commit(s) ahead (HEAD: {proj?.currentRevisionId}, Work Slot pinned to{' '}
-                        {app.profileRevisionId}).
+                        Project profile &quot;{proj?.name}&quot; has {lag} newer{' '}
+                        {lag === 1 ? 'update' : 'updates'} ready to pull.
                       </AppText>
                       <AppButton
                         size="sm"
@@ -257,7 +255,12 @@ export default function MyWorksScreen() {
                         label={
                           app.status === 'submitted'
                             ? 'Locked to Submission Snapshot'
-                            : `Pull Latest Profile (${proj?.currentRevisionId})`
+                            : 'Pull latest profile'
+                        }
+                        accessibilityLabel={
+                          app.status === 'submitted'
+                            ? `Locked to Submission Snapshot for ${proj?.name ?? app.projectId}`
+                            : `Pull latest profile for ${proj?.name ?? app.projectId}`
                         }
                         disabled={
                           app.status === 'submitted' || app.status === 'archived' || !canEditSlot
@@ -268,11 +271,11 @@ export default function MyWorksScreen() {
                             recordActivity(workSlotKey(app.projectId, app.grantId), {
                               actor: nickname || 'Founder Lead',
                               agent: 'system',
-                              message: `Pulled latest profile revision ${proj?.currentRevisionId} from My Works`,
+                              message: `Pulled latest profile update (${proj?.currentRevisionId}) from My Works`,
                             });
                             setError('');
                             setNotice(
-                              `Synced work slot ${app.id} to latest profile revision ${proj?.currentRevisionId}.`
+                              `Synced "${proj?.name ?? app.projectId}" to the latest project profile.`
                             );
                           } catch (e) {
                             setError(e instanceof Error ? e.message : 'Unable to sync profile');
