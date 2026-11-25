@@ -11,4 +11,6 @@ expo-env.d.ts
 # Grantum backend runtime files and installed Python packages are excluded.
 backend/.local/
 backend/.venv/
+backend/.pytest_cache/
+backend/.ruff_cache/
 dist-connected/
