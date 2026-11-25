@@ -10,6 +10,7 @@ export interface PreflightScope {
   grantId: string;
   profileRevisionId: string;
   chatId: string;
+  attemptId?: string;
 }
 
 export interface EligibilityCriterionCheck {
@@ -27,6 +28,7 @@ export interface GrantPreflightRecord {
   projectId: string;
   profileRevisionId: string;
   chatId: string;
+  attemptId?: string;
   mode: PreflightRecordMode;
   criteria: EligibilityCriterionCheck[];
   updatedAt: string;
@@ -69,7 +71,10 @@ export function preflightScopeKey(scope: PreflightScope): string {
   const grantId = scope.grantId.trim() || 'unknown';
   const profileRevisionId = scope.profileRevisionId.trim() || 'latest';
   const chatId = scope.chatId.trim() || 'chat-1';
-  return `preflight:${projectId}:${grantId}:${profileRevisionId}:${chatId}`;
+  const legacyKey = 'preflight:' + [projectId, grantId, profileRevisionId, chatId].join(':');
+  return scope.attemptId
+    ? legacyKey + ':attempt:' + encodeURIComponent(scope.attemptId)
+    : legacyKey;
 }
 
 export function stableQuestionId(question: string): string {
@@ -90,6 +95,7 @@ export function buildEmptyPreflight(scope: PreflightScope, nowIso = ''): GrantPr
     projectId: scope.projectId.trim() || 'project-1',
     profileRevisionId: scope.profileRevisionId.trim() || 'latest',
     chatId: scope.chatId.trim() || 'chat-1',
+    attemptId: scope.attemptId,
     mode: 'empty-template',
     criteria: [],
     updatedAt: nowIso,
@@ -246,6 +252,7 @@ export function buildPreflightForGrantAndProfile(input: {
     projectId: input.scope.projectId.trim() || 'project-1',
     profileRevisionId: input.scope.profileRevisionId.trim() || 'latest',
     chatId: input.scope.chatId.trim() || 'chat-1',
+    attemptId: input.scope.attemptId,
     mode: 'generated',
     criteria: built.slice(0, MAX_PREFLIGHT_CRITERIA),
     updatedAt: input.nowIso ?? '',
@@ -404,13 +411,19 @@ export function prunePreflightRecords(
 export function extractMaxChatSeq(
   records: Record<string, GrantPreflightRecord>,
   projectId: string,
-  grantId: string
+  grantId: string,
+  attemptId?: string
 ): number {
   const cleanProject = projectId.trim() || 'project-1';
   const cleanGrant = grantId.trim() || 'unknown';
   let maxSeq = 1;
   for (const record of Object.values(records)) {
-    if (record.projectId !== cleanProject || record.grantId !== cleanGrant) continue;
+    if (
+      record.projectId !== cleanProject ||
+      record.grantId !== cleanGrant ||
+      record.attemptId !== attemptId
+    )
+      continue;
     const match = /^chat-(\d+)$/.exec(record.chatId);
     if (match) {
       const seq = Number.parseInt(match[1], 10);
@@ -456,6 +469,8 @@ export function isEligibilityPreflightMap(
       rec.profileRevisionId.length > 0 &&
       typeof rec.chatId === 'string' &&
       rec.chatId.length > 0 &&
+      (rec.attemptId === undefined ||
+        (typeof rec.attemptId === 'string' && rec.attemptId.length > 0)) &&
       VALID_MODES.has(rec.mode) &&
       typeof rec.updatedAt === 'string' &&
       Array.isArray(rec.criteria) &&

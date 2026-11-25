@@ -49,7 +49,7 @@ const origin = remote || `http://127.0.0.1:${server.address().port}`;
 const diagnostics = [];
 const focusOnly = process.argv.includes('--focus-only');
 try {
-  for (const width of [320, 390, 1440])
+  for (const width of [320, 390, 768, 1440])
     for (const theme of ['light', 'dark']) {
       const context = await browser.newContext({
         viewport: { width, height: 900 },
@@ -355,13 +355,13 @@ try {
         .getByRole('button', { name: 'Open in Drafting Studio', exact: true })
         .first()
         .click();
-      await expect(page).toHaveURL(/grants\/1\/drafting$/);
+      await expect(page).toHaveURL(/grants\/1\/drafting\?attemptId=app-p1-g1$/);
       await expect(
         page.getByText('Agent offline - messages stay in this session', { exact: false })
       ).toHaveCount(0);
       await expect(page.getByTestId('drafting-llm-disclosure')).toBeVisible();
       await page.getByRole('button', { name: 'Form templates', exact: true }).click();
-      await expect(page).toHaveURL(`${origin}/form-templates`);
+      await expect(page).toHaveURL(/form-templates\?attemptId=app-p1-g1$/);
       await expect(page.getByText('Owner', { exact: true })).toBeVisible();
       await expect(page.getByText(/OWNER · Saved|Saved on device/i)).toHaveCount(0);
       await expect(
@@ -385,7 +385,7 @@ try {
       await page.getByRole('button', { name: 'Create new section', exact: true }).click();
       await page.getByRole('button', { name: 'Apply template', exact: true }).click();
       await page.getByRole('button', { name: 'Open Drafting workspace', exact: true }).click();
-      await expect(page).toHaveURL(/grants\/1\/drafting$/);
+      await expect(page).toHaveURL(/grants\/1\/drafting\?attemptId=app-p1-g1$/);
       const openSection = async (accessibleName) => {
         await page.getByRole('button', { name: /^Required sections/ }).click();
         await expect(page.getByRole('button', { name: 'Mark missing', exact: true })).toHaveCount(
@@ -416,7 +416,76 @@ try {
       );
       assert.ok(stored.includes('Authored narrative survives a reload'));
       assert.ok(!stored.includes('grants.example.org'));
+      if (!remote) {
+        const original = page.url();
+        const switcher = page.getByRole('button', {
+          name: 'Switch project / application',
+          exact: true,
+        });
+        await switcher.click();
+        await page.getByRole('button', { name: 'Start another attempt', exact: true }).click();
+        await expect(page).toHaveURL(/\/grants\/1\/drafting\?attemptId=(?!app-p1-g1$)[\w-]+$/);
+        await expect(page.getByText('0/6 sections complete', { exact: true })).toBeVisible();
+        const second = page.url();
+        const secondId = new URL(second).searchParams.get('attemptId');
+        await switcher.click();
+        const panel = page
+          .getByTestId('workspace-context-switcher-panel')
+          .filter({ visible: true });
+        const firstOption = panel.getByRole('button', { name: /Attempt 1/ });
+        const secondOption = panel.getByRole('button', { name: /Attempt 2/ });
+        await expect(firstOption).toHaveAttribute('aria-pressed', 'false');
+        await expect(secondOption).toHaveAttribute('aria-pressed', 'true');
+        await secondOption.scrollIntoViewIfNeeded();
+        await expect(secondOption).toBeInViewport({ ratio: 0.95 });
+        const panelBox = await panel.boundingBox();
+        assert.ok(panelBox && panelBox.x >= 0 && panelBox.x + panelBox.width <= width + 1);
+        await page.screenshot({
+          path: path.join(output, 'attempt-switcher-' + width + '-' + theme + '.png'),
+        });
+        await firstOption.click();
+        await expect(page).toHaveURL(original);
+        await switcher.click();
+        await expect(firstOption).toHaveAttribute('aria-pressed', 'true');
+        await secondOption.click();
+        await expect(page).toHaveURL(second);
+        await page.getByRole('button', { name: /^Required sections/ }).click();
+        await expect(
+          page.getByRole('button', { name: 'Field safety telemetry requirements' })
+        ).toHaveCount(0);
+        await page.getByRole('button', { name: 'Go back', exact: true }).click();
+        await expect(page).toHaveURL(original);
+        await page.goto(second);
+        await page.getByRole('button', { name: 'Form templates', exact: true }).click();
+        await expect(page).toHaveURL(/\/form-templates\?attemptId=/);
+        assert.equal(new URL(page.url()).searchParams.get('attemptId'), secondId);
+        await page.getByRole('button', { name: 'Open Drafting workspace', exact: true }).click();
+        await expect(page).toHaveURL(second);
+        await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+        await page.getByRole('button', { name: 'Subscriptions & plans', exact: true }).click();
+        await expect(page).toHaveURL(/\/plans\?/);
+        assert.equal(
+          new URL(page.url()).searchParams.get('returnTo'),
+          new URL(second).pathname + new URL(second).search
+        );
+        await page.getByRole('button', { name: 'Go back', exact: true }).click();
+        await expect(page).toHaveURL(second);
+        await page.goto(second.replace('/grants/1/', '/grants/2/'));
+        await expect(page.getByText('Application unavailable', { exact: true })).toBeVisible();
+        await page.goto(original);
+        await openSection('Field safety telemetry requirements');
+        await expect(customDraftInput).toHaveValue('Authored narrative survives a reload');
+        await page.getByRole('button', { name: 'Done', exact: true }).click();
+        findings.push({
+          name: 'attempt isolation, same-view Back, templates and return links',
+          width,
+          theme,
+          passed: true,
+        });
+      }
       if (!remote && width === 1440 && theme === 'light') {
+        // Legacy links follow the active project when no attempt is specified.
+        await page.goto(origin + '/grants/1/drafting');
         const tab = (name) => page.getByRole('tab', { name, exact: true });
         const chat = page.getByRole('textbox', { name: 'Chat with agent', exact: true });
         const narrative = page.getByRole('textbox', {
@@ -575,7 +644,7 @@ try {
 process.stdout.write(JSON.stringify(findings, null, 2) + '\n');
 if (diagnostics.length) process.stderr.write(JSON.stringify({ diagnostics }, null, 2) + '\n');
 assert.ok(
-  findings.length === (focusOnly ? 6 : 66) &&
+  findings.length === (focusOnly ? 8 : remote ? 88 : 96) &&
     findings.every((row) => row.passed) &&
     diagnostics.length === 0,
   'Workspace copy/layout regression; see captures and report'

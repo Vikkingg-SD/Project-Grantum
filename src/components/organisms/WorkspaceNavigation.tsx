@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { usePathname, useRouter, type Href } from 'expo-router';
+import { useGlobalSearchParams, usePathname, useRouter } from 'expo-router';
 import { AppButton } from '@/components/atoms/AppButton';
 import { useTheme } from '@/hooks/useTheme';
 import { SPACING } from '@/config/theme';
@@ -15,6 +15,7 @@ const WORKSPACE_TABS = [
 export function WorkspaceNavigation() {
   const pathname = normalizePathname(usePathname());
   const router = useRouter();
+  const { attemptId } = useGlobalSearchParams<{ attemptId?: string | string[] }>();
   const theme = useTheme();
   return (
     <View style={[styles.navigation, { borderBottomColor: theme.border }]}>
@@ -33,7 +34,12 @@ export function WorkspaceNavigation() {
               borderBottomColor: selected ? theme.primary : 'transparent',
             }}
             onPress={() => {
-              if (pathname !== href) router.push(href as Href);
+              if (pathname === href) return;
+              if (href === '/form-templates' && typeof attemptId === 'string') {
+                router.push({ pathname: href, params: { attemptId } });
+              } else {
+                router.push(href);
+              }
             }}
           />
         );

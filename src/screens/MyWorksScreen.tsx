@@ -18,7 +18,8 @@ import {
   computeProfileReadiness,
   getProfileSyncLag,
   searchProjects,
-  workSlotKey,
+  applicationOrdinal,
+  applicationWorkKey,
 } from '@/utils/workspace';
 import { FINISH_REVERSIBILITY_NOTE } from '@/utils/finishReview';
 import { isWorkSlotReadyToFinish } from '@/utils/drafting';
@@ -31,9 +32,11 @@ export default function MyWorksScreen() {
   const router = useRouter();
   const grantsQuery = useGrants();
   const grants = useMemo(() => grantsQuery.data ?? [], [grantsQuery.data]);
-  const onOpenGrantDraft = (grantId: string, projectId: string) => {
-    ensureWorkSlot(projectId, grantId);
-    router.navigate({ pathname: '/grants/[grantID]/drafting', params: { grantID: grantId } });
+  const onOpenGrantDraft = (grantId: string, attemptId: string) => {
+    router.navigate({
+      pathname: '/grants/[grantID]/drafting',
+      params: { grantID: grantId, attemptId },
+    });
   };
   const onOpenProfile = () => router.push('/project-profile');
   const workspace = useWorkspaceStore((state) => state.workspace);
@@ -181,7 +184,7 @@ export default function MyWorksScreen() {
                         setNotice(`Active Project Profile set to "${proj.name}".`);
                       }}
                     />
-                    {grants[0] && (
+                    {grants[0] && !proj.archivedAt && (
                       <AppButton
                         size="sm"
                         variant="outline"
@@ -189,7 +192,7 @@ export default function MyWorksScreen() {
                         onPress={() => {
                           const slot = ensureWorkSlot(proj.id, grants[0].id);
                           setActiveProject(proj.id);
-                          onOpenGrantDraft?.(slot.grantId, proj.id);
+                          onOpenGrantDraft(slot.grantId, slot.id);
                         }}
                       />
                     )}
@@ -215,13 +218,21 @@ export default function MyWorksScreen() {
               const proj = workspace.projects.find((p) => p.id === app.projectId);
               const grant = grants.find((g) => g.id === app.grantId);
               const lag = getProfileSyncLag(workspace, app.id);
+              const attemptNumber = applicationOrdinal(workspace, app);
+              const hasMultipleAttempts = workspace.applications.some(
+                (item) =>
+                  item.id !== app.id &&
+                  item.projectId === app.projectId &&
+                  item.grantId === app.grantId
+              );
               const slotRole = projectRoles[app.projectId] ?? 'owner';
               const canEditSlot = canRolePerform(slotRole, 'edit');
               return (
                 <View key={app.id} style={[styles.checkItem, { borderColor: theme.border }]}>
                   <View style={styles.rowBetween}>
                     <AppText variant="body">
-                      {proj?.name ?? app.projectId} → {grant?.title ?? `Opportunity ${app.grantId}`}
+                      {proj?.name ?? app.projectId} → {grant?.title ?? 'Opportunity ' + app.grantId}
+                      {hasMultipleAttempts ? ' · Attempt ' + attemptNumber : ''}
                     </AppText>
                     <StatusBadge
                       label={app.status.toUpperCase()}
@@ -268,7 +279,7 @@ export default function MyWorksScreen() {
                         onPress={() => {
                           try {
                             pullWorkSlotProfile(app.id);
-                            recordActivity(workSlotKey(app.projectId, app.grantId), {
+                            recordActivity(applicationWorkKey(workspace, app), {
                               actor: nickname || 'Founder Lead',
                               agent: 'system',
                               message: `Pulled latest profile update (${proj?.currentRevisionId}) from My Works`,
@@ -293,7 +304,7 @@ export default function MyWorksScreen() {
                         label="Open in Drafting Studio"
                         onPress={() => {
                           setActiveProject(app.projectId);
-                          onOpenGrantDraft(app.grantId, app.projectId);
+                          onOpenGrantDraft(app.grantId, app.id);
                         }}
                       />
                     )}
@@ -306,7 +317,7 @@ export default function MyWorksScreen() {
                         setActiveProject(app.projectId);
                         router.navigate({
                           pathname: '/grants/[grantID]/progress-tracking',
-                          params: { grantID: app.grantId },
+                          params: { grantID: app.grantId, attemptId: app.id },
                         });
                       }}
                     />
@@ -321,14 +332,14 @@ export default function MyWorksScreen() {
                             disabled={
                               !canRolePerform(projectRoles[app.projectId] ?? 'owner', 'review') ||
                               !isWorkSlotReadyToFinish(
-                                work[workSlotKey(app.projectId, app.grantId)],
+                                work[applicationWorkKey(workspace, app)],
                                 DEFAULT_REQUIRED_SECTIONS
                               )
                             }
                             onPress={() => {
                               try {
                                 setWorkSlotReviewStatus(app.id, 'ready');
-                                recordActivity(workSlotKey(app.projectId, app.grantId), {
+                                recordActivity(applicationWorkKey(workspace, app), {
                                   actor: nickname || 'Founder Lead',
                                   agent: 'system',
                                   message: 'Marked application READY from My Works',
@@ -357,7 +368,7 @@ export default function MyWorksScreen() {
                             onPress={() => {
                               try {
                                 setWorkSlotReviewStatus(app.id, 'drafting');
-                                recordActivity(workSlotKey(app.projectId, app.grantId), {
+                                recordActivity(applicationWorkKey(workspace, app), {
                                   actor: nickname || 'Founder Lead',
                                   agent: 'system',
                                   status: 'running',

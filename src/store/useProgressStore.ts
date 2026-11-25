@@ -27,10 +27,16 @@ const persistence = createDevicePersistence(
 );
 
 function resolveAuthoritativeRole(slotKey: string, fallbackRole: CoWorkRole): CoWorkRole {
+  const wsState = useWorkspaceStore.getState();
+  if (slotKey.startsWith('attempt:')) {
+    const projectId = wsState.workspace.applications.find(
+      (application) => application.id === slotKey.slice('attempt:'.length)
+    )?.projectId;
+    return projectId ? (wsState.projectRoles[projectId] ?? 'owner') : 'viewer';
+  }
   if (!slotKey.startsWith('slot:')) return fallbackRole;
   const projectId = slotKey.slice(5).split(':')[0];
   if (!projectId) return fallbackRole;
-  const wsState = useWorkspaceStore.getState();
   return wsState.projectRoles[projectId] ?? wsState.activeRole ?? fallbackRole;
 }
 

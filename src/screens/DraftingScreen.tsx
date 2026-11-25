@@ -22,6 +22,7 @@ import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useProgressStore } from '@/store/useProgressStore';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
+import { useWorkAttempt } from '@/hooks/useWorkAttempt';
 import { buildActiveSectionItems } from '@/hooks/useApplicationAuditState';
 import { useEscapeDismiss } from '@/hooks/useEscapeDismiss';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
@@ -37,12 +38,10 @@ import { ModalSheetLayout } from '@/components/templates/ModalSheetLayout';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 import { removeWorkbenchSection, upsertWorkbenchSection } from '@/utils/drafting';
 import { findKnownSection, normalizeSectionTitle } from '@/utils/sectionCatalog';
-import { workSlotKey } from '@/utils/workspace';
 
 export default function DraftingScreen() {
   const grantId = useActiveGrantId();
-  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
-  const slotKey = grantId ? workSlotKey(activeProjectId, grantId) : '';
+  const { slotKey } = useWorkAttempt(grantId);
   return <DraftingSession key={slotKey} grantId={grantId} slotKey={slotKey} />;
 }
 
@@ -67,7 +66,7 @@ function DraftingSession({ grantId, slotKey }: { grantId: string; slotKey: strin
   const [detailCustomDesc, setDetailCustomDesc] = useState('');
   const [detailNotice, setDetailNotice] = useState('');
 
-  const query = useProposalDraft(grantId);
+  const query = useProposalDraft(grantId, slotKey);
   const mutation = useMutateProposalSections(grantId);
   const local = useDraftStore((state) => state.drafts[slotKey] ?? EMPTY_DRAFT);
   const addNote = useDraftStore((state) => state.addDraftingMessage);
@@ -76,7 +75,7 @@ function DraftingSession({ grantId, slotKey }: { grantId: string; slotKey: strin
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
   const updateWorkbench = useWorkbenchStore((state) => state.update);
   const workspace = useWorkspaceStore((state) => state.workspace);
-  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const { projectId: activeProjectId, application: activeApp } = useWorkAttempt(grantId);
   const nickname = useWorkspaceStore((state) => state.nickname);
   const recordActivity = useProgressStore((state) => state.recordActivity);
 
@@ -94,9 +93,6 @@ function DraftingSession({ grantId, slotKey }: { grantId: string; slotKey: strin
   const detail = useGrantDetail(grantId);
   const activeProject =
     workspace.projects.find((p) => p.id === activeProjectId) ?? workspace.projects[0];
-  const activeApp = workspace.applications.find(
-    (app) => app.projectId === activeProjectId && app.grantId === grantId
-  );
   const activeRevision = workspace.revisions.find(
     (r) => r.id === (activeApp?.profileRevisionId ?? activeProject?.currentRevisionId)
   );
@@ -226,6 +222,7 @@ function DraftingSession({ grantId, slotKey }: { grantId: string; slotKey: strin
         {detail.data ? (
           <EligibilityPreflightPanel
             grant={detail.data}
+            attemptId={slotKey.startsWith('attempt:') ? activeApp?.id : undefined}
             requirements={trackReqs}
             project={activeProject}
             revision={activeRevision}

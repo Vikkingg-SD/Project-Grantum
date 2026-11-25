@@ -2,8 +2,8 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { BackHandler, Platform } from 'react-native';
 import { create } from 'zustand';
 import {
+  useNavigationContainerRef,
   usePathname,
-  useRootNavigationState,
   useRouter,
   useUnstableGlobalHref,
   type Href,
@@ -18,12 +18,14 @@ import {
   reconcileNativeHistory,
   recordHistoryVisit,
   resolveHomeDestination,
+  workspaceDestination,
   type NavHistory,
 } from '@/utils/navigationHistory';
 import { dismissTopEscapeLayer } from '@/hooks/useEscapeDismiss';
 
-type RootNavigationState = ReturnType<typeof useRootNavigationState>;
-type ChildNavigationState = RootNavigationState['routes'][number]['state'];
+type NavigationContainer = ReturnType<typeof useNavigationContainerRef>;
+type RootNavigationState = NonNullable<ReturnType<NavigationContainer['getRootState']>>;
+type ChildNavigationState = RootNavigationState | RootNavigationState['routes'][number]['state'];
 
 interface HistoryStoreState extends NavHistory {
   invalidPaths: string[];
@@ -39,12 +41,12 @@ const useHistory = create<HistoryStoreState>(() => ({
 let lastLifecycle: string | null = null;
 
 function rememberLifecycle(destination: string) {
-  const clean = normalizePathname(destination);
+  const clean = workspaceDestination(destination);
   if (isLifecyclePath(clean)) lastLifecycle = clean;
 }
 
 function markInvalidPath(destination: string) {
-  const clean = normalizePathname(destination);
+  const clean = workspaceDestination(destination);
   if (lastLifecycle === clean) lastLifecycle = null;
   useHistory.setState((state) =>
     state.invalidPaths.includes(clean)
@@ -54,7 +56,7 @@ function markInvalidPath(destination: string) {
 }
 
 function clearInvalidPath(destination: string) {
-  const clean = normalizePathname(destination);
+  const clean = workspaceDestination(destination);
   useHistory.setState((state) =>
     state.invalidPaths.includes(clean)
       ? { invalidPaths: state.invalidPaths.filter((item) => item !== clean) }
@@ -62,20 +64,18 @@ function clearInvalidPath(destination: string) {
   );
 }
 
-function focusedRouteKey(state: ChildNavigationState): string | undefined {
-  if (!state) return;
+function focusedRouteKeys(state: ChildNavigationState): string[] {
+  if (!state) return [];
   const route = state.routes[state.index ?? state.routes.length - 1];
-  return route?.state ? focusedRouteKey(route.state) : route?.key;
+  return route?.key ? [route.key, ...focusedRouteKeys(route.state)] : [];
 }
 
 function collectActiveRouteKeys(state: ChildNavigationState, acc: string[] = []): string[] {
   if (!state) return acc;
   for (const route of state.routes) {
-    if (route?.state) {
-      collectActiveRouteKeys(route.state, acc);
-    } else if (route?.key) {
-      acc.push(route.key);
-    }
+    const previousLength = acc.length;
+    if (route.state) collectActiveRouteKeys(route.state, acc);
+    if (acc.length === previousLength && route.key) acc.push(route.key);
   }
   return acc;
 }
@@ -96,7 +96,7 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
   const router = useRouter();
   const pathname = usePathname();
   const href = useUnstableGlobalHref();
-  const state = useRootNavigationState();
+  const navigationRef = useNavigationContainerRef();
   const visits = useHistory((s) => s.visits);
   const index = useHistory((s) => s.index);
   const invalidPaths = useHistory((s) => s.invalidPaths);
@@ -164,7 +164,10 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
         window.removeEventListener('popstate', onPopState, true);
       };
     }
-    const key = focusedRouteKey(state);
+    // The layout-level snapshot can still hold a partial deep-link state without leaf keys.
+    const state = navigationRef.getRootState();
+    const focusedKeys = focusedRouteKeys(state);
+    const key = focusedKeys.at(-1);
     if (key) {
       if (returning.current && departingKey.current && key === departingKey.current) {
         return;
@@ -177,18 +180,18 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
         const next = reconcileNativeHistory(
           { visits: value.visits, index: value.index },
           activeKeys,
-          { key, href }
+          { key, href, nativeParentKeys: focusedKeys.slice(0, -1) }
         );
         if (next.visits === value.visits && next.index === value.index) return value;
         return { visits: next.visits, index: next.index };
       });
     }
-  }, [clearReturnTimer, href, pathname, state]);
+  }, [clearReturnTimer, href, navigationRef, pathname]);
 
   useEffect(() => clearReturnTimer, [clearReturnTimer]);
 
   const invalidSet = useMemo(() => new Set(invalidPaths), [invalidPaths]);
-  const previousIndex = findPreviousBackIndex({ visits, index }, pathname, invalidSet);
+  const previousIndex = findPreviousBackIndex({ visits, index }, href, invalidSet);
   const previousHref = previousIndex !== -1 ? visits[previousIndex].href : null;
   const canGoBack = previousIndex !== -1;
 
@@ -225,7 +228,8 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
       window.history.go(previousIndex - index);
       return;
     }
-    const currentNativeKey = focusedRouteKey(state) ?? null;
+    const state = navigationRef.getRootState();
+    const currentNativeKey = focusedRouteKeys(state).at(-1) ?? null;
     const activeKeys = collectActiveRouteKeys(state);
     returning.current = true;
     departingKey.current = currentNativeKey;
@@ -249,13 +253,13 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
       });
       router.replace(target.href as Href);
     }
-  }, [canGoBack, clearReturnTimer, index, previousIndex, router, state, visits]);
+  }, [canGoBack, clearReturnTimer, index, navigationRef, previousIndex, router, visits]);
 
   const goHome = useCallback(() => {
-    const destination = resolveHomeDestination(pathname, lastLifecycle, invalidSet);
+    const destination = resolveHomeDestination(href, lastLifecycle, invalidSet);
     if (!destination) return;
     router.push(destination as Href);
-  }, [invalidSet, pathname, router]);
+  }, [href, invalidSet, router]);
 
   // Single root web Escape coordinator:
   // 1. Open dialog/modal (RN Web Modal handles Escape on keyup)
@@ -350,12 +354,12 @@ export function useWorkspaceNavigation() {
 
 export function useRememberLifecycle(grantId: string) {
   const { rememberLifecycle: remember, clearInvalidPath: clearInvalid } = useWorkspaceNavigation();
-  const pathname = usePathname();
+  const href = useUnstableGlobalHref();
   useEffect(() => {
-    const clean = normalizePathname(pathname);
+    const clean = workspaceDestination(href);
     if (grantId && clean.startsWith(`/grants/${encodeURIComponent(grantId)}/`)) {
       clearInvalid(clean);
       remember(clean);
     }
-  }, [clearInvalid, grantId, pathname, remember]);
+  }, [clearInvalid, grantId, href, remember]);
 }

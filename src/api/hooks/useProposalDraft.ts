@@ -9,8 +9,20 @@ import { getDataSource } from '../dataSource';
 import type { ProposalDraft, SectionMutation, SectionState, DataSource } from '@/types/api';
 import { queryKeys } from '../queryKeys';
 import { applySectionMutation } from '@/utils/scoring';
+import { DEFAULT_REQUIRED_SECTIONS } from '@/config/constants';
 
-export function useProposalDraft(grantId: string) {
+function emptyAttemptDraft(draft: ProposalDraft): ProposalDraft {
+  return {
+    ...draft,
+    requiredSections: [...DEFAULT_REQUIRED_SECTIONS],
+    completedSections: [],
+    completionPct: 0,
+    confidenceScore: 0,
+    body: '',
+  };
+}
+
+export function useProposalDraft(grantId: string, slotKey?: string) {
   return useQuery<ProposalDraft>({
     queryKey: queryKeys.draft(grantId),
     queryFn: async () => {
@@ -18,6 +30,7 @@ export function useProposalDraft(grantId: string) {
       return ds.getProposalDraft(grantId);
     },
     enabled: Boolean(grantId),
+    select: slotKey?.startsWith('attempt:') ? emptyAttemptDraft : undefined,
   });
 }
 

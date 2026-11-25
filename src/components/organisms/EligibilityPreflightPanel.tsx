@@ -9,6 +9,7 @@ import { RADIUS, SPACING, withAlpha } from '@/config/theme';
 import { useTheme } from '@/hooks/useTheme';
 import {
   hydrateEligibilityPreflight,
+  preflightChatSlotKey,
   useEligibilityPreflightStore,
 } from '@/store/useEligibilityPreflightStore';
 import {
@@ -25,6 +26,7 @@ import type { ProfileRevision, ProjectProfile } from '@/types/workspace';
 export interface EligibilityPreflightPanelProps {
   grant: Pick<Grant, 'id' | 'title' | 'region' | 'amount' | 'eligibilityCriteria'>;
   requirements?: readonly string[];
+  attemptId?: string;
   project?: Pick<ProjectProfile, 'id' | 'name' | 'kind'> | null;
   revision?: Pick<ProfileRevision, 'id' | 'fields'> | null;
   onApplyToChat?: (brief: string) => void;
@@ -40,6 +42,7 @@ const SOURCE_LABELS: Record<PreflightQuestionSource, string> = {
 export function EligibilityPreflightPanel({
   grant,
   requirements,
+  attemptId,
   project,
   revision,
   onApplyToChat,
@@ -69,7 +72,7 @@ export function EligibilityPreflightPanel({
 
   const projectId = project?.id ?? 'project-1';
   const profileRevisionId = revision?.id ?? 'latest';
-  const chatSlot = `${projectId}:${grant.id}`;
+  const chatSlot = preflightChatSlotKey(projectId, grant.id, attemptId);
   const chatSeq = chatSessions[chatSlot] ?? 1;
   const chatId = `chat-${chatSeq}`;
 
@@ -79,8 +82,9 @@ export function EligibilityPreflightPanel({
       grantId: grant.id,
       profileRevisionId,
       chatId,
+      attemptId,
     }),
-    [chatId, grant.id, profileRevisionId, projectId]
+    [attemptId, chatId, grant.id, profileRevisionId, projectId]
   );
   const scopeKey = useMemo(() => preflightScopeKey(scope), [scope]);
 
@@ -168,7 +172,7 @@ export function EligibilityPreflightPanel({
               label="New chat interview"
               disabled={!hydrated}
               onPress={() => {
-                const nextChat = startNewChatInterview(projectId, grant.id);
+                const nextChat = startNewChatInterview(projectId, grant.id, attemptId);
                 setQuestionError('');
                 setNotice(`Started fresh interview session (${nextChat}).`);
               }}

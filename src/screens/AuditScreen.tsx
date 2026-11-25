@@ -19,6 +19,7 @@ import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
+import { useWorkAttempt } from '@/hooks/useWorkAttempt';
 import { useApplicationAuditState } from '@/hooks/useApplicationAuditState';
 import { useEscapeDismiss } from '@/hooks/useEscapeDismiss';
 import { useTheme } from '@/hooks/useTheme';
@@ -30,12 +31,11 @@ import { ENV } from '@/config/env';
 import { formatEventDate } from '@/utils/presentation';
 import { resolveApplicationNarrative } from '@/utils/drafting';
 import { normalizeSectionTitle } from '@/utils/sectionCatalog';
-import { canRolePerform, workSlotKey } from '@/utils/workspace';
+import { canRolePerform } from '@/utils/workspace';
 
 export default function AuditScreen() {
   const grantId = useActiveGrantId();
-  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
-  const slotKey = grantId ? workSlotKey(activeProjectId, grantId) : '';
+  const { slotKey } = useWorkAttempt(grantId);
   return <AuditSession key={slotKey} grantId={grantId} slotKey={slotKey} />;
 }
 
@@ -49,24 +49,21 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
   useEscapeDismiss(historyOpen, () => setHistoryOpen(false));
   const scrollRef = useRef<ScrollView>(null);
   const scrollAfterNote = useRef(false);
-  const draft = useProposalDraft(grantId);
+  const draft = useProposalDraft(grantId, slotKey);
   const scan = useAuditStatus(grantId, false, slotKey);
   const trigger = useTriggerAuditScan(grantId, slotKey);
   const local = useDraftStore((state) => state.drafts[slotKey] ?? EMPTY_DRAFT);
   const addNote = useDraftStore((state) => state.addAuditMessage);
   const setAttachments = useDraftStore((state) => state.setAttachments);
   const workspace = useWorkspaceStore((state) => state.workspace);
-  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
-  const activeRole = useWorkspaceStore((state) => state.activeRole);
+  const { projectId: activeProjectId, application: activeApp } = useWorkAttempt(grantId);
+  const activeRole = useWorkspaceStore((state) => state.projectRoles[activeProjectId] ?? 'owner');
   const nickname = useWorkspaceStore((state) => state.nickname);
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
   const [message, setMessage] = useState('');
 
   const activeProject =
     workspace.projects.find((p) => p.id === activeProjectId) ?? workspace.projects[0];
-  const activeApp = workspace.applications.find(
-    (app) => app.projectId === activeProjectId && app.grantId === grantId
-  );
   const pinnedProfileRevisionId =
     activeApp?.profileRevisionId ?? activeProject?.currentRevisionId ?? 'latest';
   const isLocked = Boolean(

@@ -28,8 +28,10 @@ const persistence = createDevicePersistence<PreflightPersistedState>(
   isEligibilityPreflightState
 );
 
-const chatSlotKey = (projectId: string, grantId: string) =>
-  `${projectId.trim() || 'project-1'}:${grantId.trim() || 'unknown'}`;
+export function preflightChatSlotKey(projectId: string, grantId: string, attemptId?: string) {
+  const legacyKey = (projectId.trim() || 'project-1') + ':' + (grantId.trim() || 'unknown');
+  return attemptId ? legacyKey + ':attempt:' + encodeURIComponent(attemptId) : legacyKey;
+}
 
 function pruneChatSessions(sessions: Record<string, number>): Record<string, number> {
   const entries = Object.entries(sessions);
@@ -43,8 +45,8 @@ function hydrateChatSessions(
 ): Record<string, number> {
   const merged: Record<string, number> = { ...storedSessions };
   for (const record of Object.values(records)) {
-    const slot = chatSlotKey(record.projectId, record.grantId);
-    const derived = extractMaxChatSeq(records, record.projectId, record.grantId);
+    const slot = preflightChatSlotKey(record.projectId, record.grantId, record.attemptId);
+    const derived = extractMaxChatSeq(records, record.projectId, record.grantId, record.attemptId);
     merged[slot] = Math.max(merged[slot] ?? 1, derived);
   }
   return pruneChatSessions(merged);
@@ -55,8 +57,8 @@ interface EligibilityPreflightState {
   chatSessions: Record<string, number>;
   hydrated: boolean;
   status: PersistenceStatus;
-  getActiveChatId: (projectId: string, grantId: string) => string;
-  startNewChatInterview: (projectId: string, grantId: string) => string;
+  getActiveChatId: (projectId: string, grantId: string, attemptId?: string) => string;
+  startNewChatInterview: (projectId: string, grantId: string, attemptId?: string) => string;
   setCriterionStatus: (
     baseRecord: GrantPreflightRecord,
     criterionId: string,
@@ -114,21 +116,21 @@ export const useEligibilityPreflightStore = create<EligibilityPreflightState>((s
     chatSessions: initialChatSessions,
     hydrated: persistence.hydrated,
     status: persistence.status,
-    getActiveChatId: (projectId, grantId) => {
+    getActiveChatId: (projectId, grantId, attemptId) => {
       const state = get();
-      const slot = chatSlotKey(projectId, grantId);
+      const slot = preflightChatSlotKey(projectId, grantId, attemptId);
       const seq = Math.max(
         state.chatSessions[slot] ?? 1,
-        extractMaxChatSeq(state.records, projectId, grantId)
+        extractMaxChatSeq(state.records, projectId, grantId, attemptId)
       );
       return `chat-${seq}`;
     },
-    startNewChatInterview: (projectId, grantId) => {
+    startNewChatInterview: (projectId, grantId, attemptId) => {
       const state = get();
-      const slot = chatSlotKey(projectId, grantId);
+      const slot = preflightChatSlotKey(projectId, grantId, attemptId);
       const currentMax = Math.max(
         state.chatSessions[slot] ?? 1,
-        extractMaxChatSeq(state.records, projectId, grantId)
+        extractMaxChatSeq(state.records, projectId, grantId, attemptId)
       );
       const nextSeq = currentMax + 1;
       const nextSessions = { ...state.chatSessions, [slot]: nextSeq };

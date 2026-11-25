@@ -1,5 +1,5 @@
 import type { Href } from 'expo-router';
-import { isValidGrantId, normalizePathname } from '@/utils/navigationHistory';
+import { isValidGrantId, workspaceDestination } from '@/utils/navigationHistory';
 
 const STATIC_RETURN_PATHS = new Set([
   '/form-templates',
@@ -21,13 +21,23 @@ const GRANT_RETURN_VIEWS = new Set([
 // onboarding, roadmap, or staff administration routes from query params.
 export function workspaceReturnPath(value: string | string[] | undefined): Href {
   const candidate = Array.isArray(value) ? value[0] : value;
-  if (!candidate || /[?#\\]/.test(candidate)) return '/dashboard';
-  if (STATIC_RETURN_PATHS.has(candidate)) return candidate as Href;
-  const parts = candidate.split('/');
+  if (!candidate || /[#\\]/.test(candidate)) return '/dashboard';
+  const [pathname, query, extra] = candidate.split('?');
+  if (
+    extra !== undefined ||
+    (query !== undefined && !/^attemptId=[A-Za-z0-9._~%-]+$/.test(query))
+  ) {
+    return '/dashboard';
+  }
+  const suffix = query ? '?' + query : '';
+  if (STATIC_RETURN_PATHS.has(pathname)) {
+    return (pathname === '/form-templates' ? pathname + suffix : pathname) as Href;
+  }
+  const parts = pathname.split('/');
   if (parts.length === 4 && parts[0] === '' && parts[1] === 'grants' && isValidGrantId(parts[2])) {
     const view = parts[3] === 'post-award-tracker' ? 'progress-tracking' : parts[3];
     if (GRANT_RETURN_VIEWS.has(view)) {
-      return `/grants/${parts[2]}/${view}` as Href;
+      return (`/grants/${parts[2]}/${view}` + suffix) as Href;
     }
   }
   return '/dashboard';
@@ -55,7 +65,7 @@ export function returnToWorkspace(params: {
   if (
     params.canGoBack &&
     params.previousHref &&
-    normalizePathname(params.previousHref) === normalizePathname(String(returnPath))
+    workspaceDestination(params.previousHref) === workspaceDestination(String(returnPath))
   ) {
     params.goBack();
     return;

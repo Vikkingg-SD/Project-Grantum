@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { usePathname, useRouter } from 'expo-router';
+import { useGlobalSearchParams, usePathname, useRouter, type Href } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppText } from '@/components/atoms/AppText';
@@ -8,16 +8,19 @@ import { useTheme } from '@/hooks/useTheme';
 import { RADIUS, SPACING } from '@/config/theme';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
 import { useActiveView, VIEW_PATHS } from '@/hooks/useActiveView';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
+import { useWorkAttempt } from '@/hooks/useWorkAttempt';
+import { ENV } from '@/config/env';
 import { useEscapeDismiss } from '@/hooks/useEscapeDismiss';
 import { useGrants } from '@/api/hooks/useGrants';
 import { useDraftStore, EMPTY_DRAFT } from '@/store/useDraftStore';
 import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import {
+  applicationOrdinal,
   canRolePerform,
   computeProfileReadiness,
   getProfileSyncLag,
-  workSlotKey,
 } from '@/utils/workspace';
 import { normalizePathname } from '@/utils/navigationHistory';
 
@@ -26,6 +29,8 @@ export function WorkspaceStudioBar() {
   const router = useRouter();
   const pathname = normalizePathname(usePathname());
   const activeGrantId = useActiveGrantId();
+  const { attemptId } = useGlobalSearchParams<{ attemptId?: string | string[] }>();
+  const navigation = useAppNavigation(activeGrantId);
   const activeView = useActiveView();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   useEscapeDismiss(switcherOpen, () => setSwitcherOpen(false));
@@ -33,13 +38,22 @@ export function WorkspaceStudioBar() {
   const lastGrantId = useDraftStore((state) => state.lastGrantId);
   const setLastGrantId = useDraftStore((state) => state.setLastGrantId);
   const workspace = useWorkspaceStore((state) => state.workspace);
-  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const defaultProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const targetGrantId =
+    activeGrantId ||
+    lastGrantId ||
+    workspace.applications.find((app) => app.projectId === defaultProjectId)?.grantId ||
+    '1';
+  const context = useWorkAttempt(activeGrantId || (attemptId === undefined ? targetGrantId : ''), {
+    attemptId,
+  });
+  const activeProjectId = context.projectId;
   const projectRoles = useWorkspaceStore((state) => state.projectRoles);
-  const activeRole = useWorkspaceStore((state) => state.activeRole);
   const profileAudits = useWorkspaceStore((state) => state.profileAudits);
   const persistenceStatus = useWorkspaceStore((state) => state.persistenceStatus);
   const setActiveProject = useWorkspaceStore((state) => state.setActiveProject);
   const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
+  const createWorkAttempt = useWorkspaceStore((state) => state.createWorkAttempt);
   const grantsQuery = useGrants();
 
   const activeProjects = useMemo(
@@ -59,15 +73,10 @@ export function WorkspaceStudioBar() {
     [activeProject, activeRevision, profileAudits]
   );
 
-  const effectiveRole = projectRoles[activeProjectId] ?? activeRole;
+  const effectiveRole = projectRoles[activeProjectId] ?? 'owner';
   const canEdit = canRolePerform(effectiveRole, 'edit');
 
-  const targetGrantId =
-    activeGrantId ||
-    lastGrantId ||
-    workspace.applications.find((app) => app.projectId === activeProjectId)?.grantId ||
-    '1';
-  const slotKey = workSlotKey(activeProjectId, targetGrantId);
+  const { application, grantId: selectedGrantId, slotKey } = context;
   const localDraft = useDraftStore((state) => state.drafts[slotKey] ?? EMPTY_DRAFT);
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
 
@@ -90,63 +99,61 @@ export function WorkspaceStudioBar() {
   const projectApplicationOptions = useMemo(() => {
     const catalog = grantsQuery.data ?? [];
     const projectApps = workspace.applications.filter((app) => app.projectId === activeProjectId);
-    const seenIds = new Set<string>();
-    const options: { grantId: string; title: string; statusLabel: string }[] = [];
-
-    for (const grant of catalog) {
-      seenIds.add(grant.id);
-      const app = projectApps.find((item) => item.grantId === grant.id);
-      options.push({
-        grantId: grant.id,
-        title: grant.title,
-        statusLabel: app ? app.status : 'new',
-      });
-    }
+    const grants = new Map(catalog.map((grant) => [grant.id, grant.title]));
     for (const app of projectApps) {
-      if (seenIds.has(app.grantId)) continue;
-      seenIds.add(app.grantId);
-      options.push({
-        grantId: app.grantId,
-        title: `Opportunity #${app.grantId}`,
-        statusLabel: app.status,
-      });
+      if (!grants.has(app.grantId)) grants.set(app.grantId, 'Opportunity #' + app.grantId);
     }
-    return options;
-  }, [activeProjectId, grantsQuery.data, workspace.applications]);
+    return Array.from(grants).flatMap<{
+      grantId: string;
+      title: string;
+      statusLabel: string;
+      attemptId?: string;
+    }>(([grantId, title]) => {
+      const attempts = projectApps.filter((app) => app.grantId === grantId);
+      if (!attempts.length) return [{ grantId, title, statusLabel: 'new', attemptId: undefined }];
+      return attempts
+        .filter((app, index) => ENV.DATA_SOURCE === 'mock' || index === 0)
+        .map((app) => ({
+          grantId,
+          title:
+            attempts.length > 1
+              ? title + ' · Attempt ' + applicationOrdinal(workspace, app)
+              : title,
+          statusLabel: app.status,
+          attemptId: app.id,
+        }));
+    });
+  }, [activeProjectId, grantsQuery.data, workspace]);
 
-  const handleSelectGrant = (nextGrantId: string) => {
-    const exists = workspace.applications.some(
-      (app) => app.projectId === activeProjectId && app.grantId === nextGrantId
-    );
-    if (!exists && canEdit) {
-      ensureWorkSlot(activeProjectId, nextGrantId);
-    }
+  const handleSelectGrant = (nextGrantId: string, nextAttemptId?: string) => {
+    const nextId =
+      nextAttemptId ?? (canEdit ? ensureWorkSlot(activeProjectId, nextGrantId).id : undefined);
     setLastGrantId(nextGrantId);
     setSwitcherOpen(false);
     if (pathname === '/form-templates') {
-      return;
-    }
-    if (activeView) {
-      if (nextGrantId !== activeGrantId) {
-        router.navigate({
-          pathname: `/grants/[grantID]/${VIEW_PATHS[activeView]}` as const,
-          params: { grantID: nextGrantId },
+      if (nextId !== attemptId) {
+        router.push({
+          pathname: '/form-templates',
+          params: nextId ? { attemptId: nextId } : {},
         });
       }
       return;
     }
-    if (pathname === '/discover') {
-      router.navigate({
-        pathname: '/grants/[grantID]/discovery-studio',
-        params: { grantID: nextGrantId },
-      });
-      return;
-    }
-    router.navigate({
-      pathname: '/grants/[grantID]/dashboard',
-      params: { grantID: nextGrantId },
-    });
+    navigation.navigateTo(
+      activeView ?? (pathname === '/discover' ? 'discovery' : 'index'),
+      nextGrantId,
+      nextId
+    );
   };
+
+  const canStartAnother = Boolean(
+    ENV.DATA_SOURCE === 'mock' &&
+    canEdit &&
+    activeProject &&
+    !activeProject.archivedAt &&
+    application &&
+    selectedGrantId
+  );
 
   return (
     <View style={[styles.bar, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -199,17 +206,30 @@ export function WorkspaceStudioBar() {
                 onPress={() => {
                   if (proj.id !== activeProjectId) {
                     const contextGrantId =
-                      activeGrantId || (pathname === '/form-templates' ? targetGrantId : '');
-                    if (contextGrantId) {
-                      const hasSlot = workspace.applications.some(
-                        (app) => app.projectId === proj.id && app.grantId === contextGrantId
-                      );
-                      const nextRole = projectRoles[proj.id] ?? activeRole;
-                      if (!hasSlot && canRolePerform(nextRole, 'edit')) {
-                        ensureWorkSlot(proj.id, contextGrantId);
-                      }
-                    }
+                      activeGrantId || (pathname === '/form-templates' ? selectedGrantId : '');
+                    const existing = workspace.applications.find(
+                      (app) => app.projectId === proj.id && app.grantId === contextGrantId
+                    );
+                    const nextRole = projectRoles[proj.id] ?? 'owner';
+                    const next =
+                      existing ??
+                      (contextGrantId && canRolePerform(nextRole, 'edit')
+                        ? ensureWorkSlot(proj.id, contextGrantId)
+                        : undefined);
                     setActiveProject(proj.id);
+                    if (pathname === '/form-templates') {
+                      if (next || attemptId !== undefined) {
+                        router.push({
+                          pathname: '/form-templates',
+                          params: next ? { attemptId: next.id } : {},
+                        });
+                      }
+                    } else if (activeView && contextGrantId && (next || attemptId !== undefined)) {
+                      router.push({
+                        pathname: '/grants/[grantID]/' + VIEW_PATHS[activeView],
+                        params: { grantID: contextGrantId, attemptId: next?.id },
+                      } as Href);
+                    }
                   }
                   setSwitcherOpen(false);
                 }}
@@ -221,15 +241,28 @@ export function WorkspaceStudioBar() {
             Applications for {activeProject?.name ?? 'active project'}
           </AppText>
           <View style={styles.chipsRow}>
-            {projectApplicationOptions.map((option) => (
+            {canStartAnother && (
               <AppButton
-                key={option.grantId}
                 size="sm"
                 variant="outline"
-                selected={option.grantId === targetGrantId}
+                label="Start another attempt"
+                onPress={() => {
+                  const next = createWorkAttempt(activeProjectId, selectedGrantId);
+                  handleSelectGrant(next.grantId, next.id);
+                }}
+              />
+            )}
+            {projectApplicationOptions.map((option) => (
+              <AppButton
+                key={option.attemptId ?? option.grantId}
+                size="sm"
+                variant="outline"
+                selected={
+                  option.grantId === selectedGrantId && option.attemptId === application?.id
+                }
                 label={`${option.title} (${option.statusLabel})`}
                 accessibilityLabel={`Switch application: ${option.title} (${option.statusLabel})`}
-                onPress={() => handleSelectGrant(option.grantId)}
+                onPress={() => handleSelectGrant(option.grantId, option.attemptId)}
               />
             ))}
           </View>

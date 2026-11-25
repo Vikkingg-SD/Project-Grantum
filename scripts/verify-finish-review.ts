@@ -6,7 +6,13 @@ import {
   emptyWorkbench,
 } from '../src/utils/drafting';
 import { computeSectionCompletionPct } from '../src/utils/sectionCatalog';
-import { pullProfileRevision, selectProfileRevision, workSlotKey } from '../src/utils/workspace';
+import {
+  applicationWorkKey,
+  pullProfileRevision,
+  resolveWorkAttempt,
+  selectProfileRevision,
+  workSlotKey,
+} from '../src/utils/workspace';
 import {
   evaluateFinishReview,
   FINISH_REVERSIBILITY_NOTE,
@@ -262,6 +268,33 @@ function main() {
       histWork.auditHistory?.[1].message === 'Missing: Mission' &&
       histWork.auditedSignature === 'sig-1'
   );
+
+  const first = store.ensureWorkSlot('project-1', '1');
+  const second = store.createWorkAttempt('project-1', '1');
+  const workspace = useWorkspaceStore.getState().workspace;
+  check(
+    'Given two attempts for a project and grant When their links resolve Then the first keeps its data and the second receives its own slot',
+    first.id !== second.id &&
+      applicationWorkKey(workspace, first) === workSlotKey('project-1', '1') &&
+      resolveWorkAttempt(workspace, 'project-2', '1', second.id).projectId === 'project-1' &&
+      resolveWorkAttempt(workspace, 'project-2', '1', second.id).slotKey !==
+        applicationWorkKey(workspace, first) &&
+      resolveWorkAttempt(workspace, 'project-1', '2', second.id).unavailable &&
+      resolveWorkAttempt(workspace, 'project-1', '1', [first.id, second.id]).unavailable
+  );
+  check(
+    'Given a complete first attempt When finishing the second Then the first draft cannot satisfy its readiness',
+    capturesError(() => store.setWorkSlotReviewStatus(second.id, 'ready')) ===
+      'Write each draft section before marking the application ready.'
+  );
+
+  const fallbackAttempt = store.ensureWorkSlot('project-1', '2');
+  store.toggleArchiveProject('project-2');
+  check(
+    'Given an archived project When ensuring an opportunity Then the active fallback reuses its existing attempt',
+    store.ensureWorkSlot('project-2', '2').id === fallbackAttempt.id
+  );
+  store.toggleArchiveProject('project-2');
 
   useWorkspaceStore.getState().markWorkSlotSubmitted('app-p1-g1', 'RCPT-2026-001');
   check(
