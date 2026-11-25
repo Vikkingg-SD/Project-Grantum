@@ -32,6 +32,7 @@ import { formatEventDate } from '@/utils/presentation';
 import { resolveApplicationNarrative } from '@/utils/drafting';
 import { normalizeSectionTitle } from '@/utils/sectionCatalog';
 import { canRolePerform } from '@/utils/workspace';
+import { posthog } from '@/config/posthog';
 
 export default function AuditScreen() {
   const grantId = useActiveGrantId();
@@ -316,6 +317,11 @@ function AuditSession({ grantId, slotKey }: { grantId: string; slotKey: string }
             onPress={() => {
               if (!sectionItems.length || !canReview || isLocked) return;
               setSelectedHistoryId(null);
+              posthog?.capture('audit_started', {
+                required_sections: sectionItems.length,
+                completed_sections: completeSections.length,
+                confidence_score: confidenceScore,
+              });
               trigger.mutate({
                 snapshotSignature: currentSignature,
                 allComplete: incompleteSections.length === 0,

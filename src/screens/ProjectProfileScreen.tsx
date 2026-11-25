@@ -39,6 +39,7 @@ import {
 } from '@/utils/workspace';
 import type { ProjectKind } from '@/types/workspace';
 import { PROJECT_KIND_OPTIONS } from '@/utils/sectionCatalog';
+import { posthog } from '@/config/posthog';
 
 export default function ProjectProfileScreen() {
   const workspace = useWorkspaceStore((state) => state.workspace);
@@ -285,6 +286,10 @@ function ProjectProfileEditor({
       }
       setSummary('');
       setError('');
+      posthog?.capture('project_profile_saved', {
+        project_kind: kind,
+        readiness_score: previewReadiness.score,
+      });
       setNotice('Profile saved. Linked applications can now review these updates.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unable to save project profile');
@@ -309,6 +314,12 @@ function ProjectProfileEditor({
         });
       }
       setError('');
+      posthog?.capture('project_profile_audited', {
+        project_kind: kind,
+        passed_checks: record.passedCount,
+        total_checks: record.totalCount,
+        passed: record.allPassed,
+      });
       setNotice(
         record.allPassed
           ? `Project profile audit passed (${record.passedCount}/${record.totalCount} checks Complete).`

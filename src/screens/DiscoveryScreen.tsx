@@ -29,6 +29,7 @@ import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { filterGrants, type GrantFilters } from '@/utils/filters';
 import { matchTier } from '@/utils/scoring';
 import { RADIUS, SPACING } from '@/config/theme';
+import { posthog } from '@/config/posthog';
 import type { Grant } from '@/types/grant';
 
 const REGION_OPTIONS = ['Global', 'East Europe', 'CIS'];
@@ -145,6 +146,7 @@ export default function DiscoveryScreen() {
           ? activeApplication
           : ensureWorkSlot(projectId, grantId);
       setSelectedGrant(null);
+      posthog?.capture('application_drafting_started');
       navigation.navigateTo('drafting', grantId, attempt.id);
     },
     [activeApplication, activeProjectId, ensureWorkSlot, navigation]

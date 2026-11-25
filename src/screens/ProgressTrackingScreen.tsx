@@ -38,6 +38,7 @@ import {
   type DerivedWorkplanItem,
 } from '@/utils/progressTracking';
 import type { CoWorkRole } from '@/types/workspace';
+import { posthog } from '@/config/posthog';
 
 export default function ProgressTrackingScreen() {
   const grantId = useActiveGrantId();
@@ -227,6 +228,11 @@ function ProgressTrackingSession({ grantId, slotKey }: { grantId: string; slotKe
         role: effectiveRole,
       });
       setErrorMsg('');
+      posthog?.capture('workplan_task_completed', {
+        task_id: task.id,
+        application_stage: derived.stage,
+        completion_method: 'manual',
+      });
       setNotice(`Marked "${task.title}" done (${effectiveRole}).`);
     } catch (e) {
       setNotice('');

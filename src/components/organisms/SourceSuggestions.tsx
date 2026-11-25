@@ -22,6 +22,7 @@ import {
 import { useTheme } from '@/hooks/useTheme';
 import { useEscapeDismiss } from '@/hooks/useEscapeDismiss';
 import { SPACING } from '@/config/theme';
+import { posthog } from '@/config/posthog';
 
 const EMPTY_FORM: BountyFormInput = {
   title: '',
@@ -169,6 +170,10 @@ export function SourceSuggestions() {
       }
       return;
     }
+    posthog?.capture('source_suggestion_submitted', {
+      submission_method: 'form',
+      has_prize_pool: Boolean(form.prizePool.trim()),
+    });
     setFeedback(
       `Submitted "${result.entry?.title ?? form.title.trim()}" for Bounty Hunt moderation (Pending review).`
     );
@@ -193,6 +198,10 @@ export function SourceSuggestions() {
       setFeedback(result.error);
       return;
     }
+    posthog?.capture('source_suggestion_submitted', {
+      submission_method: 'saved_draft',
+      has_prize_pool: Boolean(entry.prizePool),
+    });
     setFeedback(`Submitted "${entry.title}" for Bounty Hunt moderation (Pending review).`);
   };
 

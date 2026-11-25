@@ -33,6 +33,7 @@ import {
 } from '@/utils/localExport';
 import { canRolePerform } from '@/utils/workspace';
 import { isLocalHttpOrigin, isSafeExternalUrl } from '@/utils/navigationHistory';
+import { posthog } from '@/config/posthog';
 import type { ExportFormat } from '@/types/api';
 
 export default function ExportScreen() {
@@ -131,6 +132,10 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
       if (canEdit) {
         recordExportDownload(slotKey, localFormat, filename, nickname || 'Founder Lead');
       }
+      posthog?.capture('export_downloaded', {
+        format: localFormat,
+        download_triggered: triggered,
+      });
       setDownloadError('');
       setBundleNotice(
         triggered

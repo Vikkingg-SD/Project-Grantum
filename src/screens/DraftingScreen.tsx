@@ -38,6 +38,7 @@ import { ModalSheetLayout } from '@/components/templates/ModalSheetLayout';
 import { useGrantDetail } from '@/api/hooks/useGrantDetail';
 import { removeWorkbenchSection, upsertWorkbenchSection } from '@/utils/drafting';
 import { findKnownSection, normalizeSectionTitle } from '@/utils/sectionCatalog';
+import { posthog } from '@/config/posthog';
 
 export default function DraftingScreen() {
   const grantId = useActiveGrantId();
@@ -176,6 +177,10 @@ function DraftingSession({ grantId, slotKey }: { grantId: string; slotKey: strin
       })
     );
     markContentChanged(slotKey);
+    posthog?.capture('proposal_section_added', {
+      section_type: known ? 'standard' : 'custom',
+      required_section_count: sectionItems.length + 1,
+    });
     recordActivity(slotKey, {
       actor: nickname || 'Founder Lead',
       agent: 'agent-1-narrative',

@@ -14,6 +14,7 @@ import { RADIUS, SPACING } from '@/config/theme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { workspaceReturnPath } from '@/utils/workspaceReturn';
+import { posthog } from '@/config/posthog';
 
 const slides = [
   {
@@ -72,7 +73,10 @@ export default function OnboardingScreen() {
   }, [index, reduceMotion, slideOpacity]);
 
   const finish = () => {
-    if (!isReplay) completeLaunchTour();
+    if (!isReplay) {
+      completeLaunchTour();
+      posthog?.capture('onboarding_completed');
+    }
     if (replayReturnPath && replayReturnPath !== '/dashboard') {
       router.replace(replayReturnPath);
       return;

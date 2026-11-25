@@ -23,6 +23,7 @@ import { evaluateFinishReview } from '@/utils/finishReview';
 import { normalizeSectionTitle } from '@/utils/sectionCatalog';
 import { generateId } from '@/utils/uuid';
 import { getProfileSyncLag } from '@/utils/workspace';
+import { posthog } from '@/config/posthog';
 
 export interface ProjectVersionSelectorCardProps {
   slotKey: string;
@@ -463,6 +464,11 @@ export function ProjectVersionSelectorCard({
                   actor: nickname || 'Founder Lead',
                   agent: 'system',
                   message: 'Finished application review checks (marked READY)',
+                });
+                posthog?.capture('application_marked_ready', {
+                  filled_section_count: filledSections.length,
+                  required_section_count: sectionItems.length,
+                  approved_requirement_count: slotAudit.approvedRequirements,
                 });
                 setSlotError('');
                 setSlotNotice(

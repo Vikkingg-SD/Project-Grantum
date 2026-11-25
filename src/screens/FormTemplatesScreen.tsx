@@ -39,6 +39,7 @@ import {
   TEMPLATE_TYPE_SECTIONS,
 } from '@/utils/sectionCatalog';
 import type { CoWorkRole, OutputKind, ProjectKind } from '@/types/workspace';
+import { posthog } from '@/config/posthog';
 
 const ROLE_LABELS: Record<CoWorkRole, string> = {
   owner: 'Owner',
@@ -260,6 +261,11 @@ function FormTemplatesEditor({
         message: `Applied ${kind} template (${sections.length} required sections)`,
       });
       void queryClient.invalidateQueries({ queryKey: queryKeys.audit(targetGrantId) });
+      posthog?.capture('template_applied', {
+        template_kind: kind,
+        output_count: outputs.length,
+        required_section_count: sections.length,
+      });
       setError('');
       setNotice('Template applied. Open Drafting workspace to review required sections.');
     } catch (e) {
