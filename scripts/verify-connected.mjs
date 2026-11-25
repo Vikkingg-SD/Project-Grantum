@@ -273,6 +273,19 @@ try {
     visitor.getByText('This application attempt is unavailable.', { exact: true })
   ).toBeVisible();
   await expect(mission).toHaveCount(0);
+  await visitor.route(backend + '/api/v1/attempts/' + attemptId, async (route) => {
+    if (route.request().method() === 'OPTIONS') return route.continue();
+    await route.fulfill({
+      status: 503,
+      headers: { 'Access-Control-Allow-Origin': site },
+      json: { error: { message: 'Test outage after access removal.' } },
+    });
+  });
+  await button(visitor, 'Retry loading').click();
+  await expect(
+    visitor.getByText('This application attempt is unavailable.', { exact: true })
+  ).toBeVisible();
+  await expect(mission).toHaveCount(0);
   checks.push(
     'Live collaborator conflict preservation and removal of cached draft after access denial'
   );

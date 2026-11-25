@@ -60,7 +60,16 @@ export function ConnectedWorkspace() {
 
   const session = useQuery({
     queryKey: ['connected', 'session', firebaseUser?.uid],
-    queryFn: () => connectedApi(firebaseUser ?? undefined).session(),
+    queryFn: async () => {
+      try {
+        return { member: await connectedApi(firebaseUser ?? undefined).session(), denied: null };
+      } catch (error) {
+        if (error instanceof ApiError && [401, 403].includes(error.status)) {
+          return { member: null, denied: error };
+        }
+        throw error;
+      }
+    },
     enabled: Boolean(firebaseUser),
     staleTime: 0,
     refetchOnMount: 'always',
@@ -76,12 +85,12 @@ export function ConnectedWorkspace() {
   }, [queryClient]);
 
   useEffect(() => {
-    if (session.error instanceof ApiError && [401, 403].includes(session.error.status)) {
+    if (session.data?.denied) {
       queryClient.removeQueries({
         predicate: ({ queryKey }) => queryKey[0] === 'connected' && queryKey[1] !== 'session',
       });
     }
-  }, [session.error, queryClient]);
+  }, [session.data?.denied, queryClient]);
 
   async function logout() {
     await queryClient.cancelQueries({ queryKey: ['connected'] });
@@ -111,11 +120,11 @@ export function ConnectedWorkspace() {
         <AppText>Checking your session…</AppText>
       ) : !firebaseUser ? (
         <LoginPane />
-      ) : !session.data || session.error ? (
+      ) : !session.data?.member ? (
         <View style={actionStyles.block}>
           <QueryMessage
             pending={session.isPending}
-            error={session.error}
+            error={session.data?.denied ?? session.error}
             retry={() => void session.refetch()}
           />
           <AppButton label="Sign out" onPress={() => void logout()} />
@@ -123,7 +132,7 @@ export function ConnectedWorkspace() {
       ) : (
         <SignedIn
           key={firebaseUser.uid}
-          member={session.data}
+          member={session.data.member}
           firebaseUser={firebaseUser}
           logout={logout}
         />

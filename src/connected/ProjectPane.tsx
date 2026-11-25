@@ -28,7 +28,7 @@ export function ProjectPane({ api, scope }: Props) {
     queryKey: [...scope, 'projects'],
     queryFn: () => api.get<Project[]>('/projects'),
   });
-  const items = query.error ? undefined : query.data;
+  const items = query.data;
   const project = items?.find((item) => item.id === selection);
   async function save(input: ProjectInput, existing?: Project, archived = false) {
     if (!existing) {

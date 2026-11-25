@@ -34,25 +34,37 @@ const tabs = [
   'Progress Tracking',
 ] as const;
 type Tab = (typeof tabs)[number];
+type AttemptAccess = { record: Attempt; denied: null } | { record: null; denied: ApiError };
 
 export function AttemptPane(props: Props) {
   const { api, scope, attemptId, grantId } = props;
   const [tab, setTab] = useState<Tab>('Drafting');
-  const query = useQuery({
+  const cache = useQueryClient();
+  const query = useQuery<AttemptAccess>({
     queryKey: [...scope, 'attempt', attemptId],
-    queryFn: () => api.attempt(attemptId),
+    queryFn: async () => {
+      try {
+        return { record: await api.attempt(attemptId), denied: null };
+      } catch (error) {
+        if (error instanceof ApiError && [401, 403, 404].includes(error.status)) {
+          cache.removeQueries({ queryKey: [...scope, 'audits', attemptId] });
+          cache.removeQueries({ queryKey: [...scope, 'revisions', attemptId] });
+          return { record: null, denied: error };
+        }
+        throw error;
+      }
+    },
     retry: false,
     staleTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: 'always',
   });
-  const record = query.data;
-  const denied = query.error instanceof ApiError && [401, 403, 404].includes(query.error.status);
-  if (!record || denied)
+  const record = query.data?.record;
+  if (!record)
     return (
       <QueryMessage
         pending={query.isPending}
-        error={query.error}
+        error={query.data?.denied ?? query.error}
         retry={() => void query.refetch()}
       />
     );
@@ -126,7 +138,10 @@ function AttemptEditor({
   const dirty = edit !== null;
   const conflict = dirty && current.version !== record.version;
   const apply = async (next: Attempt) => {
-    cache.setQueryData([...scope, 'attempt', record.id], next);
+    cache.setQueryData<AttemptAccess>([...scope, 'attempt', record.id], {
+      record: next,
+      denied: null,
+    });
     await Promise.all([
       cache.invalidateQueries({ queryKey: [...scope, 'attempts'] }),
       cache.invalidateQueries({ queryKey: [...scope, 'dashboard'] }),
