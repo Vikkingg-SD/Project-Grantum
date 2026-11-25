@@ -24,6 +24,7 @@ const WORKSPACE_BACKABLE_PATHS = new Set<string>([
 export interface NavVisit {
   key: string;
   href: string;
+  nativeParentKeys?: readonly string[];
 }
 
 export interface NavHistory {
@@ -130,8 +131,9 @@ export function recordHistoryVisit(
 
 /**
  * Reconciles native stack history against the live route keys in React Navigation state.
- * Dropping keys that were removed by router.replace() or <Redirect> keeps visits aligned
- * with the real native stack so router.back() can never pop into replaced/skipped routes.
+ * A Slot can unmount its nested navigator. Keep its visits while the live stack
+ * still contains the collapsed parent. Once its children are available again,
+ * reconcile against their leaf keys.
  */
 export function reconcileNativeHistory(
   history: NavHistory,
@@ -140,7 +142,9 @@ export function reconcileNativeHistory(
 ): NavHistory {
   const liveKeys = new Set(activeKeys);
   liveKeys.add(currentVisit.key);
-  const retained = history.visits.filter((entry) => liveKeys.has(entry.key));
+  const retained = history.visits.filter(
+    (entry) => liveKeys.has(entry.key) || entry.nativeParentKeys?.some((key) => liveKeys.has(key))
+  );
   const currentIndex = retained.findIndex((entry) => entry.key === currentVisit.key);
   if (currentIndex !== -1) {
     const updated = [...retained];

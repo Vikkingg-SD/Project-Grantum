@@ -328,3 +328,33 @@ step(
     assert.equal(resolveHomeDestination('/my-works', first, new Set([second])), first);
   }
 );
+
+step(
+  'Given an inactive Android Slot When its leaves unmount Then Back retains the exact attempt destinations',
+  () => {
+    const original = '/grants/1/drafting?attemptId=app-p1-g1';
+    const newer = '/grants/1/drafting?attemptId=app-p1-g1-2';
+    const template = '/form-templates?attemptId=app-p1-g1-2';
+    const history = {
+      visits: [
+        { key: 'first', href: original, nativeParentKeys: ['grant-layout'] },
+        { key: 'second', href: newer, nativeParentKeys: ['grant-layout'] },
+      ],
+      index: 1,
+    };
+    const collapsed = reconcileNativeHistory(history, ['grant-layout', 'templates'], {
+      key: 'templates',
+      href: template,
+    });
+    assert.equal(findPreviousBackIndex(collapsed, template), 1);
+    assert.equal(collapsed.visits[1].href, newer);
+    assert.equal(canUseNativeRouterBack(['grant-layout', 'templates'], 'second'), false);
+    const returned = applyFallbackBack(collapsed, 1, null, newer);
+    const restored = reconcileNativeHistory(returned, ['grant-layout', 'restored-second'], {
+      key: 'restored-second',
+      href: newer,
+    });
+    assert.equal(restored.visits.length, 2);
+    assert.equal(restored.visits[findPreviousBackIndex(restored, newer)].href, original);
+  }
+);

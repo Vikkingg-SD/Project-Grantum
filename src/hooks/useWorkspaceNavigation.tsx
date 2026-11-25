@@ -64,20 +64,18 @@ function clearInvalidPath(destination: string) {
   );
 }
 
-function focusedRouteKey(state: ChildNavigationState): string | undefined {
-  if (!state) return;
+function focusedRouteKeys(state: ChildNavigationState): string[] {
+  if (!state) return [];
   const route = state.routes[state.index ?? state.routes.length - 1];
-  return route?.state ? focusedRouteKey(route.state) : route?.key;
+  return route?.key ? [route.key, ...focusedRouteKeys(route.state)] : [];
 }
 
 function collectActiveRouteKeys(state: ChildNavigationState, acc: string[] = []): string[] {
   if (!state) return acc;
   for (const route of state.routes) {
-    if (route?.state) {
-      collectActiveRouteKeys(route.state, acc);
-    } else if (route?.key) {
-      acc.push(route.key);
-    }
+    const previousLength = acc.length;
+    if (route.state) collectActiveRouteKeys(route.state, acc);
+    if (acc.length === previousLength && route.key) acc.push(route.key);
   }
   return acc;
 }
@@ -168,7 +166,8 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
     }
     // The layout-level snapshot can still hold a partial deep-link state without leaf keys.
     const state = navigationRef.getRootState();
-    const key = focusedRouteKey(state);
+    const focusedKeys = focusedRouteKeys(state);
+    const key = focusedKeys.at(-1);
     if (key) {
       if (returning.current && departingKey.current && key === departingKey.current) {
         return;
@@ -181,7 +180,7 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
         const next = reconcileNativeHistory(
           { visits: value.visits, index: value.index },
           activeKeys,
-          { key, href }
+          { key, href, nativeParentKeys: focusedKeys.slice(0, -1) }
         );
         if (next.visits === value.visits && next.index === value.index) return value;
         return { visits: next.visits, index: next.index };
@@ -230,7 +229,7 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
       return;
     }
     const state = navigationRef.getRootState();
-    const currentNativeKey = focusedRouteKey(state) ?? null;
+    const currentNativeKey = focusedRouteKeys(state).at(-1) ?? null;
     const activeKeys = collectActiveRouteKeys(state);
     returning.current = true;
     departingKey.current = currentNativeKey;
