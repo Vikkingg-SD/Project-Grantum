@@ -74,8 +74,10 @@ export function ProjectPane({ api, scope }: Props) {
         error={query.error}
         retry={() => void query.refetch()}
       />
-      <ProjectForm key={project?.id ?? 'new'} project={project} save={save} />
-      {project && <ProjectTeam key={project.id} api={api} scope={scope} project={project} />}
+      <ProjectForm key={project ? project.id + ':form' : 'new'} project={project} save={save} />
+      {project && (
+        <ProjectTeam key={project.id + ':team'} api={api} scope={scope} project={project} />
+      )}
       {project && (
         <ProjectDocuments
           key={project.id + ':documents'}
