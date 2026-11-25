@@ -30,3 +30,43 @@ jobs:
         run: pnpm verify:recovery:harness
       - name: Run strict gate
         run: pnpm gate
+  backend-postgresql:
+    name: Backend PostgreSQL
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:19
+        env:
+          POSTGRES_PASSWORD: fixture-admin
+        ports:
+          - 55432:5432
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      UV_CACHE_DIR: ${{ github.workspace }}/backend/.local/uv-cache
+      UV_LINK_MODE: copy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: '0.13.7'
+          enable-cache: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install the locked backend environment
+        run: uv sync --project backend --locked --no-managed-python
+      - name: Install the scoped Firebase Authentication Emulator
+        run: npm install --prefix backend/.local/firebase-cli --cache backend/.local/npm-cache --no-audit --no-fund firebase-tools@15.37.0
+      - name: Create isolated database roles
+        run: PGPASSWORD=fixture-admin psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 55432 -U postgres -f backend/tests/ci_database.sql
+      - name: Verify Flask, PostgreSQL and Firebase
+        run: bash backend/verify-ci.sh

@@ -7,3 +7,8 @@ assets/
 pnpm-lock.yaml
 expo-env.d.ts
 .agents/
+
+# Grantum backend runtime files and installed Python packages are excluded.
+backend/.local/
+backend/.venv/
+dist-connected/

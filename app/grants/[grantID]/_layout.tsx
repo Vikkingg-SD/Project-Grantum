@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import {
+  Redirect,
   Stack,
   useGlobalSearchParams,
   usePathname,
@@ -7,6 +8,7 @@ import {
   useUnstableGlobalHref,
 } from 'expo-router';
 import { View } from 'react-native';
+import { ENV } from '@/config/env';
 import { useQueryClient } from '@tanstack/react-query';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
 import { useWorkAttempt } from '@/hooks/useWorkAttempt';
@@ -31,6 +33,18 @@ export { AppErrorBoundary as ErrorBoundary } from '@/components/templates/AppErr
 export const unstable_settings = { screenErrorBoundary: AppScreenErrorBoundary };
 
 export default function GrantLayout() {
+  const { grantID, attemptId } = useGlobalSearchParams<{ grantID?: string; attemptId?: string }>();
+  if (ENV.DATA_SOURCE === 'api') {
+    const params =
+      typeof attemptId === 'string' && typeof grantID === 'string'
+        ? { view: 'Application', attemptId, grantId: grantID }
+        : { view: 'Discovery' };
+    return <Redirect href={{ pathname: '/connected', params }} />;
+  }
+  return <PreviewGrantLayout />;
+}
+
+function PreviewGrantLayout() {
   // Preserve the existing layout-level recovery probe across the route flip.
   useRecoveryProbe('tab');
   const localGrantId = useActiveGrantId();

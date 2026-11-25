@@ -13,6 +13,8 @@ const ignored = new Set([
   '.vercel',
   'node_modules',
   'dist',
+  'dist-connected',
+  'backend',
   'web-build',
   'assets',
   'android',
