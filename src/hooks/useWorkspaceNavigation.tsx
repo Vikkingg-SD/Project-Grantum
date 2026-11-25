@@ -18,6 +18,7 @@ import {
   reconcileNativeHistory,
   recordHistoryVisit,
   resolveHomeDestination,
+  workspaceDestination,
   type NavHistory,
 } from '@/utils/navigationHistory';
 import { dismissTopEscapeLayer } from '@/hooks/useEscapeDismiss';
@@ -39,12 +40,12 @@ const useHistory = create<HistoryStoreState>(() => ({
 let lastLifecycle: string | null = null;
 
 function rememberLifecycle(destination: string) {
-  const clean = normalizePathname(destination);
+  const clean = workspaceDestination(destination);
   if (isLifecyclePath(clean)) lastLifecycle = clean;
 }
 
 function markInvalidPath(destination: string) {
-  const clean = normalizePathname(destination);
+  const clean = workspaceDestination(destination);
   if (lastLifecycle === clean) lastLifecycle = null;
   useHistory.setState((state) =>
     state.invalidPaths.includes(clean)
@@ -54,7 +55,7 @@ function markInvalidPath(destination: string) {
 }
 
 function clearInvalidPath(destination: string) {
-  const clean = normalizePathname(destination);
+  const clean = workspaceDestination(destination);
   useHistory.setState((state) =>
     state.invalidPaths.includes(clean)
       ? { invalidPaths: state.invalidPaths.filter((item) => item !== clean) }
@@ -188,7 +189,7 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
   useEffect(() => clearReturnTimer, [clearReturnTimer]);
 
   const invalidSet = useMemo(() => new Set(invalidPaths), [invalidPaths]);
-  const previousIndex = findPreviousBackIndex({ visits, index }, pathname, invalidSet);
+  const previousIndex = findPreviousBackIndex({ visits, index }, href, invalidSet);
   const previousHref = previousIndex !== -1 ? visits[previousIndex].href : null;
   const canGoBack = previousIndex !== -1;
 
@@ -252,10 +253,10 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
   }, [canGoBack, clearReturnTimer, index, previousIndex, router, state, visits]);
 
   const goHome = useCallback(() => {
-    const destination = resolveHomeDestination(pathname, lastLifecycle, invalidSet);
+    const destination = resolveHomeDestination(href, lastLifecycle, invalidSet);
     if (!destination) return;
     router.push(destination as Href);
-  }, [invalidSet, pathname, router]);
+  }, [href, invalidSet, router]);
 
   // Single root web Escape coordinator:
   // 1. Open dialog/modal (RN Web Modal handles Escape on keyup)
@@ -350,12 +351,12 @@ export function useWorkspaceNavigation() {
 
 export function useRememberLifecycle(grantId: string) {
   const { rememberLifecycle: remember, clearInvalidPath: clearInvalid } = useWorkspaceNavigation();
-  const pathname = usePathname();
+  const href = useUnstableGlobalHref();
   useEffect(() => {
-    const clean = normalizePathname(pathname);
+    const clean = workspaceDestination(href);
     if (grantId && clean.startsWith(`/grants/${encodeURIComponent(grantId)}/`)) {
       clearInvalid(clean);
       remember(clean);
     }
-  }, [clearInvalid, grantId, pathname, remember]);
+  }, [clearInvalid, grantId, href, remember]);
 }

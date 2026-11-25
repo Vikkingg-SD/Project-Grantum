@@ -5,6 +5,8 @@ import { ScrollView, View, StyleSheet } from 'react-native';
 import Bell from 'lucide-react-native/icons/bell';
 import Filter from 'lucide-react-native/icons/funnel';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
+import { useActiveGrantId } from '@/hooks/useActiveGrantId';
+import { useWorkAttempt } from '@/hooks/useWorkAttempt';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import { ModalSheetLayout } from '@/components/templates/ModalSheetLayout';
@@ -55,7 +57,8 @@ export default function DashboardScreen() {
   const grants = useGrants();
   const summary = useDashboardSummary();
   const workspace = useWorkspaceStore((state) => state.workspace);
-  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const { projectId: activeProjectId, application: activeApplication } =
+    useWorkAttempt(useActiveGrantId());
   const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
   const hydrated = useWorkspaceStore((state) => state.hydrated);
   const supportPromptDismissedAt = useWorkspaceStore((state) => state.supportPromptDismissedAt);
@@ -123,11 +126,14 @@ export default function DashboardScreen() {
 
   const openDraft = useCallback(
     (grantId: string, projectId = activeProjectId) => {
-      ensureWorkSlot(projectId, grantId);
+      const attempt =
+        activeApplication?.projectId === projectId && activeApplication.grantId === grantId
+          ? activeApplication
+          : ensureWorkSlot(projectId, grantId);
       setSelectedGrant(null);
-      navigation.navigateTo('drafting', grantId);
+      navigation.navigateTo('drafting', grantId, attempt.id);
     },
-    [activeProjectId, ensureWorkSlot, navigation]
+    [activeApplication, activeProjectId, ensureWorkSlot, navigation]
   );
   const applyGrant = useCallback((grant: Grant) => openDraft(grant.id), [openDraft]);
   const filtered = useMemo(() => {

@@ -35,7 +35,7 @@ import {
   parseVaultDocs,
   removeVaultDoc,
   sanitizeVaultDocName,
-  workSlotKey,
+  applicationWorkKey,
 } from '@/utils/workspace';
 import type { ProjectKind } from '@/types/workspace';
 import { PROJECT_KIND_OPTIONS } from '@/utils/sectionCatalog';
@@ -277,7 +277,7 @@ function ProjectProfileEditor({
         fields,
       });
       if (activeSlotForProject) {
-        recordActivity(workSlotKey(activeSlotForProject.projectId, activeSlotForProject.grantId), {
+        recordActivity(applicationWorkKey(workspace, activeSlotForProject), {
           actor: nickname || 'Founder Lead',
           agent: 'system',
           message: `Saved project profile update: ${cleanSummary}`,
@@ -301,7 +301,7 @@ function ProjectProfileEditor({
         fields,
       });
       if (activeSlotForProject) {
-        recordActivity(workSlotKey(activeSlotForProject.projectId, activeSlotForProject.grantId), {
+        recordActivity(applicationWorkKey(workspace, activeSlotForProject), {
           actor: nickname || 'Founder Lead',
           agent: 'agent-2-deterministic',
           status: record.allPassed ? 'passed' : 'failed',
@@ -667,7 +667,10 @@ function ProjectProfileEditor({
                   ? () =>
                       router.navigate({
                         pathname: '/grants/[grantID]/audit-studio',
-                        params: { grantID: activeSlotForProject.grantId },
+                        params: {
+                          grantID: activeSlotForProject.grantId,
+                          attemptId: activeSlotForProject.id,
+                        },
                       })
                   : undefined
               }

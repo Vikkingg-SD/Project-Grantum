@@ -70,7 +70,7 @@ export interface ApplicationArtifact {
   revisionId: string;
 }
 
-/** An application ID, not a grant ID, is the future draft/cache/route key. */
+/** A stable application ID identifies one draft attempt. */
 export interface ApplicationBundle {
   id: string;
   projectId: string;

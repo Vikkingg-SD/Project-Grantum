@@ -4,6 +4,8 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
+import { useActiveGrantId } from '@/hooks/useActiveGrantId';
+import { useWorkAttempt } from '@/hooks/useWorkAttempt';
 import { useEscapeDismiss } from '@/hooks/useEscapeDismiss';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
@@ -132,16 +134,20 @@ export default function DiscoveryScreen() {
     ]
   );
 
-  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const { projectId: activeProjectId, application: activeApplication } =
+    useWorkAttempt(useActiveGrantId());
   const ensureWorkSlot = useWorkspaceStore((state) => state.ensureWorkSlot);
 
   const openDraftById = useCallback(
     (grantId: string, projectId = activeProjectId) => {
-      ensureWorkSlot(projectId, grantId);
+      const attempt =
+        activeApplication?.projectId === projectId && activeApplication.grantId === grantId
+          ? activeApplication
+          : ensureWorkSlot(projectId, grantId);
       setSelectedGrant(null);
-      navigation.navigateTo('drafting', grantId);
+      navigation.navigateTo('drafting', grantId, attempt.id);
     },
-    [activeProjectId, ensureWorkSlot, navigation]
+    [activeApplication, activeProjectId, ensureWorkSlot, navigation]
   );
   const openDraft = useCallback((grant: Grant) => openDraftById(grant.id), [openDraftById]);
 

@@ -414,17 +414,21 @@ try {
       await expect(back).toBeDisabled();
     }
   );
-  await check('explicit Dashboard application selection changes the grant URL', async () => {
-    await page.goto(url('2', 'dashboard'));
-    await dismissSupportIfOpen();
-    await page.getByRole('button', { name: 'Help me apply', exact: true }).first().click();
-    await page.waitForURL(/\/grants\/1\/drafting$/);
-    await visible('Climate Resilience Infrastructure');
-    await page.goBack();
-    await page.waitForURL(url('2', 'dashboard'));
-    await page.goForward();
-    await page.waitForURL(url('1', 'drafting'));
-  });
+  await check(
+    'Dashboard application selection opens the explicit attempt and survives browser history',
+    async () => {
+      await page.goto(url('2', 'dashboard'));
+      await dismissSupportIfOpen();
+      await page.getByRole('button', { name: 'Help me apply', exact: true }).first().click();
+      const applicationUrl = url('1', 'drafting') + '?attemptId=app-p1-g1';
+      await expect(page).toHaveURL(applicationUrl);
+      await visible('Climate Resilience Infrastructure');
+      await page.goBack();
+      await page.waitForURL(url('2', 'dashboard'));
+      await page.goForward();
+      await expect(page).toHaveURL(applicationUrl);
+    }
+  );
   await check('legacy /post-award-tracker redirects cleanly to /progress-tracking', async () => {
     await page.goto(url('2', 'post-award-tracker'));
     await page.waitForURL(url('2', 'progress-tracking'));
@@ -432,6 +436,8 @@ try {
       page.getByRole('heading', { name: 'Progress-Tracking', exact: true })
     ).toBeVisible();
     await visible('Community Health Access');
+    await page.goto(url('1', 'post-award-tracker') + '?attemptId=app-p1-g1');
+    await expect(page).toHaveURL(url('1', 'progress-tracking') + '?attemptId=app-p1-g1');
   });
   await check('a grant index redirects to its own dashboard', async () => {
     await page.goto(`${origin}/grants/2`);

@@ -3,6 +3,7 @@ import type {
   ApplicationBundle,
   CoWorkAction,
   CoWorkRole,
+  OutputKind,
   ProfileRevision,
   ProjectKind,
   ProjectProfile,
@@ -42,6 +43,54 @@ export const emptyWorkspace = (): Workspace => ({ projects: [], revisions: [], a
 
 export const workSlotKey = (projectId: string, grantId: string) =>
   `slot:${projectId.trim()}:${grantId.trim()}`;
+
+/** The first attempt keeps the persisted draft keys used before explicit attempts existed. */
+export function applicationWorkKey(workspace: Workspace, application: ApplicationBundle): string {
+  const legacyKey = workSlotKey(application.projectId, application.grantId);
+  const first = workspace.applications.find(
+    (item) => item.projectId === application.projectId && item.grantId === application.grantId
+  );
+  return first?.id === application.id ? legacyKey : 'attempt:' + application.id;
+}
+
+export function applicationOrdinal(workspace: Workspace, application: ApplicationBundle): number {
+  return (
+    workspace.applications
+      .filter(
+        (item) => item.projectId === application.projectId && item.grantId === application.grantId
+      )
+      .findIndex((item) => item.id === application.id) + 1
+  );
+}
+
+export function resolveWorkAttempt(
+  workspace: Workspace,
+  fallbackProjectId: string,
+  grantId: string,
+  attemptId: string | string[] | undefined
+) {
+  const explicit = attemptId !== undefined;
+  const application = explicit
+    ? typeof attemptId === 'string'
+      ? workspace.applications.find(
+          (item) => item.id === attemptId && (!grantId || item.grantId === grantId)
+        )
+      : undefined
+    : workspace.applications.find(
+        (item) => item.projectId === fallbackProjectId && item.grantId === grantId
+      );
+  const projectId = application?.projectId ?? fallbackProjectId;
+  const selectedGrantId = application?.grantId ?? grantId;
+  return {
+    application,
+    projectId,
+    grantId: selectedGrantId,
+    slotKey: application
+      ? applicationWorkKey(workspace, application)
+      : workSlotKey(projectId, selectedGrantId),
+    unavailable: explicit && !application,
+  };
+}
 
 function required(value: string, label: string) {
   const text = value.trim();
@@ -132,6 +181,39 @@ export function archiveProject(
     projects: workspace.projects.map((project) =>
       project.id === projectId ? { ...project, archivedAt } : project
     ),
+  };
+}
+
+const artifactTitles: Record<OutputKind, string> = {
+  application: 'Application Narrative',
+  'pitch-deck': 'Pitch Deck Outline',
+  document: 'Supporting Document Annex',
+};
+
+export function createDraftApplication(input: {
+  id: string;
+  grantId: string;
+  project: ProjectProfile;
+  outputs: OutputKind[];
+  updatedAt: string;
+}): ApplicationBundle {
+  const { id, grantId, project, outputs, updatedAt } = input;
+  return {
+    id,
+    projectId: project.id,
+    grantId,
+    fundingRoundId: 'round-2026-active',
+    profileRevisionId: project.currentRevisionId,
+    template: { id: `tpl-${project.kind}`, version: '1.0' },
+    status: 'drafting',
+    artifacts: outputs.map((kind, index) => ({
+      id: `${id}-art-${index + 1}`,
+      kind,
+      title: artifactTitles[kind],
+      revisionId: 'v1',
+    })),
+    updatedAt,
+    submittedSnapshot: null,
   };
 }
 

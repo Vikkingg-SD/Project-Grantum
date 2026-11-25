@@ -9,6 +9,8 @@ import { RADIUS, SPACING } from '@/config/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useLayoutMetrics } from '@/hooks/useLayoutMetrics';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
+import { MOCK_AWARD_APPLICATION_ID } from '@/mock/seeds';
+import { useWorkAttempt } from '@/hooks/useWorkAttempt';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useApplicationAuditState } from '@/hooks/useApplicationAuditState';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
@@ -35,13 +37,11 @@ import {
   deriveApplicationProgress,
   type DerivedWorkplanItem,
 } from '@/utils/progressTracking';
-import { workSlotKey } from '@/utils/workspace';
 import type { CoWorkRole } from '@/types/workspace';
 
 export default function ProgressTrackingScreen() {
   const grantId = useActiveGrantId();
-  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
-  const slotKey = grantId ? workSlotKey(activeProjectId, grantId) : '';
+  const { slotKey } = useWorkAttempt(grantId);
   return <ProgressTrackingSession key={slotKey} grantId={grantId} slotKey={slotKey} />;
 }
 
@@ -55,27 +55,25 @@ function ProgressTrackingSession({ grantId, slotKey }: { grantId: string; slotKe
   const [errorMsg, setErrorMsg] = useState('');
 
   const workspace = useWorkspaceStore((state) => state.workspace);
-  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const { projectId: activeProjectId, application: activeApp } = useWorkAttempt(grantId);
   const projectRoles = useWorkspaceStore((state) => state.projectRoles);
-  const activeRole = useWorkspaceStore((state) => state.activeRole);
   const nickname = useWorkspaceStore((state) => state.nickname);
-  const effectiveRole: CoWorkRole = projectRoles[activeProjectId] ?? activeRole;
+  const effectiveRole: CoWorkRole = projectRoles[activeProjectId] ?? 'owner';
   const canEditRole = effectiveRole !== 'viewer';
   const canMarkDone = canRoleMarkWorkplanDone(effectiveRole);
 
   const activeProject =
     workspace.projects.find((p) => p.id === activeProjectId) ?? workspace.projects[0];
-  const activeApp = workspace.applications.find(
-    (app) => app.projectId === activeProjectId && app.grantId === grantId
-  );
   const isSubmittedSlot = Boolean(
     activeApp && (activeApp.status === 'submitted' || activeApp.submittedSnapshot !== null)
   );
 
   const detail = useGrantDetail(grantId);
-  const draft = useProposalDraft(grantId);
+  const draft = useProposalDraft(grantId, slotKey);
   const scan = useAuditStatus(grantId, false, slotKey);
-  const awardQuery = useAward(ENV.DATA_SOURCE !== 'mock' || isSubmittedSlot ? grantId : '');
+  const canLoadAward =
+    ENV.DATA_SOURCE !== 'mock' || (isSubmittedSlot && activeApp?.id === MOCK_AWARD_APPLICATION_ID);
+  const awardQuery = useAward(canLoadAward ? grantId : '');
 
   const local = useDraftStore((state) => state.drafts[slotKey] ?? EMPTY_DRAFT);
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
@@ -120,10 +118,7 @@ function ProgressTrackingSession({ grantId, slotKey }: { grantId: string; slotKe
 
   const detailAbsent = detail.error instanceof ApiError && detail.error.status === 404;
 
-  const awardRecord = useMemo(() => {
-    if (!isSubmittedSlot) return undefined;
-    return awardQuery.data;
-  }, [awardQuery.data, isSubmittedSlot]);
+  const awardRecord = isSubmittedSlot && canLoadAward ? awardQuery.data : undefined;
 
   const derived = useMemo(() => {
     if (!detail.data) return null;

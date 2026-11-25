@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter, useUnstableGlobalHref } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import Check from 'lucide-react-native/icons/check';
 import Plus from 'lucide-react-native/icons/plus';
@@ -24,7 +24,10 @@ import {
   mergeTemplateInitialSections,
   type EditableTemplateSection,
 } from '@/utils/drafting';
-import { canRolePerform, workSlotKey } from '@/utils/workspace';
+import { canRolePerform } from '@/utils/workspace';
+import { useWorkAttempt } from '@/hooks/useWorkAttempt';
+import { useWorkspaceNavigation } from '@/hooks/useWorkspaceNavigation';
+import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
 import {
   findKnownSection,
   isKnownSection,
@@ -53,18 +56,50 @@ export default function FormTemplatesScreen() {
     workspace.applications.find(
       (app) => app.projectId === activeProjectId && (!lastGrantId || app.grantId === lastGrantId)
     ) ?? workspace.applications.find((app) => app.projectId === activeProjectId);
-  const targetGrantId = lastGrantId ?? activeApp?.grantId ?? '1';
-  const slotKey = workSlotKey(activeProjectId, targetGrantId);
-
-  return <FormTemplatesEditor key={slotKey} slotKey={slotKey} targetGrantId={targetGrantId} />;
+  const fallbackGrantId = lastGrantId ?? activeApp?.grantId ?? '1';
+  const attempt = useWorkAttempt('');
+  const fallback = useWorkAttempt(fallbackGrantId, { attemptId: undefined });
+  const target = attempt.application ? attempt : fallback;
+  const href = useUnstableGlobalHref();
+  const router = useRouter();
+  const { clearInvalidPath, markInvalidPath } = useWorkspaceNavigation();
+  useFocusEffect(
+    useCallback(() => {
+      if (attempt.unavailable) markInvalidPath(href);
+      else clearInvalidPath(href);
+    }, [attempt.unavailable, clearInvalidPath, href, markInvalidPath])
+  );
+  if (attempt.unavailable) {
+    return (
+      <EmptyStateLayout
+        title="Application unavailable"
+        description="This application could not be found."
+        ctaLabel="Open My Works"
+        onCtaPress={() => router.replace('/my-works')}
+      />
+    );
+  }
+  return (
+    <FormTemplatesEditor
+      key={target.slotKey}
+      slotKey={target.slotKey}
+      targetGrantId={target.grantId}
+      activeProjectId={target.projectId}
+      attemptId={target.application?.id}
+    />
+  );
 }
 
 function FormTemplatesEditor({
   slotKey,
   targetGrantId,
+  activeProjectId,
+  attemptId,
 }: {
   slotKey: string;
   targetGrantId: string;
+  activeProjectId: string;
+  attemptId?: string;
 }) {
   const theme = useTheme();
   const router = useRouter();
@@ -72,11 +107,9 @@ function FormTemplatesEditor({
   const { desktop } = useLayoutMetrics();
 
   const workspace = useWorkspaceStore((state) => state.workspace);
-  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
   const nickname = useWorkspaceStore((state) => state.nickname);
   const projectRoles = useWorkspaceStore((state) => state.projectRoles);
-  const activeRole = useWorkspaceStore((state) => state.activeRole);
-  const effectiveRole: CoWorkRole = projectRoles[activeProjectId] ?? activeRole;
+  const effectiveRole: CoWorkRole = projectRoles[activeProjectId] ?? 'owner';
   const canEdit = canRolePerform(effectiveRole, 'edit');
 
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
@@ -516,7 +549,7 @@ function FormTemplatesEditor({
               onPress={() =>
                 router.push({
                   pathname: '/grants/[grantID]/drafting',
-                  params: { grantID: targetGrantId },
+                  params: { grantID: targetGrantId, attemptId },
                 })
               }
             />

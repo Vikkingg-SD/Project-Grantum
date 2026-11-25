@@ -8,6 +8,8 @@ function equal(actual: unknown, expected: unknown) {
 for (const value of [
   '/grants/2/drafting',
   '/grants/2/progress-tracking',
+  '/grants/2/progress-tracking?attemptId=app-p2-g2',
+  '/form-templates?attemptId=app-p2-g2',
   '/grants/grant%2Fwith%20spaces/drafting',
   '/form-templates',
   '/settings',
@@ -32,6 +34,7 @@ for (const value of [
   '/grants/%252e%252e%252fadmin/drafting',
   '/grants/./dashboard',
   '/grants/2/drafting?redirect=https://example.org',
+  '/grants/2/drafting?attemptId=app-p2-g2&attemptId=app-other',
 ]) {
   equal(workspaceReturnPath(value), '/dashboard');
 }

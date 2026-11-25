@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, Platform, Pressable, View, StyleSheet, useWindowDimensions } from 'react-native';
-import { useGlobalSearchParams, usePathname, useRouter } from 'expo-router';
+import { useGlobalSearchParams, usePathname, useRouter, useUnstableGlobalHref } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/atoms/AppText';
 import { AppButton } from '@/components/atoms/AppButton';
@@ -9,7 +9,7 @@ import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { ENV } from '@/config/env';
 import { LAYOUT } from '@/config/layout';
 import { RADIUS, SPACING } from '@/config/theme';
-import { normalizePathname } from '@/utils/navigationHistory';
+import { normalizePathname, workspaceDestination } from '@/utils/navigationHistory';
 import { workspaceReturnHref } from '@/utils/workspaceReturn';
 
 export function AccountMenu() {
@@ -18,6 +18,7 @@ export function AccountMenu() {
   const theme = useTheme();
   const router = useRouter();
   const pathname = normalizePathname(usePathname());
+  const href = useUnstableGlobalHref();
   const { returnTo } = useGlobalSearchParams<{ returnTo?: string | string[] }>();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -28,7 +29,9 @@ export function AccountMenu() {
     if (pathname === path) return;
     if (path === '/plans' || path === '/affiliate-campaign') {
       const originTarget =
-        pathname === '/plans' || pathname === '/affiliate-campaign' ? returnTo : pathname;
+        pathname === '/plans' || pathname === '/affiliate-campaign'
+          ? returnTo
+          : workspaceDestination(href);
       router.push(workspaceReturnHref(path, originTarget));
       return;
     }

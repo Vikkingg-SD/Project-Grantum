@@ -1,8 +1,15 @@
 import React, { useEffect } from 'react';
-import { Stack, useGlobalSearchParams, usePathname, useRouter } from 'expo-router';
+import {
+  Stack,
+  useGlobalSearchParams,
+  usePathname,
+  useRouter,
+  useUnstableGlobalHref,
+} from 'expo-router';
 import { View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
+import { useWorkAttempt } from '@/hooks/useWorkAttempt';
 import { useActiveView } from '@/hooks/useActiveView';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { isValidGrantId } from '@/utils/navigationHistory';
@@ -27,7 +34,11 @@ export default function GrantLayout() {
   // Preserve the existing layout-level recovery probe across the route flip.
   useRecoveryProbe('tab');
   const localGrantId = useActiveGrantId();
-  const { grantID: rawGlobalGrantId } = useGlobalSearchParams<{ grantID?: string | string[] }>();
+  const { grantID: rawGlobalGrantId, attemptId } = useGlobalSearchParams<{
+    grantID?: string | string[];
+    attemptId?: string | string[];
+  }>();
+  const href = useUnstableGlobalHref();
   const pathname = usePathname();
   const hasGlobalGrantParam = rawGlobalGrantId !== undefined;
   const globalGrantId =
@@ -36,6 +47,7 @@ export default function GrantLayout() {
       : '';
   const grantID =
     pathname.startsWith('/grants/') && hasGlobalGrantParam ? globalGrantId : localGrantId;
+  const { unavailable: attemptUnavailable } = useWorkAttempt(grantID, { attemptId });
   const queryClient = useQueryClient();
   const grant = useGrantDetail(grantID);
   const router = useRouter();
@@ -44,14 +56,17 @@ export default function GrantLayout() {
   const { markInvalidPath } = useWorkspaceNavigation();
   const setLastGrantId = useDraftStore((state) => state.setLastGrantId);
   const isLoading = Boolean(grantID) && grant.isPending;
-  const isUnavailable = !grantID || grant.isError || (!grant.isPending && !grant.data);
+  const isUnavailable =
+    attemptUnavailable || !grantID || grant.isError || (!grant.isPending && !grant.data);
   const cachedCatalog = queryClient.getQueryData<Grant[]>(queryKeys.grants());
   const confirmedByCatalog = Boolean(grantID && cachedCatalog?.some((item) => item.id === grantID));
 
   // Remember only confirmed grants (detail resolved or already validated in the loaded catalog)
   // so invalid or 404 grant URLs can never poison lastLifecycle or un-blacklist invalidPaths.
   const confirmedGrantId =
-    grantID && !grant.isError && (Boolean(grant.data) || confirmedByCatalog) ? grantID : '';
+    !attemptUnavailable && grantID && !grant.isError && (Boolean(grant.data) || confirmedByCatalog)
+      ? grantID
+      : '';
   useRememberLifecycle(confirmedGrantId);
   useEffect(() => {
     if (confirmedGrantId) {
@@ -60,9 +75,9 @@ export default function GrantLayout() {
   }, [confirmedGrantId, setLastGrantId]);
   useEffect(() => {
     if (isUnavailable) {
-      markInvalidPath(pathname);
+      markInvalidPath(href);
     }
-  }, [isUnavailable, markInvalidPath, pathname]);
+  }, [href, isUnavailable, markInvalidPath]);
 
   const items = navigationItemsForGrant(grantID).map((item) => ({
     ...item,
@@ -79,11 +94,19 @@ export default function GrantLayout() {
           screenLayout={({ children }) =>
             isLoading || isUnavailable ? (
               <EmptyStateLayout
-                title={isLoading ? ROUTE_COPY.loadingTitle : ROUTE_COPY.unavailableTitle}
+                title={
+                  isLoading
+                    ? ROUTE_COPY.loadingTitle
+                    : attemptUnavailable
+                      ? 'Application unavailable'
+                      : ROUTE_COPY.unavailableTitle
+                }
                 description={
                   isLoading
                     ? ROUTE_COPY.loadingGrant
-                    : (grant.error?.message ?? 'This opportunity could not be found.')
+                    : attemptUnavailable
+                      ? 'This application could not be found for this opportunity.'
+                      : (grant.error?.message ?? 'This opportunity could not be found.')
                 }
                 ctaLabel={isLoading ? undefined : ROUTE_COPY.backDashboard}
                 onCtaPress={() => router.replace('/dashboard')}

@@ -71,6 +71,23 @@ export function normalizePathname(href: string): string {
   return path.length > 1 && path.endsWith('/') ? path.replace(/\/+$/, '') : path;
 }
 
+export function workspaceDestination(href: string): string {
+  const pathname = normalizePathname(href);
+  if (!pathname.startsWith('/grants/') && pathname !== '/form-templates') return pathname;
+  const query = href.match(/\?([^#]*)/)?.[1];
+  if (!query) return pathname;
+  let attemptIds: string[];
+  try {
+    attemptIds = new URLSearchParams(query).getAll('attemptId');
+  } catch {
+    // React Native's query parser throws on malformed percent encodings.
+    return pathname + '?' + query;
+  }
+  if (!attemptIds.length) return pathname;
+  const attemptQuery = attemptIds.map((id) => 'attemptId=' + encodeURIComponent(id));
+  return pathname + '?' + attemptQuery.join('&');
+}
+
 export function isLifecyclePath(pathname: string): boolean {
   const clean = normalizePathname(pathname);
   const [, root, grant, view, extra] = clean.split('/');
@@ -88,7 +105,7 @@ export function isWorkspaceShellPath(pathname: string): boolean {
 
 export function isBackTargetPath(href: string, invalidPaths?: ReadonlySet<string>): boolean {
   const clean = normalizePathname(href);
-  if (invalidPaths?.has(clean)) return false;
+  if (invalidPaths?.has(clean) || invalidPaths?.has(workspaceDestination(href))) return false;
   if (clean === '/admin' || clean === '/onboarding' || clean === '/roadmap') return false;
   return WORKSPACE_BACKABLE_PATHS.has(clean) || isLifecyclePath(clean);
 }
@@ -165,13 +182,13 @@ export function findPreviousBackIndex(
   currentPathname: string,
   invalidPaths?: ReadonlySet<string>
 ): number {
-  const cleanCurrent = normalizePathname(currentPathname);
+  const cleanCurrent = workspaceDestination(currentPathname);
   if (!isWorkspaceShellPath(cleanCurrent)) return -1;
   const current = history.visits[history.index];
-  if (!current || normalizePathname(current.href) !== cleanCurrent) return -1;
+  if (!current || workspaceDestination(current.href) !== cleanCurrent) return -1;
   for (let i = history.index - 1; i >= 0; i--) {
     const candidate = history.visits[i];
-    const candidatePath = normalizePathname(candidate.href);
+    const candidatePath = workspaceDestination(candidate.href);
     if (candidatePath !== cleanCurrent && isBackTargetPath(candidate.href, invalidPaths)) {
       return i;
     }
@@ -184,13 +201,13 @@ export function resolveHomeDestination(
   lastLifecyclePath: string | null,
   invalidPaths?: ReadonlySet<string>
 ): string | null {
-  const cleanCurrent = normalizePathname(currentPathname);
+  const cleanCurrent = workspaceDestination(currentPathname);
   const currentInvalid = Boolean(invalidPaths?.has(cleanCurrent));
   const cleanLast =
     lastLifecyclePath &&
     isLifecyclePath(lastLifecyclePath) &&
-    !invalidPaths?.has(normalizePathname(lastLifecyclePath))
-      ? normalizePathname(lastLifecyclePath)
+    isBackTargetPath(lastLifecyclePath, invalidPaths)
+      ? workspaceDestination(lastLifecyclePath)
       : null;
   if (cleanLast) {
     return cleanCurrent === cleanLast && !currentInvalid ? null : cleanLast;

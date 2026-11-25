@@ -309,3 +309,22 @@ step(
     );
   }
 );
+
+step(
+  'Given two attempts in one view When using Back and Home Then the attempt identifies the destination',
+  () => {
+    const first = '/grants/1/drafting?attemptId=app-p1-g1';
+    const second = '/grants/1/drafting?attemptId=app-p1-g1-2';
+    const history = {
+      visits: [
+        { key: 'a', href: first },
+        { key: 'b', href: second },
+      ],
+      index: 1,
+    };
+    assert.equal(findPreviousBackIndex(history, second), 0);
+    assert.equal(resolveHomeDestination('/my-works', second), second);
+    assert.equal(findPreviousBackIndex(history, second, new Set([first])), -1);
+    assert.equal(resolveHomeDestination('/my-works', first, new Set([second])), first);
+  }
+);

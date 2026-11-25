@@ -15,6 +15,7 @@ import { useWorkbenchStore, EMPTY_WORKBENCH } from '@/store/useWorkbenchStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useProgressStore } from '@/store/useProgressStore';
 import { useActiveGrantId } from '@/hooks/useActiveGrantId';
+import { useWorkAttempt } from '@/hooks/useWorkAttempt';
 import { useApplicationAuditState } from '@/hooks/useApplicationAuditState';
 import { MAX_INPUT_CHARS, TIERS } from '@/config/constants';
 import { EXPORT_FORMATS } from '@/config/exportFormats';
@@ -30,14 +31,13 @@ import {
   triggerWebTextDownload,
   type LocalTextFormat,
 } from '@/utils/localExport';
-import { canRolePerform, workSlotKey } from '@/utils/workspace';
+import { canRolePerform } from '@/utils/workspace';
 import { isLocalHttpOrigin, isSafeExternalUrl } from '@/utils/navigationHistory';
 import type { ExportFormat } from '@/types/api';
 
 export default function ExportScreen() {
   const grantId = useActiveGrantId();
-  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
-  const slotKey = grantId ? workSlotKey(activeProjectId, grantId) : '';
+  const { slotKey } = useWorkAttempt(grantId);
   return <ExportSession key={slotKey} grantId={grantId} slotKey={slotKey} />;
 }
 
@@ -48,15 +48,14 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
   const local = useDraftStore((state) => state.drafts[slotKey] ?? EMPTY_DRAFT);
   const setDocument = useDraftStore((state) => state.setExportDocument);
   const workspace = useWorkspaceStore((state) => state.workspace);
-  const activeProjectId = useWorkspaceStore((state) => state.activeProjectId);
+  const { projectId: activeProjectId, application: activeApp } = useWorkAttempt(grantId);
   const projectRoles = useWorkspaceStore((state) => state.projectRoles);
-  const activeRole = useWorkspaceStore((state) => state.activeRole);
-  const effectiveRole = projectRoles[activeProjectId] ?? activeRole;
+  const effectiveRole = projectRoles[activeProjectId] ?? 'owner';
   const nickname = useWorkspaceStore((state) => state.nickname);
   const recordActivity = useProgressStore((state) => state.recordActivity);
   const recordExportDownload = useProgressStore((state) => state.recordExportDownload);
   const work = useWorkbenchStore((state) => state.work[slotKey] ?? EMPTY_WORKBENCH);
-  const draft = useProposalDraft(grantId);
+  const draft = useProposalDraft(grantId, slotKey);
   const scan = useAuditStatus(grantId, false, slotKey);
   const mutation = useExportBundle(grantId);
   const [format, setFormat] = useState<ExportFormat | null>(null);
@@ -66,9 +65,6 @@ function ExportSession({ grantId, slotKey }: { grantId: string; slotKey: string 
 
   const activeProject =
     workspace.projects.find((p) => p.id === activeProjectId) ?? workspace.projects[0];
-  const activeApp = workspace.applications.find(
-    (app) => app.projectId === activeProjectId && app.grantId === grantId
-  );
   const canEdit = canRolePerform(effectiveRole, 'edit');
 
   const rawRequired = draft.data?.requiredSections;

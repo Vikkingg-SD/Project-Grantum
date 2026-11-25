@@ -3,6 +3,7 @@ import { createDevicePersistence, type PersistenceStatus } from './devicePersist
 import { getDeviceStorage } from './deviceStorage';
 import { DEFAULT_REQUIRED_SECTIONS } from '@/config/constants';
 import { ENV } from '@/config/env';
+import { MOCK_AWARD_APPLICATION_ID } from '@/mock/seeds';
 import { isWorkSlotReadyToFinish } from '@/utils/drafting';
 import { acknowledgeNotificationId, isNotificationReadIdList } from '@/utils/notifications';
 import { useWorkbenchStore } from './useWorkbenchStore';
@@ -17,6 +18,7 @@ import type {
 } from '@/types/workspace';
 import {
   addApplication,
+  createDraftApplication,
   archiveProject,
   auditProjectProfile,
   canRolePerform,
@@ -25,7 +27,7 @@ import {
   pullProfileRevision,
   saveProject,
   selectProfileRevision,
-  workSlotKey,
+  applicationWorkKey,
   type Workspace,
 } from '@/utils/workspace';
 
@@ -106,7 +108,7 @@ function buildInitialWorkspace(): Workspace {
   });
 
   const app1: ApplicationBundle = {
-    id: 'app-p1-g1',
+    id: MOCK_AWARD_APPLICATION_ID,
     projectId: 'project-1',
     grantId: '1',
     fundingRoundId: 'round-2026-q4',
@@ -282,6 +284,7 @@ export interface WorkspaceStoreState {
   }) => ProjectProfileAuditRecord;
   toggleArchiveProject: (projectId: string) => void;
   ensureWorkSlot: (projectId: string, grantId: string, outputs?: OutputKind[]) => ApplicationBundle;
+  createWorkAttempt: (projectId: string, grantId: string) => ApplicationBundle;
   pullWorkSlotProfile: (applicationId: string) => void;
   setWorkSlotProfileRevision: (applicationId: string, revisionId: string) => void;
   markWorkSlotSubmitted: (applicationId: string, receiptReference: string) => void;
@@ -327,6 +330,25 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
       profileAudits: next.profileAudits ?? current.profileAudits,
     };
     return persistence.save(merged, (persistenceStatus) => set({ persistenceStatus }));
+  };
+
+  const createAttempt = (projectId: string, grantId: string, outputs: OutputKind[]) => {
+    const state = get();
+    const project = state.workspace.projects.find(
+      (item) => item.id === projectId && !item.archivedAt
+    );
+    if (!project) throw new Error('Choose an active project.');
+    const newApp = createDraftApplication({
+      id: `app-${project.id}-g${grantId}-${state.workspace.applications.length + 1}`,
+      grantId,
+      project,
+      outputs,
+      updatedAt: new Date().toISOString(),
+    });
+    const nextWorkspace = addApplication(state.workspace, newApp);
+    const persistenceStatus = persistState({ workspace: nextWorkspace });
+    set({ workspace: nextWorkspace, persistenceStatus });
+    return newApp;
   };
 
   return {
@@ -498,36 +520,22 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
         (app) => app.projectId === projectId && app.grantId === grantId
       );
       if (existing) return existing;
-      const project =
-        state.workspace.projects.find((p) => p.id === projectId && !p.archivedAt) ??
-        state.workspace.projects.find((p) => !p.archivedAt) ??
-        state.workspace.projects[0];
-      const newApp: ApplicationBundle = {
-        id: `app-${project.id}-g${grantId}-${state.workspace.applications.length + 1}`,
-        projectId: project.id,
-        grantId,
-        fundingRoundId: 'round-2026-active',
-        profileRevisionId: project.currentRevisionId,
-        template: { id: `tpl-${project.kind}`, version: '1.0' },
-        status: 'drafting',
-        artifacts: outputs.map((kind, idx) => ({
-          id: `art-${grantId}-${idx + 1}`,
-          kind,
-          title:
-            kind === 'application'
-              ? 'Application Narrative'
-              : kind === 'pitch-deck'
-                ? 'Pitch Deck Outline'
-                : 'Supporting Document Annex',
-          revisionId: 'v1',
-        })),
-        updatedAt: new Date().toISOString(),
-        submittedSnapshot: null,
-      };
-      const nextWorkspace = addApplication(state.workspace, newApp);
-      const persistenceStatus = persistState({ workspace: nextWorkspace });
-      set({ workspace: nextWorkspace, persistenceStatus });
-      return newApp;
+      const targetProject =
+        state.workspace.projects.find(
+          (project) => project.id === projectId && !project.archivedAt
+        ) ?? state.workspace.projects.find((project) => !project.archivedAt);
+      if (!targetProject) throw new Error('Restore a project before starting an application.');
+      return createAttempt(targetProject.id, grantId, outputs);
+    },
+
+    createWorkAttempt: (projectId, grantId) => {
+      if (ENV.DATA_SOURCE !== 'mock') {
+        throw new Error('Additional applications require a connected application service.');
+      }
+      if (!canRolePerform(get().projectRoles[projectId] ?? 'owner', 'edit')) {
+        throw new Error('Your project role cannot start an application.');
+      }
+      return createAttempt(projectId, grantId, ['application', 'pitch-deck']);
     },
 
     pullWorkSlotProfile: (applicationId) =>
@@ -617,7 +625,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
           throw new Error('Your project role cannot change this review status.');
         }
         if (nextStatus === 'ready') {
-          const slot = workSlotKey(target.projectId, target.grantId);
+          const slot = applicationWorkKey(state.workspace, target);
           const work = useWorkbenchStore.getState().work[slot];
           const expectedRequired =
             requiredSections && requiredSections.length > 0
