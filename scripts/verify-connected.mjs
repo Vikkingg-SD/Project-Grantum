@@ -71,7 +71,18 @@ async function credentials() {
     }
   );
   assert(response.ok, 'Firebase emulator account creation');
-  return { password, email };
+  const identity = await response.json();
+  return { password, email, token: identity.idToken };
+}
+
+async function requestApi(route, token, method = 'GET', body) {
+  const response = await fetch(backend + '/api/v1' + route, {
+    method,
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    ...(body && { body: JSON.stringify(body) }),
+  });
+  assert(response.ok, method + ' ' + route + ' returned ' + response.status);
+  return response.status === 204 ? null : response.json();
 }
 
 function inspect(page) {
@@ -220,7 +231,8 @@ try {
   const mobile = await browser.newContext({ viewport: { width: 320, height: 812 } });
   const visitor = await mobile.newPage();
   inspect(visitor);
-  await signIn(visitor, await credentials(), firstHref);
+  const colleague = await credentials();
+  await signIn(visitor, colleague, firstHref);
   await expect(
     visitor.getByText('This application attempt is unavailable.', { exact: true })
   ).toBeVisible();
@@ -233,6 +245,37 @@ try {
   );
   assert(fits, 'Connected workspace fits the 320px viewport');
   checks.push('Account isolation, rejected deep link and compact browser layout');
+
+  const attemptId = new URL(firstHref).searchParams.get('attemptId');
+  const current = await requestApi('/attempts/' + attemptId, account.token);
+  const membership = '/projects/' + current.projectId + '/members';
+  const profile = await requestApi('/auth/me', colleague.token);
+  await requestApi(membership, account.token, 'POST', { accountId: profile.id, role: 'editor' });
+  await signIn(visitor, colleague, firstHref);
+  const mission = visitor.getByLabel('Mission', { exact: true });
+  await expect(mission).toHaveValue('Saved field for Mission');
+  await mission.fill('Unsaved collaborator edits');
+  await requestApi('/attempts/' + attemptId, account.token, 'PATCH', {
+    version: current.version,
+    title: current.title,
+    sections: current.sections.map((section) =>
+      section.name === 'Mission' ? { ...section, text: 'Newer owner revision' } : section
+    ),
+    budget: current.budget,
+  });
+  await button(visitor, 'Check for saved changes').click();
+  await expect(visitor.getByText(/A newer draft has been saved/)).toBeVisible();
+  await expect(mission).toHaveValue('Unsaved collaborator edits');
+  await expect(button(visitor, 'Save application draft')).toBeDisabled();
+  await requestApi(membership + '/' + profile.id, account.token, 'DELETE');
+  await button(visitor, 'Check for saved changes').click();
+  await expect(
+    visitor.getByText('This application attempt is unavailable.', { exact: true })
+  ).toBeVisible();
+  await expect(mission).toHaveCount(0);
+  checks.push(
+    'Live collaborator conflict preservation and removal of cached draft after access denial'
+  );
 
   await button(page, 'Sign out').click();
   await expect(page.getByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();

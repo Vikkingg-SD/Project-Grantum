@@ -28,6 +28,10 @@ class ProjectPayload(Payload):
     legalEntity: str = Field(default="", max_length=120)
 
 
+class ProjectCreate(ProjectPayload):
+    requestKey: UUID
+
+
 class ProjectUpdate(ProjectPayload):
     version: Version
     archived: bool = False

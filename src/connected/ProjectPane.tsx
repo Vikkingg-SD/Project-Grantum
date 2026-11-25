@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { randomUUID } from 'expo-crypto';
 import { View } from 'react-native';
 import { getDocumentAsync } from 'expo-document-picker';
 import { File } from 'expo-file-system';
@@ -21,20 +22,27 @@ const emptyProject = { name: '', description: '', region: '', legalEntity: '' };
 
 export function ProjectPane({ api, scope }: Props) {
   const [selection, setSelection] = useState('');
+  const creation = useRef<{ content: string; key: string } | null>(null);
   const cache = useQueryClient();
   const query = useQuery({
     queryKey: [...scope, 'projects'],
     queryFn: () => api.get<Project[]>('/projects'),
   });
-  const project = query.data?.find((item) => item.id === selection);
+  const items = query.error ? undefined : query.data;
+  const project = items?.find((item) => item.id === selection);
   async function save(input: ProjectInput, existing?: Project, archived = false) {
+    if (!existing) {
+      const content = JSON.stringify(input);
+      if (creation.current?.content !== content) creation.current = { content, key: randomUUID() };
+    }
     const current = existing
       ? await api.patch<Project>('/projects/' + existing.id, {
           ...input,
           version: existing.version,
           archived,
         })
-      : await api.post<Project>('/projects', input);
+      : await api.post<Project>('/projects', { ...input, requestKey: creation.current?.key });
+    if (!existing) creation.current = null;
     cache.setQueryData<Project[]>([...scope, 'projects'], (records = []) => [
       ...records.filter((item) => item.id !== current.id),
       current,
@@ -51,7 +59,7 @@ export function ProjectPane({ api, scope }: Props) {
           selected={!selection}
           onPress={() => setSelection('')}
         />
-        {query.data?.map((item) => (
+        {items?.map((item) => (
           <AppButton
             key={item.id}
             label={item.name + (item.archived ? ' · archived' : '')}
@@ -66,11 +74,7 @@ export function ProjectPane({ api, scope }: Props) {
         error={query.error}
         retry={() => void query.refetch()}
       />
-      <ProjectForm
-        key={project ? project.id + ':' + project.version : 'new'}
-        project={project}
-        save={save}
-      />
+      <ProjectForm key={project?.id ?? 'new'} project={project} save={save} />
       {project && <ProjectTeam key={project.id} api={api} scope={scope} project={project} />}
       {project && (
         <ProjectDocuments
@@ -99,7 +103,9 @@ function ProjectForm({
         legalEntity: project.legalEntity,
       }
     : emptyProject;
-  const [draft, setDraft] = useState<ProjectInput>(initial);
+  const [edit, setEdit] = useState<{ fields: ProjectInput; version?: number } | null>(null);
+  const draft = edit?.fields ?? initial;
+  const conflict = Boolean(edit && project && edit.version !== project.version);
   const [checked, setChecked] = useState(false);
   const action = useAction();
   const editable = !project || (!project.archived && ['owner', 'editor'].includes(project.role));
@@ -128,7 +134,10 @@ function ProjectForm({
           multiline={key === 'description'}
           style={key === 'description' && actionStyles.multiline}
           onChangeText={(text) => {
-            setDraft({ ...draft, [key]: text });
+            setEdit({
+              fields: { ...draft, [key]: text },
+              version: edit ? edit.version : project?.version,
+            });
             setChecked(false);
           }}
         />
@@ -138,9 +147,14 @@ function ProjectForm({
           <AppButton
             label={project ? 'Save profile' : 'Create project'}
             variant="primary"
-            disabled={!draft.name.trim()}
+            disabled={!draft.name.trim() || conflict || (Boolean(project) && !edit)}
             isLoading={action.busy}
-            onPress={() => void action.run(() => save(draft, project), 'Project saved.')}
+            onPress={() =>
+              void action.run(async () => {
+                await save(draft, project);
+                setEdit(null);
+              }, 'Project saved.')
+            }
           />
         )}
         <AppButton label="Check profile fields" onPress={() => setChecked(true)} />
@@ -152,6 +166,18 @@ function ProjectForm({
           />
         )}
       </View>
+      {conflict && (
+        <AppText accessibilityRole="alert" color="failureText">
+          A newer profile is saved. Your edits are still here.
+        </AppText>
+      )}
+      {edit && (
+        <AppButton
+          label="Discard profile edits"
+          onPress={() => setEdit(null)}
+          disabled={action.busy}
+        />
+      )}
       {checked && (
         <AppText accessibilityLiveRegion="polite">
           {missing.length ? 'Missing · ' + missing.join(', ') : 'All profile fields are filled.'}

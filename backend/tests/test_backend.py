@@ -60,7 +60,7 @@ def onboarding(app, identity):
 
 
 def project(app, identity, name="Connected project"):
-    result = api(app, "POST", "/projects", identity, {"name": name})
+    result = api(app, "POST", "/projects", identity, {"name": name, "requestKey": str(uuid4())})
     assert result.status_code == 201
     return result.json
 
@@ -365,3 +365,56 @@ def test_posthog_consent_queue_sends_allowlisted_payload(app, identities):
         assert deliver(telemetry, send=capture) == 0
     finally:
         app.config["POSTHOG_ENABLED"] = False
+
+
+def test_create_project_idempotency_is_account_scoped(app, identities):
+    first, second = identities
+    onboarding(app, first)
+    onboarding(app, second)
+    payload = {"name": "Retryable project", "requestKey": str(uuid4())}
+    initial = api(app, "POST", "/projects", first, payload)
+    replay = api(app, "POST", "/projects", first, payload)
+    assert (initial.status_code, replay.status_code) == (201, 200)
+    assert initial.json["id"] == replay.json["id"]
+    assert api(app, "POST", "/projects", first, {**payload, "name": "Another"}).status_code == 409
+    second_result = api(app, "POST", "/projects", second, payload)
+    assert second_result.status_code == 201 and second_result.json["id"] != initial.json["id"]
+
+
+def test_status_change_rechecks_role_after_lock(app, identities):
+    from time import monotonic, sleep
+
+    owner, reviewer = identities
+    onboarding(app, owner)
+    collaborator = onboarding(app, reviewer)
+    project_id = project(app, owner)["id"]
+    member_path = f"/projects/{project_id}/members"
+    api(app, "POST", member_path, owner, {"accountId": collaborator["id"], "role": "reviewer"})
+    record = attempt(app, owner, project_id)
+    attempt_path = "/attempts/" + record["id"]
+    saved = api(app, "PATCH", attempt_path, owner, authored(record)).json
+    request = {"version": saved["version"], "status": "ready"}
+    migration_url = os.environ["GRANTUM_MIGRATION_URL"].replace("+psycopg", "", 1)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        with psycopg.connect(migration_url) as owner_db:
+            owner_db.execute("SELECT id FROM projects WHERE id = %s FOR UPDATE", (project_id,))
+            owner_db.execute(
+                "UPDATE memberships SET role = 'viewer' WHERE project_id = %s AND account_id = %s",
+                (project_id, collaborator["id"]),
+            )
+            pending = executor.submit(api, app, "POST", attempt_path + "/status", reviewer, request)
+            end = monotonic() + 5
+            waited = False
+            with psycopg.connect(migration_url, autocommit=True) as observer:
+                while monotonic() < end:
+                    waited = observer.execute(
+                        "SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE usename = 'grantum_app'"
+                        " AND %s = ANY (pg_blocking_pids(pid)))",
+                        (owner_db.info.backend_pid,),
+                    ).fetchone()[0]
+                    if waited:
+                        break
+                    sleep(0.04)
+            assert waited, "The update must reach the project lock before the demotion commits."
+        assert pending.result(timeout=5).status_code == 403
+    assert api(app, "GET", attempt_path, owner).json["status"] == "drafting"

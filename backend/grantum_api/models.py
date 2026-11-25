@@ -39,6 +39,15 @@ class Account(Base):
 
 class Project(Base):
     __tablename__ = "projects"
+    __table_args__ = (
+        UniqueConstraint("creation_account_id", "creation_request_key", name="uq_project_request"),
+    )
+
+    creation_account_id: Mapped[str | None] = mapped_column(
+        ForeignKey("accounts.id", name="fk_project_creation_account")
+    )
+    creation_request_key: Mapped[str | None] = mapped_column(String(36))
+    creation_hash: Mapped[str | None] = mapped_column(String(64))
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     name: Mapped[str] = mapped_column(String(120))

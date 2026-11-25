@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppInput } from '@/components/atoms/AppInput';
 import { AppText } from '@/components/atoms/AppText';
+import { ApiError } from '@/api/client';
 import { actionStyles, ActionMessage, Card, QueryMessage, useAction } from './ui';
 import type {
   Attempt,
@@ -41,9 +42,13 @@ export function AttemptPane(props: Props) {
     queryKey: [...scope, 'attempt', attemptId],
     queryFn: () => api.attempt(attemptId),
     retry: false,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
   });
   const record = query.data;
-  if (!record)
+  const denied = query.error instanceof ApiError && [401, 403, 404].includes(query.error.status);
+  if (!record || denied)
     return (
       <QueryMessage
         pending={query.isPending}
@@ -80,7 +85,7 @@ export function AttemptPane(props: Props) {
         </View>
       </Card>
       <AttemptEditor
-        key={record.id + ':' + record.version}
+        key={record.id}
         {...props}
         record={record}
         tab={tab}
@@ -99,15 +104,27 @@ function AttemptEditor({
   reload,
 }: Props & { record: Attempt; tab: Tab; reload: () => void }) {
   const cache = useQueryClient();
-  const [title, setTitle] = useState(record.title);
-  const [sections, setSections] = useState(record.sections);
-  const [budget, setBudget] = useState(record.budget);
+  const [edit, setEdit] = useState<Pick<
+    Attempt,
+    'title' | 'sections' | 'budget' | 'version'
+  > | null>(null);
+  const current = edit ?? {
+    title: record.title,
+    sections: record.sections,
+    budget: record.budget,
+    version: record.version,
+  };
+  const { title, sections, budget } = current;
+  const setTitle = (value: string) => setEdit({ ...current, title: value });
+  const setSections = (value: Attempt['sections']) => setEdit({ ...current, sections: value });
+  const setBudget = (value: Attempt['budget']) => setEdit({ ...current, budget: value });
   const [custom, setCustom] = useState('');
   const action = useAction();
   const working = record.status === 'drafting' || record.status === 'review';
   const editable = working && (record.role === 'owner' || record.role === 'editor');
   const path = '/attempts/' + record.id;
-  const dirty = title !== record.title || sections !== record.sections || budget !== record.budget;
+  const dirty = edit !== null;
+  const conflict = dirty && current.version !== record.version;
   const apply = async (next: Attempt) => {
     cache.setQueryData([...scope, 'attempt', record.id], next);
     await Promise.all([
@@ -120,9 +137,10 @@ function AttemptEditor({
   };
   function save() {
     return action.run(async () => {
-      await apply(
-        await api.patch<Attempt>(path, { title, sections, budget, version: record.version })
-      );
+      if (conflict) throw new Error('A newer draft is saved. Copy your edits before reloading.');
+      const next = await api.patch<Attempt>(path, current);
+      setEdit(null);
+      await apply(next);
     }, 'Attempt saved.');
   }
   function append(names: string[]) {
@@ -177,12 +195,22 @@ function AttemptEditor({
               <AppButton
                 label="Save application draft"
                 variant="primary"
-                disabled={!dirty || !title.trim()}
+                disabled={!dirty || conflict || !title.trim()}
                 isLoading={action.busy}
                 onPress={() => void save()}
               />
             )}
-            <AppButton label="Reload saved revision" disabled={action.busy} onPress={reload} />
+            {dirty && (
+              <AppButton label="Check for saved changes" disabled={action.busy} onPress={reload} />
+            )}
+            <AppButton
+              label={dirty ? 'Discard edits and reload saved revision' : 'Reload saved revision'}
+              disabled={action.busy}
+              onPress={() => {
+                setEdit(null);
+                reload();
+              }}
+            />
           </View>
           <AppText color="muted">AI drafting requires a connected AI provider.</AppText>
         </Card>
@@ -229,7 +257,7 @@ function AttemptEditor({
               <AppButton
                 label="Save template changes"
                 variant="primary"
-                disabled={!dirty || !title.trim()}
+                disabled={!dirty || conflict || !title.trim()}
                 isLoading={action.busy}
                 onPress={() => void save()}
               />
@@ -243,7 +271,7 @@ function AttemptEditor({
           editable={editable}
           setBudget={setBudget}
           save={() => void save()}
-          dirty={dirty}
+          dirty={dirty && !conflict}
           busy={action.busy}
         />
       )}
@@ -260,7 +288,13 @@ function AttemptEditor({
           apply={apply}
         />
       )}
-      {dirty && <AppText color="muted">You have unsaved application changes.</AppText>}
+      {conflict && (
+        <AppText accessibilityRole="alert" color="failureText">
+          A newer draft has been saved. Your edits are still here. Copy what you need before
+          reloading.
+        </AppText>
+      )}
+      {dirty && !conflict && <AppText color="muted">You have unsaved application changes.</AppText>}
       <ActionMessage action={action} />
     </>
   );

@@ -1,10 +1,13 @@
+import json
+from hashlib import sha256
+
 from flask import Blueprint, abort, current_app, g, request
 from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert
 
 from .analytics import discard_pending
-from .contracts import AccountSettings, MemberPayload, ProjectPayload, ProjectUpdate
-from .models import Account, Membership, Opportunity, Project
+from .contracts import AccountSettings, MemberPayload, ProjectCreate, ProjectUpdate
+from .models import Account, Membership, Opportunity, Project, new_id
 from .requests import account, identifier, parse, project_access, require_version
 
 routes = Blueprint("projects", __name__)
@@ -126,17 +129,36 @@ def projects():
 @routes.post("/projects")
 def create_project():
     actor = account()
-    payload = parse(ProjectPayload)
-    project = Project(
-        name=payload.name,
-        description=payload.description,
-        region=payload.region,
-        legal_entity=payload.legalEntity,
+    payload = parse(ProjectCreate)
+    key = str(payload.requestKey)
+    values = payload.model_dump(exclude={"requestKey"})
+    checksum = sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
+    project_id = g.db.scalar(
+        insert(Project)
+        .values(
+            id=new_id(),
+            name=payload.name,
+            description=payload.description,
+            region=payload.region,
+            legal_entity=payload.legalEntity,
+            creation_account_id=actor.id,
+            creation_request_key=key,
+            creation_hash=checksum,
+        )
+        .on_conflict_do_nothing(constraint="uq_project_request")
+        .returning(Project.id)
     )
-    g.db.add(project)
-    g.db.flush()
-    g.db.add(Membership(project_id=project.id, account_id=actor.id, role="owner"))
-    return project_view(project, "owner"), 201
+    if project_id:
+        g.db.add(Membership(project_id=project_id, account_id=actor.id, role="owner"))
+        return project_view(g.db.get(Project, project_id), "owner"), 201
+    project = g.db.scalar(
+        select(Project).where(
+            Project.creation_account_id == actor.id, Project.creation_request_key == key
+        )
+    )
+    if project.creation_hash != checksum:
+        abort(409, "This request already created a project with different details.")
+    return project_view(project, "owner")
 
 
 @routes.patch("/projects/<project_id>")

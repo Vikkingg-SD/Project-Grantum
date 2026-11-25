@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { AppState, ScrollView, StyleSheet, View } from 'react-native';
+import { ApiError } from '@/api/client';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from '@firebase/auth';
@@ -61,8 +62,26 @@ export function ConnectedWorkspace() {
     queryKey: ['connected', 'session', firebaseUser?.uid],
     queryFn: () => connectedApi(firebaseUser ?? undefined).session(),
     enabled: Boolean(firebaseUser),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
     retry: false,
   });
+
+  useEffect(() => {
+    const listener = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void queryClient.invalidateQueries({ queryKey: ['connected'] });
+    });
+    return () => listener.remove();
+  }, [queryClient]);
+
+  useEffect(() => {
+    if (session.error instanceof ApiError && [401, 403].includes(session.error.status)) {
+      queryClient.removeQueries({
+        predicate: ({ queryKey }) => queryKey[0] === 'connected' && queryKey[1] !== 'session',
+      });
+    }
+  }, [session.error, queryClient]);
 
   async function logout() {
     await queryClient.cancelQueries({ queryKey: ['connected'] });
@@ -92,7 +111,7 @@ export function ConnectedWorkspace() {
         <AppText>Checking your session…</AppText>
       ) : !firebaseUser ? (
         <LoginPane />
-      ) : !session.data ? (
+      ) : !session.data || session.error ? (
         <View style={actionStyles.block}>
           <QueryMessage
             pending={session.isPending}

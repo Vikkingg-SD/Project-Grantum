@@ -89,7 +89,7 @@ def attempt_access(raw, actor, *, roles=None, lock=False):
     if roles is not None and role not in roles:
         abort(403, "Your project role cannot make this change.")
     if lock:
-        project_access(attempt.project_id, actor, roles=roles, lock=True)
+        _, role = project_access(attempt.project_id, actor, roles=roles, lock=True)
         g.db.refresh(attempt, with_for_update=True)
     return attempt, role
 
