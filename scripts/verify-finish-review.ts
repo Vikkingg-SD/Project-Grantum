@@ -288,6 +288,14 @@ function main() {
       'Write each draft section before marking the application ready.'
   );
 
+  const fallbackAttempt = store.ensureWorkSlot('project-1', '2');
+  store.toggleArchiveProject('project-2');
+  check(
+    'Given an archived project When ensuring an opportunity Then the active fallback reuses its existing attempt',
+    store.ensureWorkSlot('project-2', '2').id === fallbackAttempt.id
+  );
+  store.toggleArchiveProject('project-2');
+
   useWorkspaceStore.getState().markWorkSlotSubmitted('app-p1-g1', 'RCPT-2026-001');
   check(
     'Given a submitted application When recording another receipt Then the original is preserved',

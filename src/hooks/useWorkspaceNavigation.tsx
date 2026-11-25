@@ -2,8 +2,8 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { BackHandler, Platform } from 'react-native';
 import { create } from 'zustand';
 import {
+  useNavigationContainerRef,
   usePathname,
-  useRootNavigationState,
   useRouter,
   useUnstableGlobalHref,
   type Href,
@@ -23,8 +23,9 @@ import {
 } from '@/utils/navigationHistory';
 import { dismissTopEscapeLayer } from '@/hooks/useEscapeDismiss';
 
-type RootNavigationState = ReturnType<typeof useRootNavigationState>;
-type ChildNavigationState = RootNavigationState['routes'][number]['state'];
+type NavigationContainer = ReturnType<typeof useNavigationContainerRef>;
+type RootNavigationState = NonNullable<ReturnType<NavigationContainer['getRootState']>>;
+type ChildNavigationState = RootNavigationState | RootNavigationState['routes'][number]['state'];
 
 interface HistoryStoreState extends NavHistory {
   invalidPaths: string[];
@@ -97,7 +98,7 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
   const router = useRouter();
   const pathname = usePathname();
   const href = useUnstableGlobalHref();
-  const state = useRootNavigationState();
+  const navigationRef = useNavigationContainerRef();
   const visits = useHistory((s) => s.visits);
   const index = useHistory((s) => s.index);
   const invalidPaths = useHistory((s) => s.invalidPaths);
@@ -165,6 +166,8 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
         window.removeEventListener('popstate', onPopState, true);
       };
     }
+    // The layout-level snapshot can still hold a partial deep-link state without leaf keys.
+    const state = navigationRef.getRootState();
     const key = focusedRouteKey(state);
     if (key) {
       if (returning.current && departingKey.current && key === departingKey.current) {
@@ -184,7 +187,7 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
         return { visits: next.visits, index: next.index };
       });
     }
-  }, [clearReturnTimer, href, pathname, state]);
+  }, [clearReturnTimer, href, navigationRef, pathname]);
 
   useEffect(() => clearReturnTimer, [clearReturnTimer]);
 
@@ -226,6 +229,7 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
       window.history.go(previousIndex - index);
       return;
     }
+    const state = navigationRef.getRootState();
     const currentNativeKey = focusedRouteKey(state) ?? null;
     const activeKeys = collectActiveRouteKeys(state);
     returning.current = true;
@@ -250,7 +254,7 @@ export function WorkspaceNavigationProvider({ children }: React.PropsWithChildre
       });
       router.replace(target.href as Href);
     }
-  }, [canGoBack, clearReturnTimer, index, previousIndex, router, state, visits]);
+  }, [canGoBack, clearReturnTimer, index, navigationRef, previousIndex, router, visits]);
 
   const goHome = useCallback(() => {
     const destination = resolveHomeDestination(href, lastLifecycle, invalidSet);

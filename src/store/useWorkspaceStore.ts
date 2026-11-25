@@ -525,7 +525,10 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => {
           (project) => project.id === projectId && !project.archivedAt
         ) ?? state.workspace.projects.find((project) => !project.archivedAt);
       if (!targetProject) throw new Error('Restore a project before starting an application.');
-      return createAttempt(targetProject.id, grantId, outputs);
+      const targetAttempt = state.workspace.applications.find(
+        (app) => app.projectId === targetProject.id && app.grantId === grantId
+      );
+      return targetAttempt ?? createAttempt(targetProject.id, grantId, outputs);
     },
 
     createWorkAttempt: (projectId, grantId) => {
