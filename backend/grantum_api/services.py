@@ -113,10 +113,10 @@ def resubmit_bounty(bounty_id):
         payload.prizePool,
         payload.mission,
     )
-    expected_replay_status = "pending" if payload.submit else None
+    replay_statuses = {"pending"} if payload.submit else {"draft", "changes_requested"}
     if (
         record.version == payload.version + 1
-        and (expected_replay_status is None or record.status == expected_replay_status)
+        and record.status in replay_statuses
         and (
             record.title,
             record.url,

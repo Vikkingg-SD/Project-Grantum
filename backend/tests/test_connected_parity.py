@@ -302,6 +302,31 @@ def test_given_bounty_draft_lifecycle_when_saved_edited_deleted_or_submitted_the
     assert any(
         row["id"] == created.json["id"] for row in api(app, "GET", "/staff/bounties", reviewer).json
     )
+    approved = api(
+        app,
+        "POST",
+        f"/staff/bounties/{created.json['id']}/review",
+        reviewer,
+        {"version": 3, "status": "approved", "note": "Verified public source."},
+    )
+    assert approved.status_code == 200 and approved.json["version"] == 4
+    stale_draft_patch = api(
+        app,
+        "PATCH",
+        f"/bounties/{created.json['id']}",
+        author,
+        {
+            "version": 3,
+            "title": "Submitted From Draft",
+            "url": "https://example.org/draft-funder-v2",
+            "region": "Global",
+            "prizePool": "$100k",
+            "mission": "Updated mission",
+            "note": "Submitting now.",
+            "submit": False,
+        },
+    )
+    assert stale_draft_patch.status_code == 409
 
 
 def test_given_grants_catalog_when_filtering_by_region_and_category_then_exact_matches_return(app):

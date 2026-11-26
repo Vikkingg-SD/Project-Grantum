@@ -164,7 +164,11 @@ export function ProgressPanel({
               task.autoCompletionPct === 100 &&
               record.role !== 'viewer' && (
                 <AppButton
-                  label={'Verify ' + task.title}
+                  label={
+                    task.title.startsWith('Verify ')
+                      ? 'Confirm ' + task.title.slice(7)
+                      : 'Verify ' + task.title
+                  }
                   size="sm"
                   disabled={dirty || action.busy}
                   onPress={setTaskStatus(task.key, 'verified')}
