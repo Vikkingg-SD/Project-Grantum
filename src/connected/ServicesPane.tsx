@@ -13,7 +13,12 @@ type Props = { api: ConnectedClient; scope: readonly string[] };
 export function BountyPane({ api, scope, staff = false }: Props & { staff?: boolean }) {
   const [revising, setRevising] = useState<string>();
   const path = staff ? '/staff/bounties' : '/bounties';
-  const query = useQuery({ queryKey: [...scope, path], queryFn: () => api.get<Bounty[]>(path) });
+  const query = useQuery({
+    queryKey: [...scope, path],
+    queryFn: () => api.get<Bounty[]>(path),
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+  });
   return (
     <View style={actionStyles.block}>
       <AppText variant="h2">{staff ? 'Source moderation' : 'Bounty Hunt'}</AppText>
