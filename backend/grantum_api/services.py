@@ -13,7 +13,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from .analytics import record
 from .attempts import EDIT
-from .contracts import BountyPayload, BountyReview, ExportPayload, TextDocument
+from .contracts import BountyPayload, BountyResubmission, BountyReview, ExportPayload, TextDocument
 from .models import Audit, Bounty, Document, Notice, new_id
 from .requests import (
     account,
@@ -36,6 +36,7 @@ def bounty_view(record):
         "note": record.note,
         "status": record.status,
         "reviewNote": record.review_note,
+        "version": record.version,
     }
 
 
@@ -72,6 +73,33 @@ def submit_bounty():
     return bounty_view(record), 201 if inserted else 200
 
 
+@routes.patch("/bounties/<bounty_id>")
+def resubmit_bounty(bounty_id):
+    actor = account()
+    payload = parse(BountyResubmission)
+    record = g.db.scalar(
+        select(Bounty)
+        .where(Bounty.id == identifier(bounty_id), Bounty.account_id == actor.id)
+        .with_for_update()
+    )
+    if not record:
+        abort(404, "This bounty is unavailable.")
+    details = payload.title, payload.url, payload.note
+    if (
+        record.status == "pending"
+        and record.version == payload.version + 1
+        and (record.title, record.url, record.note) == details
+    ):
+        return bounty_view(record)
+    require_version(record, payload.version)
+    if record.status != "changes_requested":
+        abort(409, "Staff must request changes before this source can be resubmitted.")
+    record.title, record.url, record.note = details
+    record.status = "pending"
+    record.version += 1
+    return bounty_view(record)
+
+
 @routes.get("/staff/bounties")
 def moderation_queue():
     staff()
@@ -88,9 +116,11 @@ def review_bounty(bounty_id):
         abort(404, "This bounty is unavailable.")
     if record.account_id == actor.id:
         abort(403, "Staff cannot review their own submission.")
+    require_version(record, payload.version)
     if record.status != "pending":
         abort(409, "This bounty has already been reviewed.")
     record.status, record.review_note, record.reviewed_by = payload.status, payload.note, actor.id
+    record.version += 1
     g.db.add(Notice(account_id=record.account_id, message="Your source submission was reviewed."))
     return bounty_view(record)
 

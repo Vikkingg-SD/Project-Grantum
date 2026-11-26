@@ -4,7 +4,7 @@ import { ApiError } from '@/api/client';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from '@firebase/auth';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppInput } from '@/components/atoms/AppInput';
 import { AppText } from '@/components/atoms/AppText';
@@ -36,7 +36,6 @@ type ViewName = (typeof views)[number];
 export function ConnectedWorkspace() {
   const [firebaseUser, setFirebaseUser] = useState<User | null | undefined>(undefined);
   const [authError, setAuthError] = useState('');
-  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -99,45 +98,38 @@ export function ConnectedWorkspace() {
   }
 
   return (
-    <ScrollView
-      keyboardShouldPersistTaps="handled"
-      contentContainerStyle={[
-        styles.content,
-        {
-          paddingTop: Math.max(18, insets.top + 10),
-          paddingBottom: Math.max(32, insets.bottom + 18),
-        },
-      ]}
-    >
-      <AppText variant="h1" color="primary">
-        Grantum
-      </AppText>
-      {authError ? (
-        <AppText accessibilityRole="alert" color="failureText">
-          {authError}
+    <SafeAreaView style={styles.viewport}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
+        <AppText variant="h1" color="primary">
+          Grantum
         </AppText>
-      ) : firebaseUser === undefined ? (
-        <AppText>Checking your session…</AppText>
-      ) : !firebaseUser ? (
-        <LoginPane />
-      ) : !session.data?.member ? (
-        <View style={actionStyles.block}>
-          <QueryMessage
-            pending={session.isPending}
-            error={session.data?.denied ?? session.error}
-            retry={() => void session.refetch()}
+        {authError ? (
+          <AppText accessibilityRole="alert" color="failureText">
+            {authError}
+          </AppText>
+        ) : firebaseUser === undefined ? (
+          <AppText>Checking your session…</AppText>
+        ) : !firebaseUser ? (
+          <LoginPane />
+        ) : !session.data?.member ? (
+          <View style={actionStyles.block}>
+            <QueryMessage
+              pending={session.isPending}
+              error={session.data?.denied ?? session.error}
+              retry={() => void session.refetch()}
+            />
+            <AppButton label="Sign out" onPress={() => void logout()} />
+          </View>
+        ) : (
+          <SignedIn
+            key={firebaseUser.uid}
+            member={session.data.member}
+            firebaseUser={firebaseUser}
+            logout={logout}
           />
-          <AppButton label="Sign out" onPress={() => void logout()} />
-        </View>
-      ) : (
-        <SignedIn
-          key={firebaseUser.uid}
-          member={session.data.member}
-          firebaseUser={firebaseUser}
-          logout={logout}
-        />
-      )}
-    </ScrollView>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -401,5 +393,14 @@ function DashboardPane({
 }
 
 const styles = StyleSheet.create({
-  content: { gap: 16, paddingHorizontal: 16, maxWidth: 880, width: '100%', alignSelf: 'center' },
+  viewport: { flex: 1 },
+  content: {
+    gap: 16,
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 32,
+    maxWidth: 880,
+    width: '100%',
+    alignSelf: 'center',
+  },
 });

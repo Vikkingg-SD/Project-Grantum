@@ -148,6 +148,7 @@ class Bounty(Base):
     status: Mapped[str] = mapped_column(String(20), default="pending")
     reviewed_by: Mapped[str | None] = mapped_column(ForeignKey("accounts.id"))
     review_note: Mapped[str | None] = mapped_column(String(500))
+    version: Mapped[int] = mapped_column(Integer, server_default="1")
 
 
 class Notice(Base):

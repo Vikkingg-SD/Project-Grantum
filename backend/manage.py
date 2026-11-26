@@ -245,8 +245,9 @@ def main():
     elif args.command == "seed-demo":
         run([sys.executable, "-m", "grantum_api.seed"], env=environment(settings))
     elif args.command == "serve":
-        from grantum_api import create_app
         from waitress import serve
+
+        from grantum_api import create_app
 
         os.environ.update(environment(settings))
         serve(create_app(), host=DB_HOST, port=API_PORT, threads=4, expose_tracebacks=False)

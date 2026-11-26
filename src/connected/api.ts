@@ -63,6 +63,7 @@ export type Bounty = {
   note: string;
   status: BountyStatus;
   reviewNote: string | null;
+  version: number;
 };
 export type ExportFile = {
   name: string;

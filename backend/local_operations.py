@@ -6,6 +6,8 @@ from uuid import uuid4
 
 import psycopg
 import requests
+from psycopg import sql
+
 from manage import (
     API_PORT,
     AUTH_PORT,
@@ -19,7 +21,6 @@ from manage import (
     run,
     tool,
 )
-from psycopg import sql
 
 
 def create_local_user(settings, email, *, staff=False):

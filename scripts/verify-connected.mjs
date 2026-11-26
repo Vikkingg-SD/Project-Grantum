@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -83,6 +83,31 @@ async function requestApi(route, token, method = 'GET', body) {
   });
   assert(response.ok, method + ' ' + route + ' returned ' + response.status);
   return response.status === 204 ? null : response.json();
+}
+
+async function staffFixture(projectPython) {
+  const identity = await credentials();
+  const account = await requestApi('/auth/session', identity.token, 'POST', {});
+  const code = [
+    'import os, sys, psycopg',
+    'from sqlalchemy.engine import make_url',
+    'from manage import environment, load',
+    "values = environment(load()) if os.name == 'nt' else os.environ",
+    "url = make_url(values['GRANTUM_MIGRATION_URL'])",
+    "assert values['GRANTUM_MODE'] == 'local'",
+    "assert (url.host, url.port) == ('127.0.0.1', 55432)",
+    "assert url.database in ('grantum', 'grantum_test')",
+    "with psycopg.connect(url.set(drivername='postgresql').render_as_string(hide_password=False)) as db:",
+    "    assert db.execute('UPDATE accounts SET staff = TRUE WHERE id = %s', (sys.argv[1],)).rowcount == 1",
+  ].join('\n');
+  const result = spawnSync(path.resolve(projectPython), ['-c', code, account.id], {
+    cwd: path.resolve('backend'),
+    env,
+    windowsHide: true,
+    timeout: 10000,
+  });
+  assert.equal(result.status, 0, 'Local staff fixture provisioning');
+  return identity;
 }
 
 function inspect(page) {
@@ -222,11 +247,35 @@ try {
     .fill('Public program notice with applicant criteria.');
   await button(page, 'Submit for review').click();
   await expect(page.getByText('Status · pending', { exact: true })).toBeVisible();
+  const staff = await staffFixture(projectPython);
+  const submissions = await requestApi('/bounties', account.token);
+  const source = submissions.find((entry) => entry.title === 'New public funding source');
+  assert(source, 'Submitted source is available to its author');
+  await requestApi('/staff/bounties/' + source.id + '/review', staff.token, 'POST', {
+    status: 'changes_requested',
+    note: 'Add a link to the current notice.',
+    version: source.version,
+  });
+  await button(page, 'Dashboard').click();
+  await expect(page.getByRole('heading', { name: 'Suggest a funding source' })).toHaveCount(0);
+  await choose(page, 'Bounty Hunt');
+  await expect(page.getByText('Add a link to the current notice.', { exact: true })).toBeVisible();
+  await button(page, 'Revise New public funding source').click();
+  await page
+    .getByLabel('Revised source HTTPS link', { exact: true })
+    .fill('https://example.org/grants/current');
+  await button(page, 'Resubmit for review').click();
+  await expect(page.getByText('Status · pending', { exact: true })).toBeVisible();
+  const queue = await requestApi('/staff/bounties', staff.token);
+  assert.equal(
+    queue.find((entry) => entry.id === source.id)?.url,
+    'https://example.org/grants/current'
+  );
   await choose(page, 'Settings');
   await page.getByLabel('Display name', { exact: true }).fill('Connected applicant');
   await button(page, 'Save display name').click();
   await expect(page.getByText('Account settings saved.', { exact: true })).toBeVisible();
-  checks.push('Persistent owner submission and account settings');
+  checks.push('Persistent source submission, same-record author revision and account settings');
 
   const mobile = await browser.newContext({ viewport: { width: 320, height: 812 } });
   const visitor = await mobile.newPage();

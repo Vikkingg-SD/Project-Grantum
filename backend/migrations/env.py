@@ -1,8 +1,9 @@
 from os import environ
 
 from alembic import context
-from grantum_api.models import Base
 from sqlalchemy import create_engine, pool
+
+from grantum_api.models import Base
 
 if context.is_offline_mode():
     raise RuntimeError("Apply Grantum migrations against an explicit database connection.")

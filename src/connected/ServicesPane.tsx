@@ -11,58 +11,16 @@ import type { Bounty, BountyStatus, ConnectedClient, Notice, Session } from './a
 type Props = { api: ConnectedClient; scope: readonly string[] };
 
 export function BountyPane({ api, scope, staff = false }: Props & { staff?: boolean }) {
-  const [title, setTitle] = useState('');
-  const [url, setUrl] = useState('');
-  const [note, setNote] = useState('');
-  const pending = useRef<{ content: string; key: string } | null>(null);
-  const action = useAction();
+  const [revising, setRevising] = useState<string>();
   const path = staff ? '/staff/bounties' : '/bounties';
   const query = useQuery({ queryKey: [...scope, path], queryFn: () => api.get<Bounty[]>(path) });
-  async function submit() {
-    const content = JSON.stringify([title.trim(), url.trim(), note.trim()]);
-    if (pending.current?.content !== content) pending.current = { content, key: randomUUID() };
-    await api.post(path, {
-      requestKey: pending.current.key,
-      title: title.trim(),
-      url: url.trim(),
-      note: note.trim(),
-    });
-    pending.current = null;
-    setTitle('');
-    setUrl('');
-    setNote('');
-    await query.refetch();
-  }
   return (
     <View style={actionStyles.block}>
       <AppText variant="h2">{staff ? 'Source moderation' : 'Bounty Hunt'}</AppText>
       {!staff && (
         <Card>
           <AppText variant="h3">Suggest a funding source</AppText>
-          <AppInput label="Source title" value={title} onChangeText={setTitle} maxLength={120} />
-          <AppInput
-            label="Source HTTPS link"
-            value={url}
-            onChangeText={setUrl}
-            autoCapitalize="none"
-            keyboardType="url"
-            maxLength={2048}
-          />
-          <AppInput
-            label="Why this source belongs in Grantum"
-            value={note}
-            onChangeText={setNote}
-            multiline
-            maxLength={500}
-          />
-          <AppButton
-            label="Submit for review"
-            variant="primary"
-            isLoading={action.busy}
-            disabled={!title.trim() || !url.trim().startsWith('https://') || !note.trim()}
-            onPress={() => void action.run(submit, 'Source submitted for staff review.')}
-          />
-          <ActionMessage action={action} />
+          <SourceForm api={api} refresh={() => query.refetch()} />
         </Card>
       )}
       <QueryMessage
@@ -82,13 +40,28 @@ export function BountyPane({ api, scope, staff = false }: Props & { staff?: bool
           <AppText>{record.note}</AppText>
           <AppText color="muted">Status · {record.status.replaceAll('_', ' ')}</AppText>
           {record.reviewNote && <AppText>{record.reviewNote}</AppText>}
-          {staff && (
+          {staff ? (
             <ReviewSource
-              key={record.id}
+              key={record.version}
               api={api}
-              id={record.id}
+              source={record}
               refresh={() => query.refetch()}
             />
+          ) : (
+            record.status === 'changes_requested' &&
+            (revising === record.id ? (
+              <SourceForm
+                api={api}
+                source={record}
+                cancel={() => setRevising(undefined)}
+                refresh={async () => {
+                  await query.refetch();
+                  setRevising(undefined);
+                }}
+              />
+            ) : (
+              <AppButton label={'Revise ' + record.title} onPress={() => setRevising(record.id)} />
+            ))
           )}
         </Card>
       ))}
@@ -96,13 +69,85 @@ export function BountyPane({ api, scope, staff = false }: Props & { staff?: bool
   );
 }
 
-function ReviewSource({
+function SourceForm({
   api,
-  id,
+  source,
+  cancel,
   refresh,
 }: {
   api: ConnectedClient;
-  id: string;
+  source?: Bounty;
+  cancel?: () => void;
+  refresh: () => Promise<unknown>;
+}) {
+  const [title, setTitle] = useState(source?.title ?? '');
+  const [url, setUrl] = useState(source?.url ?? '');
+  const [note, setNote] = useState(source?.note ?? '');
+  const pending = useRef<{ content: string; key: string } | null>(null);
+  const startingVersion = useRef(source?.version);
+  const action = useAction();
+  const fields = { title: title.trim(), url: url.trim(), note: note.trim() };
+
+  async function submit() {
+    if (source) {
+      await api.patch('/bounties/' + source.id, { ...fields, version: startingVersion.current });
+    } else {
+      const content = JSON.stringify(fields);
+      if (pending.current?.content !== content) pending.current = { content, key: randomUUID() };
+      await api.post('/bounties', { ...fields, requestKey: pending.current.key });
+      pending.current = null;
+      setTitle('');
+      setUrl('');
+      setNote('');
+    }
+    await refresh();
+  }
+
+  return (
+    <>
+      <AppInput
+        label={source ? 'Revised source title' : 'Source title'}
+        value={title}
+        onChangeText={setTitle}
+        maxLength={120}
+      />
+      <AppInput
+        label={source ? 'Revised source HTTPS link' : 'Source HTTPS link'}
+        value={url}
+        onChangeText={setUrl}
+        autoCapitalize="none"
+        keyboardType="url"
+        maxLength={2048}
+      />
+      <AppInput
+        label={source ? 'Revised explanation' : 'Why this source belongs in Grantum'}
+        value={note}
+        onChangeText={setNote}
+        multiline
+        maxLength={500}
+      />
+      <View style={actionStyles.row}>
+        <AppButton
+          label={source ? 'Resubmit for review' : 'Submit for review'}
+          variant="primary"
+          isLoading={action.busy}
+          disabled={!fields.title || !fields.url.startsWith('https://') || !fields.note}
+          onPress={() => void action.run(submit, 'Source submitted for staff review.')}
+        />
+        {cancel && <AppButton label="Cancel revision" onPress={cancel} disabled={action.busy} />}
+      </View>
+      <ActionMessage action={action} />
+    </>
+  );
+}
+
+function ReviewSource({
+  api,
+  source,
+  refresh,
+}: {
+  api: ConnectedClient;
+  source: Bounty;
   refresh: () => Promise<unknown>;
 }) {
   const [note, setNote] = useState('');
@@ -123,7 +168,11 @@ function ReviewSource({
             disabled={!note.trim() || action.busy}
             onPress={() =>
               void action.run(async () => {
-                await api.post('/staff/bounties/' + id + '/review', { status, note });
+                await api.post('/staff/bounties/' + source.id + '/review', {
+                  status,
+                  note,
+                  version: source.version,
+                });
                 await refresh();
               })
             }

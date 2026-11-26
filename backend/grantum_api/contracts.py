@@ -80,8 +80,7 @@ class WorkTransition(Payload):
     reference: Line | None = None
 
 
-class BountyPayload(Payload):
-    requestKey: UUID
+class BountyDetails(Payload):
     title: Title
     url: str = Field(min_length=1, max_length=2048)
     note: Line
@@ -102,7 +101,16 @@ class BountyPayload(Payload):
         return value
 
 
+class BountyPayload(BountyDetails):
+    requestKey: UUID
+
+
+class BountyResubmission(BountyDetails):
+    version: Version
+
+
 class BountyReview(Payload):
+    version: Version
     status: Literal["approved", "rejected", "changes_requested"]
     note: Line
 

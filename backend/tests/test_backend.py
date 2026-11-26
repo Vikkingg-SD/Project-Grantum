@@ -10,10 +10,11 @@ from zipfile import ZipFile
 import psycopg
 import pytest
 import requests
+from sqlalchemy.engine import make_url
+
 from grantum_api import create_app
 from grantum_api.config import Settings
 from grantum_api.seed import seed
-from sqlalchemy.engine import make_url
 
 
 @pytest.fixture(scope="session")
@@ -287,7 +288,7 @@ def test_project_text_document_limits_and_ownership(app, identities):
     assert api(app, "DELETE", path + "/" + doc.json["id"], first).status_code == 204
 
 
-def test_staff_review_and_private_notification(app, identities):
+def test_given_staff_requests_changes_when_author_resubmits_then_staff_can_review(app, identities):
     first, reviewer = identities
     onboarding(app, first)
     onboarding(app, reviewer)
@@ -302,11 +303,39 @@ def test_staff_review_and_private_notification(app, identities):
     assert api(app, "POST", "/bounties", first, request).json["id"] == submission.json["id"]
     assert api(app, "GET", "/staff/bounties", reviewer).status_code == 403
     update_account(reviewer["localId"], staff=True)
-    review = f"/staff/bounties/{submission.json['id']}/review"
-    assert (
-        api(app, "POST", review, reviewer, {"status": "approved", "note": "Confirmed"}).status_code
-        == 200
+    bounty_id = submission.json["id"]
+    review = f"/staff/bounties/{bounty_id}/review"
+    revise = f"/bounties/{bounty_id}"
+    revision = {
+        "version": 1,
+        "title": "Updated proof",
+        "url": request["url"],
+        "note": request["note"],
+    }
+    assert api(app, "PATCH", revise, first, revision).status_code == 409
+    requested = api(
+        app,
+        "POST",
+        review,
+        reviewer,
+        {"version": 1, "status": "changes_requested", "note": "Provide a current notice."},
     )
+    assert requested.status_code == 200 and requested.json["version"] == 2
+    assert not any(
+        row["id"] == bounty_id for row in api(app, "GET", "/staff/bounties", reviewer).json
+    )
+    revision["version"] = 2
+    assert api(app, "PATCH", revise, reviewer, revision).status_code == 404
+    resubmitted = api(app, "PATCH", revise, first, revision)
+    assert resubmitted.status_code == 200
+    assert resubmitted.json["id"] == bounty_id and resubmitted.json["version"] == 3
+    assert resubmitted.json["status"] == "pending"
+    assert api(app, "PATCH", revise, first, revision).json == resubmitted.json
+    assert any(row == resubmitted.json for row in api(app, "GET", "/staff/bounties", reviewer).json)
+    decision = {"version": 1, "status": "approved", "note": "Confirmed"}
+    assert api(app, "POST", review, reviewer, decision).status_code == 409
+    decision["version"] = 3
+    assert api(app, "POST", review, reviewer, decision).json["status"] == "approved"
     alert = api(app, "GET", "/notifications", first).json[0]
     notice = f"/notifications/{alert['id']}/read"
     assert api(app, "POST", notice, reviewer).status_code == 404
