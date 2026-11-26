@@ -16,6 +16,7 @@ import {
   type Project,
   type ProjectInput,
 } from './api';
+import { ProjectHistoryCard } from './ProjectHistoryCard';
 
 type Props = { api: ConnectedClient; scope: readonly string[] };
 const emptyProject = { name: '', description: '', region: '', legalEntity: '' };
@@ -30,7 +31,12 @@ export function ProjectPane({ api, scope }: Props) {
   });
   const items = query.data;
   const project = items?.find((item) => item.id === selection);
-  async function save(input: ProjectInput, existing?: Project, archived = false) {
+  async function save(
+    input: ProjectInput,
+    existing?: Project,
+    archived = false,
+    changeSummary = ''
+  ) {
     if (!existing) {
       const content = JSON.stringify(input);
       if (creation.current?.content !== content) creation.current = { content, key: randomUUID() };
@@ -40,6 +46,7 @@ export function ProjectPane({ api, scope }: Props) {
           ...input,
           version: existing.version,
           archived,
+          changeSummary,
         })
       : await api.post<Project>('/projects', { ...input, requestKey: creation.current?.key });
     if (!existing) creation.current = null;
@@ -47,6 +54,7 @@ export function ProjectPane({ api, scope }: Props) {
       ...records.filter((item) => item.id !== current.id),
       current,
     ]);
+    await cache.invalidateQueries({ queryKey: [...scope, 'project-revisions', current.id] });
     setSelection(current.id);
   }
   return (
@@ -76,6 +84,14 @@ export function ProjectPane({ api, scope }: Props) {
       />
       <ProjectForm key={project ? project.id + ':form' : 'new'} project={project} save={save} />
       {project && (
+        <ProjectHistoryCard
+          key={project.id + ':history'}
+          api={api}
+          scope={scope}
+          project={project}
+        />
+      )}
+      {project && (
         <ProjectTeam key={project.id + ':team'} api={api} scope={scope} project={project} />
       )}
       {project && (
@@ -95,7 +111,12 @@ function ProjectForm({
   save,
 }: {
   project?: Project;
-  save: (input: ProjectInput, existing?: Project, archived?: boolean) => Promise<void>;
+  save: (
+    input: ProjectInput,
+    existing?: Project,
+    archived?: boolean,
+    changeSummary?: string
+  ) => Promise<void>;
 }) {
   const initial = project
     ? {
@@ -106,6 +127,7 @@ function ProjectForm({
       }
     : emptyProject;
   const [edit, setEdit] = useState<{ fields: ProjectInput; version?: number } | null>(null);
+  const [changeSummary, setChangeSummary] = useState('');
   const draft = edit?.fields ?? initial;
   const conflict = Boolean(edit && project && edit.version !== project.version);
   const [checked, setChecked] = useState(false);
@@ -144,6 +166,15 @@ function ProjectForm({
           }}
         />
       ))}
+      {Boolean(project && editable) && (
+        <AppInput
+          label="Change summary"
+          placeholder="Optional note for this profile revision"
+          value={changeSummary}
+          maxLength={240}
+          onChangeText={setChangeSummary}
+        />
+      )}
       <View style={actionStyles.row}>
         {editable && (
           <AppButton
@@ -153,8 +184,9 @@ function ProjectForm({
             isLoading={action.busy}
             onPress={() =>
               void action.run(async () => {
-                await save(draft, project);
+                await save(draft, project, false, changeSummary.trim());
                 setEdit(null);
+                setChangeSummary('');
               }, 'Project saved.')
             }
           />

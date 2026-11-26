@@ -6,8 +6,14 @@ from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert
 
 from .analytics import discard_pending
-from .contracts import AccountSettings, MemberPayload, ProjectCreate, ProjectUpdate
-from .models import Account, Membership, Opportunity, Project, new_id
+from .contracts import (
+    AccountSettings,
+    MemberPayload,
+    ProjectCreate,
+    ProjectUpdate,
+    VersionPayload,
+)
+from .models import Account, Membership, Opportunity, Project, ProjectRevision, new_id
 from .requests import account, identifier, parse, project_access, require_version
 
 routes = Blueprint("projects", __name__)
@@ -100,6 +106,28 @@ def grant(grant_id):
     return grant_view(record, detail=True)
 
 
+def project_snapshot(project):
+    return {
+        "name": project.name,
+        "description": project.description,
+        "region": project.region,
+        "legalEntity": project.legal_entity,
+        "archived": project.archived,
+    }
+
+
+def write_project_revision(project, actor, summary=""):
+    g.db.add(
+        ProjectRevision(
+            project_id=project.id,
+            version=project.version,
+            actor_id=actor.id,
+            summary=summary.strip()[:240],
+            snapshot=project_snapshot(project),
+        )
+    )
+
+
 def project_view(project, role):
     return {
         "id": project.id,
@@ -150,7 +178,9 @@ def create_project():
     )
     if project_id:
         g.db.add(Membership(project_id=project_id, account_id=actor.id, role="owner"))
-        return project_view(g.db.get(Project, project_id), "owner"), 201
+        created = g.db.get(Project, project_id)
+        write_project_revision(created, actor, "Initial profile")
+        return project_view(created, "owner"), 201
     project = g.db.scalar(
         select(Project).where(
             Project.creation_account_id == actor.id, Project.creation_request_key == key
@@ -182,6 +212,49 @@ def save_project(project_id):
         for key, value in values.items():
             setattr(project, key, value)
         project.version += 1
+        write_project_revision(project, actor, payload.changeSummary)
+    return project_view(project, role)
+
+
+@routes.get("/projects/<project_id>/revisions")
+def project_revisions(project_id):
+    project, _ = project_access(project_id, account())
+    entries = g.db.scalars(
+        select(ProjectRevision)
+        .where(ProjectRevision.project_id == project.id)
+        .order_by(ProjectRevision.version.desc())
+        .limit(100)
+    )
+    return [
+        {
+            "version": entry.version,
+            "summary": entry.summary,
+            "name": entry.snapshot["name"],
+            "region": entry.snapshot["region"],
+            "legalEntity": entry.snapshot["legalEntity"],
+            "archived": entry.snapshot["archived"],
+            "createdAt": entry.created_at.isoformat(),
+        }
+        for entry in entries
+    ]
+
+
+@routes.post("/projects/<project_id>/revisions/<int:version>/restore")
+def restore_project_revision(project_id, version):
+    actor = account()
+    project, role = project_access(project_id, actor, roles={"owner", "editor"}, lock=True)
+    require_version(project, parse(VersionPayload).version)
+    if not 1 <= version <= project.version:
+        abort(404, "This profile revision is unavailable.")
+    entry = g.db.get(ProjectRevision, (project.id, version))
+    if not entry:
+        abort(404, "This profile revision is unavailable.")
+    project.name = entry.snapshot["name"]
+    project.description = entry.snapshot["description"]
+    project.region = entry.snapshot["region"]
+    project.legal_entity = entry.snapshot["legalEntity"]
+    project.version += 1
+    write_project_revision(project, actor, f"Restored revision #{version}")
     return project_view(project, role)
 
 

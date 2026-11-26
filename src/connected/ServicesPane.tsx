@@ -13,6 +13,7 @@ type Props = { api: ConnectedClient; scope: readonly string[] };
 
 export function BountyPane({ api, scope, staff = false }: Props & { staff?: boolean }) {
   const [revising, setRevising] = useState<string>();
+  const action = useAction();
   const path = staff ? '/staff/bounties' : '/bounties';
   const query = useQuery({
     queryKey: [...scope, path],
@@ -43,9 +44,15 @@ export function BountyPane({ api, scope, staff = false }: Props & { staff?: bool
         <Card key={record.id}>
           <AppText variant="h3">{record.title}</AppText>
           <AppText selectable>{record.url}</AppText>
+          {Boolean(record.region || record.prizePool) && (
+            <AppText color="muted">
+              {[record.region, record.prizePool].filter(Boolean).join(' · ')}
+            </AppText>
+          )}
+          {Boolean(record.mission) && <AppText>{record.mission}</AppText>}
           <AppText>{record.note}</AppText>
           <AppText color="muted">Status · {record.status.replaceAll('_', ' ')}</AppText>
-          {record.reviewNote && <AppText>{record.reviewNote}</AppText>}
+          {Boolean(record.reviewNote) && <AppText>{record.reviewNote}</AppText>}
           {staff ? (
             <ReviewSource
               key={record.version}
@@ -61,6 +68,40 @@ export function BountyPane({ api, scope, staff = false }: Props & { staff?: bool
               refresh={() => query.refetch()}
               onSubmitted={() => setRevising(undefined)}
             />
+          ) : record.status === 'draft' ? (
+            <View style={actionStyles.row}>
+              <AppButton label={'Edit ' + record.title} onPress={() => setRevising(record.id)} />
+              <AppButton
+                label={'Submit ' + record.title}
+                variant="primary"
+                disabled={action.busy}
+                onPress={() =>
+                  void action.run(async () => {
+                    await api.patch('/bounties/' + record.id, {
+                      title: record.title,
+                      url: record.url,
+                      note: record.note,
+                      region: record.region,
+                      prizePool: record.prizePool,
+                      mission: record.mission,
+                      version: record.version,
+                      submit: true,
+                    });
+                    await query.refetch();
+                  }, 'Draft submitted for staff review.')
+                }
+              />
+              <AppButton
+                label={'Delete ' + record.title}
+                disabled={action.busy}
+                onPress={() =>
+                  void action.run(async () => {
+                    await api.remove('/bounties/' + record.id);
+                    await query.refetch();
+                  }, 'Draft removed.')
+                }
+              />
+            </View>
           ) : (
             record.status === 'changes_requested' && (
               <AppButton label={'Revise ' + record.title} onPress={() => setRevising(record.id)} />
@@ -68,6 +109,7 @@ export function BountyPane({ api, scope, staff = false }: Props & { staff?: bool
           )}
         </Card>
       ))}
+      <ActionMessage action={action} />
     </View>
   );
 }
@@ -87,34 +129,56 @@ function SourceForm({
 }) {
   const [title, setTitle] = useState(source?.title ?? '');
   const [url, setUrl] = useState(source?.url ?? '');
+  const [region, setRegion] = useState(source?.region ?? '');
+  const [prizePool, setPrizePool] = useState(source?.prizePool ?? '');
+  const [mission, setMission] = useState(source?.mission ?? '');
   const [note, setNote] = useState(source?.note ?? '');
   const pending = useRef<{ content: string; key: string } | null>(null);
   const [startingVersion] = useState(source?.version);
+  const [startingStatus] = useState(source?.status);
   const action = useAction();
-  const fields = { title: title.trim(), url: url.trim(), note: note.trim() };
+  const fields = {
+    title: title.trim(),
+    url: url.trim(),
+    region: region.trim(),
+    prizePool: prizePool.trim(),
+    mission: mission.trim(),
+    note: note.trim(),
+  };
   const changed =
-    source && (source.version !== startingVersion || source.status !== 'changes_requested');
+    source && (source.version !== startingVersion || source.status !== startingStatus);
 
-  async function submit() {
+  async function saveOrSubmit(submitNow: boolean) {
     if (source) {
       try {
-        await api.patch('/bounties/' + source.id, { ...fields, version: startingVersion });
+        await api.patch('/bounties/' + source.id, {
+          ...fields,
+          version: startingVersion,
+          submit: submitNow,
+        });
       } catch (error) {
         if (error instanceof ApiError && error.status === 409) await refresh();
         throw error;
       }
     } else {
-      const content = JSON.stringify(fields);
+      const mode = submitNow ? 'submit' : 'draft';
+      const content = JSON.stringify({ ...fields, mode });
       if (pending.current?.content !== content) pending.current = { content, key: randomUUID() };
-      await api.post('/bounties', { ...fields, requestKey: pending.current.key });
+      await api.post('/bounties', { ...fields, mode, requestKey: pending.current.key });
       pending.current = null;
       setTitle('');
       setUrl('');
+      setRegion('');
+      setPrizePool('');
+      setMission('');
       setNote('');
     }
     await refresh();
     onSubmitted?.();
   }
+
+  const invalid =
+    Boolean(changed) || !fields.title || !fields.url.startsWith('https://') || !fields.note;
 
   return (
     <>
@@ -132,6 +196,10 @@ function SourceForm({
         keyboardType="url"
         maxLength={2048}
       />
+      <AppInput label="Location / region" value={region} onChangeText={setRegion} maxLength={160} />
+      <AppInput label="Prize pool" value={prizePool} onChangeText={setPrizePool} maxLength={160} />
+      <AppButton label="Not published" size="sm" onPress={() => setPrizePool('Not published')} />
+      <AppInput label="Mission" value={mission} onChangeText={setMission} maxLength={500} />
       <AppInput
         label={source ? 'Revised explanation' : 'Why this source belongs in Grantum'}
         value={note}
@@ -139,7 +207,7 @@ function SourceForm({
         multiline
         maxLength={500}
       />
-      {changed && (
+      {Boolean(changed) && (
         <AppText accessibilityRole="alert" color="failureText">
           This submission changed while you were editing. Copy any changes you want to keep before
           closing this revision.
@@ -147,11 +215,27 @@ function SourceForm({
       )}
       <View style={actionStyles.row}>
         <AppButton
-          label={source ? 'Resubmit for review' : 'Submit for review'}
+          label={
+            source ? (source.status === 'draft' ? 'Save draft' : 'Save changes') : 'Save draft'
+          }
+          disabled={invalid || action.busy}
+          isLoading={action.busy}
+          onPress={() => void action.run(() => saveOrSubmit(false), 'Source draft saved.')}
+        />
+        <AppButton
+          label={
+            source
+              ? source.status === 'draft'
+                ? 'Submit draft'
+                : 'Resubmit for review'
+              : 'Submit for review'
+          }
           variant="primary"
           isLoading={action.busy}
-          disabled={changed || !fields.title || !fields.url.startsWith('https://') || !fields.note}
-          onPress={() => void action.run(submit, 'Source submitted for staff review.')}
+          disabled={invalid || action.busy}
+          onPress={() =>
+            void action.run(() => saveOrSubmit(true), 'Source submitted for staff review.')
+          }
         />
         {cancel && <AppButton label="Cancel revision" onPress={cancel} disabled={action.busy} />}
       </View>

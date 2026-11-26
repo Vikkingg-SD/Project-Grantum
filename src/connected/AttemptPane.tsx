@@ -11,12 +11,11 @@ import type {
   Audit,
   BudgetLine,
   ConnectedClient,
-  ExportFile,
-  Format,
-  Revision,
-  WorkStatus,
+  OutputKind,
+  ProjectRevision,
 } from './api';
-import { downloadFile } from './download';
+import { ExportPanel } from './ExportPanel';
+import { ProgressPanel } from './ProgressPanel';
 
 type Props = {
   api: ConnectedClient;
@@ -49,6 +48,7 @@ export function AttemptPane(props: Props) {
         if (error instanceof ApiError && [401, 403, 404].includes(error.status)) {
           cache.removeQueries({ queryKey: [...scope, 'audits', attemptId] });
           cache.removeQueries({ queryKey: [...scope, 'revisions', attemptId] });
+          cache.removeQueries({ queryKey: [...scope, 'tasks', attemptId] });
           return { record: null, denied: error };
         }
         throw error;
@@ -101,6 +101,7 @@ export function AttemptPane(props: Props) {
         {...props}
         record={record}
         tab={tab}
+        setTab={setTab}
         reload={() => void query.refetch()}
       />
     </View>
@@ -112,31 +113,43 @@ function AttemptEditor({
   scope,
   record,
   tab,
+  setTab,
   staff,
   reload,
-}: Props & { record: Attempt; tab: Tab; reload: () => void }) {
+}: Props & { record: Attempt; tab: Tab; setTab: (next: Tab) => void; reload: () => void }) {
   const cache = useQueryClient();
   const [edit, setEdit] = useState<Pick<
     Attempt,
-    'title' | 'sections' | 'budget' | 'version'
+    'title' | 'sections' | 'budget' | 'outputs' | 'exportNarrative' | 'profileVersion' | 'version'
   > | null>(null);
   const current = edit ?? {
     title: record.title,
     sections: record.sections,
     budget: record.budget,
+    outputs: record.outputs,
+    exportNarrative: record.exportNarrative,
+    profileVersion: record.profileVersion,
     version: record.version,
   };
-  const { title, sections, budget } = current;
+  const { title, sections, budget, outputs, exportNarrative, profileVersion } = current;
   const setTitle = (value: string) => setEdit({ ...current, title: value });
   const setSections = (value: Attempt['sections']) => setEdit({ ...current, sections: value });
   const setBudget = (value: Attempt['budget']) => setEdit({ ...current, budget: value });
+  const setOutputs = (value: OutputKind[]) => setEdit({ ...current, outputs: value });
+  const setExportNarrative = (value: string) => setEdit({ ...current, exportNarrative: value });
+  const setProfileVersion = (value: number) => setEdit({ ...current, profileVersion: value });
   const [custom, setCustom] = useState('');
+  const activeTab = tab;
   const action = useAction();
   const working = record.status === 'drafting' || record.status === 'review';
   const editable = working && (record.role === 'owner' || record.role === 'editor');
   const path = '/attempts/' + record.id;
   const dirty = edit !== null;
   const conflict = dirty && current.version !== record.version;
+  const projectRevisions = useQuery({
+    queryKey: [...scope, 'project-revisions', record.projectId],
+    queryFn: () => api.get<ProjectRevision[]>('/projects/' + record.projectId + '/revisions'),
+  });
   const apply = async (next: Attempt) => {
     cache.setQueryData<AttemptAccess>([...scope, 'attempt', record.id], {
       record: next,
@@ -147,9 +160,27 @@ function AttemptEditor({
       cache.invalidateQueries({ queryKey: [...scope, 'dashboard'] }),
       cache.invalidateQueries({ queryKey: [...scope, 'audits', record.id] }),
       cache.invalidateQueries({ queryKey: [...scope, 'revisions', record.id] }),
+      cache.invalidateQueries({ queryKey: [...scope, 'tasks', record.id] }),
       cache.invalidateQueries({ queryKey: [...scope, 'inbox'] }),
     ]);
   };
+  function compileBundle() {
+    const parts = [
+      `Requested outputs: ${outputs.join(', ')}`,
+      ...sections.map((section) => `## ${section.name}\n\n${section.text}`),
+    ];
+    if (budget.length) {
+      parts.push(
+        `## Budget\n\n` +
+          budget
+            .map(
+              (line) => `- ${line.name}: ${line.currency} ${(line.amountMinor / 100).toFixed(2)}`
+            )
+            .join('\n')
+      );
+    }
+    return parts.join('\n\n');
+  }
   function save() {
     return action.run(async () => {
       if (conflict) throw new Error('A newer draft is saved. Copy your edits before reloading.');
@@ -168,11 +199,43 @@ function AttemptEditor({
     setCustom('');
   }
 
+  const outputOptions: { id: OutputKind; label: string }[] = [
+    { id: 'application', label: 'Application' },
+    { id: 'pitch-deck', label: 'Pitch deck' },
+    { id: 'document', label: 'Document' },
+  ];
+  const toggleOutput = (kind: OutputKind) => {
+    if (outputs.includes(kind)) {
+      if (outputs.length <= 1) return;
+      setOutputs(outputs.filter((item) => item !== kind));
+    } else {
+      setOutputs([...outputs, kind]);
+    }
+  };
+
   return (
     <>
-      {tab === 'Drafting' && (
+      {activeTab === 'Drafting' && (
         <Card>
           <AppText variant="h3">Drafting</AppText>
+          <AppText color="muted">
+            Pinned project profile ·{' '}
+            {profileVersion !== null ? `Revision #${profileVersion}` : 'Latest'}
+          </AppText>
+          {Boolean(editable && projectRevisions.data?.length) && (
+            <View style={actionStyles.row}>
+              {projectRevisions.data?.map((rev) => (
+                <AppButton
+                  key={rev.version}
+                  label={'Profile #' + rev.version}
+                  size="sm"
+                  variant="outline"
+                  selected={profileVersion === rev.version}
+                  onPress={() => setProfileVersion(rev.version)}
+                />
+              ))}
+            </View>
+          )}
           <AppInput
             label="Application title"
             value={title}
@@ -230,11 +293,25 @@ function AttemptEditor({
           <AppText color="muted">AI drafting requires a connected AI provider.</AppText>
         </Card>
       )}
-      {tab === 'Form Templates' && (
+      {activeTab === 'Form Templates' && (
         <Card>
           <AppText variant="h3">Form Templates</AppText>
           <AppText>Templates add sections and keep the text you have already written.</AppText>
           <AppText color="muted">Required · {record.requirements.join(', ')}</AppText>
+          <AppText variant="h3">Requested outputs</AppText>
+          <View style={actionStyles.row}>
+            {outputOptions.map((option) => (
+              <AppButton
+                key={option.id}
+                label={option.label}
+                size="sm"
+                variant="outline"
+                selected={outputs.includes(option.id)}
+                disabled={!editable}
+                onPress={() => toggleOutput(option.id)}
+              />
+            ))}
+          </View>
           {editable && (
             <>
               <View style={actionStyles.row}>
@@ -280,7 +357,7 @@ function AttemptEditor({
           )}
         </Card>
       )}
-      {tab === 'Budget' && (
+      {activeTab === 'Budget' && (
         <BudgetForm
           budget={budget}
           editable={editable}
@@ -290,9 +367,25 @@ function AttemptEditor({
           busy={action.busy}
         />
       )}
-      {tab === 'Audit' && <AuditPanel api={api} scope={scope} record={record} dirty={dirty} />}
-      {tab === 'Export' && <ExportPanel api={api} scope={scope} record={record} dirty={dirty} />}
-      {tab === 'Progress Tracking' && (
+      {activeTab === 'Audit' && (
+        <AuditPanel api={api} scope={scope} record={record} dirty={dirty} />
+      )}
+      {activeTab === 'Export' && (
+        <ExportPanel
+          api={api}
+          scope={scope}
+          record={record}
+          dirty={dirty}
+          conflict={conflict}
+          editable={editable}
+          saving={action.busy}
+          exportNarrative={exportNarrative}
+          setExportNarrative={setExportNarrative}
+          compileBundle={compileBundle}
+          save={save}
+        />
+      )}
+      {activeTab === 'Progress Tracking' && (
         <ProgressPanel
           api={api}
           scope={scope}
@@ -301,6 +394,7 @@ function AttemptEditor({
           dirty={dirty}
           editable={editable}
           apply={apply}
+          onNavigateTab={setTab}
         />
       )}
       {conflict && (
@@ -448,193 +542,6 @@ function AuditPanel({ api, scope, record, dirty }: PanelProps) {
           Revision {audit.version} · {audit.score}% · {audit.current ? 'Current' : 'Previous'}
           {audit.missing.length ? ' · Missing ' + audit.missing.join(', ') : ''}
         </AppText>
-      ))}
-      <ActionMessage action={action} />
-    </Card>
-  );
-}
-
-function ExportPanel({ api, scope, record, dirty }: PanelProps) {
-  const action = useAction();
-  const query = useAudits(api, scope, record.id);
-  const ready = query.data?.some(
-    (item) => item.current && item.version === record.version && item.score >= 85
-  );
-  const formats: { key: Format; label: string }[] = [
-    { key: 'markdown', label: 'Download Markdown' },
-    { key: 'notebook', label: 'Download notebook' },
-    { key: 'word', label: 'Download Word' },
-    { key: 'pdf', label: 'Download PDF' },
-  ];
-  return (
-    <Card>
-      <AppText variant="h3">Export</AppText>
-      <QueryMessage
-        pending={query.isPending}
-        error={query.error}
-        retry={() => void query.refetch()}
-      />
-      {!ready && (
-        <AppText>
-          Run an audit on this revision and complete at least 85% of required sections to unlock
-          exports.
-        </AppText>
-      )}
-      {ready && <AppText>Export the saved revision {record.version}.</AppText>}
-      <View style={actionStyles.row}>
-        {formats.map(({ key, label }) => (
-          <AppButton
-            key={key}
-            label={label}
-            disabled={!ready || dirty || action.busy}
-            onPress={() =>
-              void action.run(async () => {
-                const file = await api.post<ExportFile>('/attempts/' + record.id + '/export', {
-                  version: record.version,
-                  format: key,
-                });
-                if (file.version !== record.version)
-                  throw new Error('The export revision changed. Reload and try again.');
-                await downloadFile(file.name, file.mime, file.base64);
-              })
-            }
-          />
-        ))}
-      </View>
-      <ActionMessage action={action} />
-    </Card>
-  );
-}
-
-function ProgressPanel({
-  api,
-  scope,
-  record,
-  staff,
-  dirty,
-  editable,
-  apply,
-}: PanelProps & {
-  staff: boolean;
-  editable: boolean;
-  apply: (next: Attempt) => Promise<void>;
-}) {
-  const [reference, setReference] = useState('');
-  const action = useAction();
-  const path = '/attempts/' + record.id;
-  const history = useQuery({
-    queryKey: [...scope, 'revisions', record.id],
-    queryFn: () => api.get<Revision[]>(path + '/revisions'),
-  });
-  const reviewer = record.role === 'owner' || record.role === 'reviewer';
-  const move =
-    (status: WorkStatus, withReference = false) =>
-    () =>
-      void action.run(async () => {
-        await apply(
-          await api.post<Attempt>(path + '/status', {
-            status,
-            version: record.version,
-            ...(withReference ? { reference } : {}),
-          })
-        );
-      }, 'Application status updated.');
-  return (
-    <Card>
-      <AppText variant="h3">Progress Tracking</AppText>
-      <AppText>Status · {record.status}</AppText>
-      {record.receipt && <AppText>Recorded receipt · {record.receipt}</AppText>}
-      {record.decisionReference && (
-        <AppText>Recorded decision · {record.decisionReference}</AppText>
-      )}
-      <View style={actionStyles.row}>
-        {record.status === 'drafting' && editable && (
-          <AppButton
-            label="Mark in review"
-            disabled={dirty || action.busy}
-            onPress={move('review')}
-          />
-        )}
-        {['drafting', 'review'].includes(record.status) && reviewer && (
-          <AppButton
-            label="Mark ready"
-            disabled={dirty || action.busy || record.completionPct !== 100}
-            onPress={move('ready')}
-          />
-        )}
-        {['review', 'ready'].includes(record.status) && reviewer && (
-          <AppButton
-            label="Reopen draft"
-            disabled={dirty || action.busy}
-            onPress={move('drafting')}
-          />
-        )}
-      </View>
-      {((record.status === 'ready' && record.role === 'owner') ||
-        (record.status === 'submitted' && staff && reviewer)) && (
-        <>
-          <AppInput
-            label={
-              record.status === 'ready'
-                ? 'Official submission receipt'
-                : 'Official funder decision reference'
-            }
-            value={reference}
-            onChangeText={setReference}
-            maxLength={500}
-          />
-          <AppText color="muted">Enter the reference you received from the funder.</AppText>
-          {record.status === 'ready' ? (
-            <AppButton
-              label="Record funder submission"
-              disabled={!reference.trim() || action.busy}
-              onPress={move('submitted', true)}
-            />
-          ) : (
-            <View style={actionStyles.row}>
-              <AppButton
-                label="Record awarded decision"
-                disabled={!reference.trim() || action.busy}
-                onPress={move('awarded', true)}
-              />
-              <AppButton
-                label="Record declined decision"
-                disabled={!reference.trim() || action.busy}
-                onPress={move('declined', true)}
-              />
-            </View>
-          )}
-        </>
-      )}
-      <AppText variant="h3">Revision history</AppText>
-      <QueryMessage
-        pending={history.isPending}
-        error={history.error}
-        retry={() => void history.refetch()}
-      />
-      {history.data?.map((entry) => (
-        <View key={entry.version} style={actionStyles.row}>
-          <AppText>
-            Revision {entry.version} · {entry.status} ·{' '}
-            {new Date(entry.createdAt).toLocaleDateString()}
-          </AppText>
-          {entry.version !== record.version && editable && (
-            <AppButton
-              label={'Restore revision ' + entry.version}
-              size="sm"
-              disabled={dirty || action.busy}
-              onPress={() =>
-                void action.run(async () => {
-                  await apply(
-                    await api.post<Attempt>(path + '/revisions/' + entry.version + '/restore', {
-                      version: record.version,
-                    })
-                  );
-                })
-              }
-            />
-          )}
-        </View>
       ))}
       <ActionMessage action={action} />
     </Card>

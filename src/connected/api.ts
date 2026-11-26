@@ -2,9 +2,12 @@ import type { User } from '@firebase/auth';
 import { ApiError, apiClientOptions, createApiClient } from '@/api/client';
 import type { GrantDetail } from '@/types/grant';
 
+export type ConnectedGrant = GrantDetail & { category?: string };
+
 export type Role = 'owner' | 'editor' | 'reviewer' | 'viewer';
 export type WorkStatus = 'drafting' | 'review' | 'ready' | 'submitted' | 'awarded' | 'declined';
 export type Format = 'markdown' | 'notebook' | 'word' | 'pdf';
+export type OutputKind = 'application' | 'pitch-deck' | 'document';
 export type Section = { name: string; text: string };
 export type BudgetLine = {
   name: string;
@@ -26,6 +29,15 @@ export type ProjectInput = {
   legalEntity: string;
 };
 export type Project = ProjectInput & { id: string; archived: boolean; version: number; role: Role };
+export type ProjectRevision = {
+  version: number;
+  summary: string;
+  name: string;
+  region: string;
+  legalEntity: string;
+  archived: boolean;
+  createdAt: string;
+};
 export type Member = { id: string; displayName: string; role: Role };
 export type DocumentInfo = { id: string; name: string; size: number; checksum: string };
 export type Attempt = {
@@ -36,10 +48,13 @@ export type Attempt = {
   title: string;
   role: Role;
   version: number;
+  profileVersion: number | null;
   status: WorkStatus;
   requirements: string[];
   sections: Section[];
   budget: BudgetLine[];
+  outputs: OutputKind[];
+  exportNarrative: string;
   completionPct: number;
   updatedAt: string;
   receipt: string | null;
@@ -54,12 +69,26 @@ export type Audit = {
   createdAt: string;
 };
 export type Revision = { version: number; status: WorkStatus; createdAt: string };
+export type WorkplanTaskStatus = 'open' | 'verified' | 'marked_done';
+export type WorkplanTask = {
+  key: string;
+  title: string;
+  targetTab: 'Drafting' | 'Audit' | 'Budget' | 'Export' | 'Progress Tracking';
+  autoCompletionPct: number;
+  status: WorkplanTaskStatus;
+  updatedBy: string | null;
+  updatedByRole: Role | null;
+  updatedAt: string | null;
+};
 export type Notice = { id: string; message: string; read: boolean; createdAt: string };
-export type BountyStatus = 'pending' | 'approved' | 'rejected' | 'changes_requested';
+export type BountyStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'changes_requested';
 export type Bounty = {
   id: string;
   title: string;
   url: string;
+  region: string;
+  prizePool: string;
+  mission: string;
   note: string;
   status: BountyStatus;
   reviewNote: string | null;
@@ -100,7 +129,9 @@ function checkAttempt(value: Attempt) {
       (entry) => entry && typeof entry.name === 'string' && typeof entry.text === 'string'
     ) &&
     Array.isArray(value.requirements) &&
-    Array.isArray(value.budget)
+    Array.isArray(value.budget) &&
+    Array.isArray(value.outputs) &&
+    typeof value.exportNarrative === 'string'
   );
 }
 
@@ -131,8 +162,16 @@ export function connectedApi(user?: User) {
       ),
     attempt: async (id: string) =>
       validate(await request<Attempt>('/api/v1/attempts/' + encodeURIComponent(id)), checkAttempt),
-    grants: (term: string) =>
-      request<GrantDetail[]>('/api/v1/grants?q=' + encodeURIComponent(term), { public: true }),
+    grants: (term: string, filters?: { regions?: string[]; categories?: string[] }) => {
+      const search = new URLSearchParams();
+      if (term) search.set('q', term);
+      for (const region of filters?.regions ?? []) search.append('region', region);
+      for (const category of filters?.categories ?? []) search.append('category', category);
+      const query = search.toString();
+      return request<ConnectedGrant[]>('/api/v1/grants' + (query ? '?' + query : ''), {
+        public: true,
+      });
+    },
   };
 }
 

@@ -10,6 +10,8 @@ from werkzeug.exceptions import HTTPException
 from .auth import firebase_verifier
 from .config import Settings
 
+EXPECTED_SCHEMA_REVISION = "0006"
+
 
 def create_app(settings=None, *, test_verifier=None):
     settings = settings or Settings.from_env()
@@ -59,6 +61,8 @@ def create_app(settings=None, *, test_verifier=None):
             response.vary.add("Origin")
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Request-Id"] = g.get("request_id", "")
         return response
@@ -85,7 +89,7 @@ def create_app(settings=None, *, test_verifier=None):
     @app.get("/readyz")
     def ready():
         revision = g.db.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-        if revision != "0005":
+        if revision != EXPECTED_SCHEMA_REVISION:
             abort(503, "Apply Grantum's pending database migrations.")
         return {"status": "ready"}
 
@@ -95,8 +99,13 @@ def create_app(settings=None, *, test_verifier=None):
             "mode": "local" if settings.local else "connected",
             "documents": ["txt", "md"],
             "exports": ["markdown", "notebook", "word", "pdf"],
+            "artifactKinds": ["application", "pitch-deck", "document"],
             "notifications": ["in-app"],
             "manualFunderReceipts": True,
+            "profileRevisions": True,
+            "workplanTasks": True,
+            "bountyDrafts": True,
+            "exportNarrative": True,
         }
 
     from .attempts import routes as attempt_routes

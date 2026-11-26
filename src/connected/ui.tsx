@@ -13,8 +13,14 @@ export const actionStyles = StyleSheet.create({
 });
 
 export function Card({ children }: PropsWithChildren) {
-  const color = useThemeStore((state) => PALETTE[state.mode].border);
-  return <View style={[actionStyles.card, { borderColor: color }]}>{children}</View>;
+  const colors = useThemeStore((state) => PALETTE[state.mode]);
+  return (
+    <View
+      style={[actionStyles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+    >
+      {children}
+    </View>
+  );
 }
 
 export function useAction() {

@@ -23,15 +23,35 @@ export function DiscoveryPane({
 }: BaseProps & { openProjects: () => void }) {
   const [term, setTerm] = useState('');
   const [submittedTerm, setSubmittedTerm] = useState('');
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [opportunity, setOpportunity] = useState('');
+  const catalogOptions = useQuery({
+    queryKey: [...scope, 'catalog', 'facets'],
+    queryFn: () => api.grants(''),
+    staleTime: 60_000,
+  });
   const grants = useQuery({
-    queryKey: [...scope, 'catalog', submittedTerm],
-    queryFn: () => api.grants(submittedTerm),
+    queryKey: [...scope, 'catalog', submittedTerm, selectedRegions, selectedCategories],
+    queryFn: () =>
+      api.grants(submittedTerm, { regions: selectedRegions, categories: selectedCategories }),
   });
   const projects = useQuery({
     queryKey: [...scope, 'projects'],
     queryFn: () => api.get<Project[]>('/projects'),
   });
+  const optionSource = catalogOptions.data ?? grants.data ?? [];
+  const availableRegions = Array.from(
+    new Set(optionSource.map((grant) => grant.region).filter(Boolean))
+  ).sort();
+  const availableCategories = Array.from(
+    new Set(optionSource.map((grant) => grant.category ?? '').filter(Boolean))
+  ).sort();
+  const hasFilters = Boolean(
+    submittedTerm || term.trim() || selectedRegions.length || selectedCategories.length
+  );
+  const toggleValue = (values: string[], target: string) =>
+    values.includes(target) ? values.filter((item) => item !== target) : [...values, target];
 
   return (
     <View style={actionStyles.block}>
@@ -44,7 +64,50 @@ export function DiscoveryPane({
           onSubmitEditing={() => setSubmittedTerm(term.trim())}
           maxLength={120}
         />
-        <AppButton label="Search catalog" onPress={() => setSubmittedTerm(term.trim())} />
+        <View style={actionStyles.row}>
+          <AppButton label="Search catalog" onPress={() => setSubmittedTerm(term.trim())} />
+          {hasFilters && (
+            <AppButton
+              label="Clear filters"
+              onPress={() => {
+                setTerm('');
+                setSubmittedTerm('');
+                setSelectedRegions([]);
+                setSelectedCategories([]);
+              }}
+            />
+          )}
+        </View>
+        {availableRegions.length > 0 && (
+          <View style={actionStyles.row}>
+            <AppText color="muted">Regions</AppText>
+            {availableRegions.map((region) => (
+              <AppButton
+                key={region}
+                label={region}
+                size="sm"
+                variant="outline"
+                selected={selectedRegions.includes(region)}
+                onPress={() => setSelectedRegions((prev) => toggleValue(prev, region))}
+              />
+            ))}
+          </View>
+        )}
+        {availableCategories.length > 0 && (
+          <View style={actionStyles.row}>
+            <AppText color="muted">Categories</AppText>
+            {availableCategories.map((category) => (
+              <AppButton
+                key={category}
+                label={category}
+                size="sm"
+                variant="outline"
+                selected={selectedCategories.includes(category)}
+                onPress={() => setSelectedCategories((prev) => toggleValue(prev, category))}
+              />
+            ))}
+          </View>
+        )}
       </View>
       <QueryMessage
         pending={grants.isPending}
