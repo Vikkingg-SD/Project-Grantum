@@ -1,0 +1,29 @@
+[project]
+name = "grantum-api"
+version = "0.1.0"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+    "alembic>=1.16,<2",
+    "firebase-admin>=7,<8",
+    "flask>=3.1,<4",
+    "gunicorn>=23,<27; sys_platform != 'win32'",
+    "psycopg[binary]>=3.2,<4",
+    "pydantic>=2.11,<3",
+    "python-docx>=1.2,<2",
+    "reportlab>=4.4,<5",
+    "requests>=2.32,<3",
+    "sqlalchemy>=2.0.41,<3",
+    "waitress>=3,<4",
+]
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "ruff>=0.11,<1"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [".local"]

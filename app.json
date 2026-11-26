@@ -26,7 +26,7 @@
       "bundler": "metro",
       "output": "single"
     },
-    "plugins": ["expo-router", "expo-font", "expo-splash-screen"],
+    "plugins": ["expo-router", "expo-font", "expo-splash-screen", "expo-sharing"],
     "experiments": {
       "typedRoutes": true
     }

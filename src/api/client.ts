@@ -21,7 +21,7 @@ type ClientOptions = {
 export function createApiClient({ baseUrl, timeoutMs, getToken, fetcher = fetch }: ClientOptions) {
   return async function request<T>(
     path: string,
-    options: { method?: 'GET' | 'POST' | 'PATCH'; body?: unknown; public?: boolean } = {}
+    options: { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown; public?: boolean } = {}
   ): Promise<T> {
     if (!/^https?:\/\//i.test(baseUrl) || !Number.isFinite(timeoutMs) || timeoutMs <= 0) {
       throw new ApiError('Configure an HTTP(S) API base URL and a positive timeout.', 0, 'CONFIG');
@@ -41,8 +41,15 @@ export function createApiClient({ baseUrl, timeoutMs, getToken, fetcher = fetch 
         signal: controller.signal,
       });
       if (!response.ok) {
-        throw new ApiError(`Request failed (${response.status}).`, response.status, 'HTTP_ERROR');
+        const payload: unknown = await response.json().catch(() => null);
+        const detail = (payload as { error?: { message?: unknown } } | null)?.error?.message;
+        const message =
+          typeof detail === 'string' && detail.length <= 240
+            ? detail
+            : `Request failed (${response.status}).`;
+        throw new ApiError(message, response.status, 'HTTP_ERROR');
       }
+      if (response.status === 204) return undefined as T;
       try {
         return (await response.json()) as T;
       } catch {

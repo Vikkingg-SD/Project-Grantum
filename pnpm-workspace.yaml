@@ -1,6 +1,7 @@
 allowBuilds:
   esbuild: true
   unrs-resolver: false
+  '@firebase/util': false
 
 # Remove the overrides when Expo's transitive ranges include the fixed releases.
 overrides:

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Redirect } from 'expo-router';
+import { ENV } from '@/config/env';
 import { useGrants } from '@/api/hooks/useGrants';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
 import { EmptyStateLayout } from '@/components/templates/EmptyStateLayout';
@@ -7,6 +8,10 @@ import { ROUTE_COPY } from '@/config/copy';
 
 // Recovery links have no grant context; choose only from the queried catalog.
 export default function DashboardEntryRoute() {
+  return ENV.DATA_SOURCE === 'api' ? <Redirect href="/connected" /> : <PreviewDashboardEntry />;
+}
+
+function PreviewDashboardEntry() {
   const grants = useGrants();
   const grant = grants.data?.[0];
   if (grant) {

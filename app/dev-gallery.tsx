@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Redirect } from 'expo-router';
+import { ENV } from '@/config/env';
 import { View, StyleSheet } from 'react-native';
 import Star from 'lucide-react-native/icons/star';
 import { ScreenContainer } from '@/components/templates/ScreenContainer';
@@ -80,6 +82,10 @@ const GALLERY_FUNNEL = [
 const REGION_OPTIONS = ['Global', 'East Europe', 'CIS'];
 
 export default function DevGalleryScreen() {
+  return ENV.DATA_SOURCE === 'api' ? <Redirect href="/connected" /> : <PreviewGallery />;
+}
+
+function PreviewGallery() {
   return __DEV__ ? <DevGalleryContent /> : <NotFoundScreen />;
 }
 

@@ -54,3 +54,4 @@ repomix-output*.xml
 /WORKPLAN.md
 /ck-state.json
 /.mcp.json
+dist-connected/

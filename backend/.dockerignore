@@ -1,0 +1,10 @@
+*
+!grantum_api/
+!grantum_api/*.py
+!migrations/
+!migrations/**/*.py
+!migrations/script.py.mako
+!alembic.ini
+!pyproject.toml
+!uv.lock
+!Dockerfile

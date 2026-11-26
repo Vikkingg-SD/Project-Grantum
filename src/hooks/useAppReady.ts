@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { useFonts } from 'expo-font';
+import { ENV } from '@/config/env';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useWorkspaceStore, hydrateWorkspace } from '@/store/useWorkspaceStore';
 import { useWorkbenchStore, hydrateWorkbench } from '@/store/useWorkbenchStore';
@@ -27,14 +28,16 @@ function subscribeToHydration(notify: () => void) {
 }
 const hydrationSnapshot = () =>
   useThemeStore.persist.hasHydrated() &&
-  useWorkspaceStore.getState().hydrated &&
-  useWorkbenchStore.getState().hydrated &&
-  useProgressStore.getState().hydrated &&
-  useEligibilityPreflightStore.getState().hydrated;
+  (ENV.DATA_SOURCE === 'api' ||
+    (useWorkspaceStore.getState().hydrated &&
+      useWorkbenchStore.getState().hydrated &&
+      useProgressStore.getState().hydrated &&
+      useEligibilityPreflightStore.getState().hydrated));
 const serverHydrationSnapshot = () => false;
 
 export function useAppReady(): boolean {
   useEffect(() => {
+    if (ENV.DATA_SOURCE === 'api') return;
     void hydrateWorkspace();
     void hydrateWorkbench();
     void hydrateProgress();
