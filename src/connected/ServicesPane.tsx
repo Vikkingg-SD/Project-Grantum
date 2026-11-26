@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { View } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import { useQuery } from '@tanstack/react-query';
+import { ApiError } from '@/api/client';
 import { AppButton } from '@/components/atoms/AppButton';
 import { AppInput } from '@/components/atoms/AppInput';
 import { AppText } from '@/components/atoms/AppText';
@@ -52,21 +53,18 @@ export function BountyPane({ api, scope, staff = false }: Props & { staff?: bool
               source={record}
               refresh={() => query.refetch()}
             />
+          ) : revising === record.id ? (
+            <SourceForm
+              api={api}
+              source={record}
+              cancel={() => setRevising(undefined)}
+              refresh={() => query.refetch()}
+              onSubmitted={() => setRevising(undefined)}
+            />
           ) : (
-            record.status === 'changes_requested' &&
-            (revising === record.id ? (
-              <SourceForm
-                api={api}
-                source={record}
-                cancel={() => setRevising(undefined)}
-                refresh={async () => {
-                  await query.refetch();
-                  setRevising(undefined);
-                }}
-              />
-            ) : (
+            record.status === 'changes_requested' && (
               <AppButton label={'Revise ' + record.title} onPress={() => setRevising(record.id)} />
-            ))
+            )
           )}
         </Card>
       ))}
@@ -79,23 +77,32 @@ function SourceForm({
   source,
   cancel,
   refresh,
+  onSubmitted,
 }: {
   api: ConnectedClient;
   source?: Bounty;
   cancel?: () => void;
   refresh: () => Promise<unknown>;
+  onSubmitted?: () => void;
 }) {
   const [title, setTitle] = useState(source?.title ?? '');
   const [url, setUrl] = useState(source?.url ?? '');
   const [note, setNote] = useState(source?.note ?? '');
   const pending = useRef<{ content: string; key: string } | null>(null);
-  const startingVersion = useRef(source?.version);
+  const [startingVersion] = useState(source?.version);
   const action = useAction();
   const fields = { title: title.trim(), url: url.trim(), note: note.trim() };
+  const changed =
+    source && (source.version !== startingVersion || source.status !== 'changes_requested');
 
   async function submit() {
     if (source) {
-      await api.patch('/bounties/' + source.id, { ...fields, version: startingVersion.current });
+      try {
+        await api.patch('/bounties/' + source.id, { ...fields, version: startingVersion });
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 409) await refresh();
+        throw error;
+      }
     } else {
       const content = JSON.stringify(fields);
       if (pending.current?.content !== content) pending.current = { content, key: randomUUID() };
@@ -106,6 +113,7 @@ function SourceForm({
       setNote('');
     }
     await refresh();
+    onSubmitted?.();
   }
 
   return (
@@ -131,12 +139,18 @@ function SourceForm({
         multiline
         maxLength={500}
       />
+      {changed && (
+        <AppText accessibilityRole="alert" color="failureText">
+          This submission changed while you were editing. Copy any changes you want to keep before
+          closing this revision.
+        </AppText>
+      )}
       <View style={actionStyles.row}>
         <AppButton
           label={source ? 'Resubmit for review' : 'Submit for review'}
           variant="primary"
           isLoading={action.busy}
-          disabled={!fields.title || !fields.url.startsWith('https://') || !fields.note}
+          disabled={changed || !fields.title || !fields.url.startsWith('https://') || !fields.note}
           onPress={() => void action.run(submit, 'Source submitted for staff review.')}
         />
         {cancel && <AppButton label="Cancel revision" onPress={cancel} disabled={action.busy} />}
@@ -173,11 +187,16 @@ function ReviewSource({
             disabled={!note.trim() || action.busy}
             onPress={() =>
               void action.run(async () => {
-                await api.post('/staff/bounties/' + source.id + '/review', {
-                  status,
-                  note,
-                  version: source.version,
-                });
+                try {
+                  await api.post('/staff/bounties/' + source.id + '/review', {
+                    status,
+                    note,
+                    version: source.version,
+                  });
+                } catch (error) {
+                  if (error instanceof ApiError && error.status === 409) await refresh();
+                  throw error;
+                }
                 await refresh();
               })
             }

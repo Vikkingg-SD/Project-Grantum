@@ -40,6 +40,10 @@ def bounty_view(record):
     }
 
 
+def bounty_details_hash(title, url, note):
+    return sha256(json.dumps([title, url, note]).encode("utf-8")).hexdigest()
+
+
 @routes.get("/bounties")
 def bounties():
     actor = account()
@@ -52,12 +56,14 @@ def submit_bounty():
     actor = account()
     payload = parse(BountyPayload)
     key = str(payload.requestKey)
+    fingerprint = bounty_details_hash(payload.title, payload.url, payload.note)
     inserted = g.db.scalar(
         insert(Bounty)
         .values(
             id=new_id(),
             account_id=actor.id,
             request_key=key,
+            creation_hash=fingerprint,
             title=payload.title,
             url=payload.url,
             note=payload.note,
@@ -68,7 +74,8 @@ def submit_bounty():
     record = g.db.scalar(
         select(Bounty).where(Bounty.account_id == actor.id, Bounty.request_key == key)
     )
-    if (record.title, record.url, record.note) != (payload.title, payload.url, payload.note):
+    existing = record.creation_hash or bounty_details_hash(record.title, record.url, record.note)
+    if existing != fingerprint:
         abort(409, "This request was already used for another bounty.")
     return bounty_view(record), 201 if inserted else 200
 
@@ -94,6 +101,8 @@ def resubmit_bounty(bounty_id):
     require_version(record, payload.version)
     if record.status != "changes_requested":
         abort(409, "Staff must request changes before this source can be resubmitted.")
+    if record.creation_hash is None:
+        record.creation_hash = bounty_details_hash(record.title, record.url, record.note)
     record.title, record.url, record.note = details
     record.status = "pending"
     record.version += 1

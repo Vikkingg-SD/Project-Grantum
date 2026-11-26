@@ -331,6 +331,11 @@ def test_given_staff_requests_changes_when_author_resubmits_then_staff_can_revie
     assert resubmitted.json["id"] == bounty_id and resubmitted.json["version"] == 3
     assert resubmitted.json["status"] == "pending"
     assert api(app, "PATCH", revise, first, revision).json == resubmitted.json
+    assert api(app, "POST", "/bounties", first, request).json == resubmitted.json
+    assert (
+        api(app, "POST", "/bounties", first, {**request, "title": "Different source"}).status_code
+        == 409
+    )
     assert any(row == resubmitted.json for row in api(app, "GET", "/staff/bounties", reviewer).json)
     decision = {"version": 1, "status": "approved", "note": "Confirmed"}
     assert api(app, "POST", review, reviewer, decision).status_code == 409

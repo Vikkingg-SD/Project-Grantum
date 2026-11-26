@@ -85,7 +85,7 @@ def create_app(settings=None, *, test_verifier=None):
     @app.get("/readyz")
     def ready():
         revision = g.db.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-        if revision != "0004":
+        if revision != "0005":
             abort(503, "Apply Grantum's pending database migrations.")
         return {"status": "ready"}
 
