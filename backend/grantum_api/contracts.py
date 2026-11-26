@@ -1,3 +1,4 @@
+import ipaddress
 from typing import Annotated, Literal
 from urllib.parse import urlsplit
 from uuid import UUID
@@ -6,7 +7,9 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 
 Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 Line = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+SummaryLine = Annotated[str, StringConstraints(strip_whitespace=True, max_length=240)]
 Version = Annotated[int, Field(ge=1, le=2_147_483_647)]
+OutputKind = Literal["application", "pitch-deck", "document"]
 Identifier = Annotated[
     str, StringConstraints(min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
 ]
@@ -35,6 +38,7 @@ class ProjectCreate(ProjectPayload):
 class ProjectUpdate(ProjectPayload):
     version: Version
     archived: bool = False
+    changeSummary: SummaryLine = ""
 
 
 class MemberPayload(Payload):
@@ -65,6 +69,11 @@ class DraftUpdate(Payload):
     title: Title
     sections: list[Section] = Field(min_length=1, max_length=30)
     budget: list[BudgetLine] = Field(default_factory=list, max_length=35)
+    outputs: list[OutputKind] = Field(
+        default_factory=lambda: ["application"], min_length=1, max_length=3
+    )
+    exportNarrative: str = Field(default="", max_length=120_000)
+    profileVersion: Version | None = None
 
     @field_validator("sections")
     @classmethod
@@ -72,6 +81,17 @@ class DraftUpdate(Payload):
         if len({item.name.casefold() for item in entries}) != len(entries):
             raise ValueError("Section names must be unique.")
         return entries
+
+    @field_validator("outputs")
+    @classmethod
+    def unique_output_kinds(cls, entries):
+        if len(set(entries)) != len(entries):
+            raise ValueError("Requested outputs must be unique.")
+        return entries
+
+
+class TaskUpdate(Payload):
+    status: Literal["open", "verified", "marked_done"]
 
 
 class WorkTransition(Payload):
@@ -84,29 +104,47 @@ class BountyDetails(Payload):
     title: Title
     url: str = Field(min_length=1, max_length=2048)
     note: Line
+    region: str = Field(default="", max_length=160)
+    prizePool: str = Field(default="", max_length=160)
+    mission: str = Field(default="", max_length=500)
 
     @field_validator("url")
     @classmethod
     def validate_web_url(cls, value):
         url = urlsplit(value)
+        host = (url.hostname or "").lower().rstrip(".")
+        reserved_tlds = {"invalid", "test", "localhost", "local", "internal", "onion", "arpa"}
+        is_ip = False
+        if host:
+            try:
+                ipaddress.ip_address(host)
+                is_ip = True
+            except ValueError:
+                pass
         if (
             url.scheme != "https"
-            or not url.hostname
+            or not host
+            or is_ip
+            or host == "localhost"
+            or "." not in host
+            or host.rsplit(".", 1)[-1] in reserved_tlds
             or url.username
             or url.password
             or url.port not in (None, 443)
             or any(ch.isspace() or ch == "\\" for ch in value)
         ):
-            raise ValueError("Enter an HTTPS source link.")
+            raise ValueError("Enter a public HTTPS source link.")
         return value
 
 
 class BountyPayload(BountyDetails):
     requestKey: UUID
+    mode: Literal["draft", "submit"] = "submit"
 
 
 class BountyResubmission(BountyDetails):
     version: Version
+    submit: bool = True
 
 
 class BountyReview(Payload):

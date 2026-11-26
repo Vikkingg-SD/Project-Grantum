@@ -67,6 +67,17 @@ class Membership(Base):
     role: Mapped[str] = mapped_column(String(12))
 
 
+class ProjectRevision(Base):
+    __tablename__ = "project_revisions"
+
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id"), primary_key=True)
+    version: Mapped[int] = mapped_column(Integer, primary_key=True)
+    actor_id: Mapped[str | None] = mapped_column(ForeignKey("accounts.id"), nullable=True)
+    summary: Mapped[str] = mapped_column(String(240), default="", server_default="")
+    snapshot: Mapped[dict] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class Opportunity(Base):
     __tablename__ = "opportunities"
 
@@ -89,6 +100,9 @@ class Attempt(Base):
             "status IN ('drafting', 'review', 'ready', 'submitted', 'awarded', 'declined')"
         ),
         CheckConstraint("version >= 1"),
+        CheckConstraint(
+            "profile_version IS NULL OR profile_version >= 1", name="ck_attempts_profile_version"
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
@@ -97,11 +111,38 @@ class Attempt(Base):
     request_key: Mapped[str] = mapped_column(String(36))
     status: Mapped[str] = mapped_column(String(12), default="drafting")
     version: Mapped[int] = mapped_column(Integer, default=1)
+    profile_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     title: Mapped[str] = mapped_column(String(120))
     sections: Mapped[list] = mapped_column(JSONB)
     budget: Mapped[list] = mapped_column(JSONB, default=list)
+    outputs: Mapped[list] = mapped_column(
+        JSONB, default=lambda: ["application"], server_default='["application"]'
+    )
+    export_narrative: Mapped[str] = mapped_column(Text, default="", server_default="")
     receipt: Mapped[str | None] = mapped_column(String(500))
     decision_reference: Mapped[str | None] = mapped_column(String(500))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class AttemptTask(Base):
+    __tablename__ = "attempt_tasks"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('open', 'verified', 'marked_done')", name="ck_attempt_tasks_status"
+        ),
+        CheckConstraint(
+            "updated_by_role IN ('owner', 'editor', 'reviewer', 'viewer')",
+            name="ck_attempt_tasks_role",
+        ),
+    )
+
+    attempt_id: Mapped[str] = mapped_column(ForeignKey("attempts.id"), primary_key=True)
+    task_key: Mapped[str] = mapped_column(String(40), primary_key=True)
+    status: Mapped[str] = mapped_column(String(16), default="open")
+    updated_by: Mapped[str] = mapped_column(ForeignKey("accounts.id"))
+    updated_by_role: Mapped[str] = mapped_column(String(12))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -136,7 +177,10 @@ class Bounty(Base):
     __tablename__ = "bounties"
     __table_args__ = (
         UniqueConstraint("account_id", "request_key", name="uq_bounty_request"),
-        CheckConstraint("status IN ('pending', 'approved', 'rejected', 'changes_requested')"),
+        CheckConstraint(
+            "status IN ('draft', 'pending', 'approved', 'rejected', 'changes_requested')",
+            name="ck_bounties_status",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
@@ -144,6 +188,9 @@ class Bounty(Base):
     request_key: Mapped[str] = mapped_column(String(36))
     title: Mapped[str] = mapped_column(String(180))
     url: Mapped[str] = mapped_column(String(2048))
+    region: Mapped[str] = mapped_column(String(160), default="", server_default="")
+    prize_pool: Mapped[str] = mapped_column(String(160), default="", server_default="")
+    mission: Mapped[str] = mapped_column(String(500), default="", server_default="")
     note: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), default="pending")
     reviewed_by: Mapped[str | None] = mapped_column(ForeignKey("accounts.id"))

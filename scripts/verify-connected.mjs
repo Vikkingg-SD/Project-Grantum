@@ -210,25 +210,72 @@ try {
   await expect(
     page.getByRole('heading', { name: 'Connected verification project' }).last()
   ).toBeVisible();
+  await page
+    .getByLabel('Project description', { exact: true })
+    .fill('Expanded project scope in PostgreSQL.');
+  await page.getByLabel('Change summary', { exact: true }).fill('Added project scope details');
+  await button(page, 'Save profile').click();
+  await expect(page.getByText(/Revision #2 · Added project scope details/)).toBeVisible();
+  await button(page, 'Restore revision #1').click();
+  await expect(page.getByText(/Revision #3 · Restored revision #1/)).toBeVisible();
+  checks.push('Project profile revision history and historical restore');
+
+  await choose(page, 'Discovery');
+  await button(page, 'Central Asia').click();
+  await expect(page.getByRole('heading', { name: 'Community Water Access' }).last()).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Climate Resilience Infrastructure' })
+  ).toHaveCount(0);
+  await button(page, 'Clear filters').click();
+  await expect(
+    page.getByRole('heading', { name: 'Climate Resilience Infrastructure' }).last()
+  ).toBeVisible();
 
   await createAttempt(page, 'First verified attempt');
+  await expect(
+    page.getByText('Pinned project profile · Revision #3', { exact: true })
+  ).toBeVisible();
   for (const label of ['Mission', 'Pain', 'Solution', 'Market', 'Competitors', 'Moat']) {
     await page.getByLabel(label, { exact: true }).fill('Saved field for ' + label);
   }
   await button(page, 'Save application draft').click();
   await expect(page.getByText('100% of required sections complete', { exact: true })).toBeVisible();
+  await choose(page, 'Form Templates');
+  await button(page, 'Pitch deck').click();
+  await button(page, 'Save template changes').click();
+  await expect(page.getByText(/Revision 3 · drafting/)).toBeVisible();
+  await choose(page, 'Export');
+  await button(page, 'Load compiled bundle into export narrative').click();
+  const narrativeInput = page.getByLabel('Export narrative', { exact: true });
+  await narrativeInput.fill(
+    (await narrativeInput.inputValue()) + '\n\nCustom export summary line.'
+  );
+  await button(page, 'Save export narrative').click();
+  await expect(page.getByText(/Revision 4 · drafting/)).toBeVisible();
   const firstHref = page.url();
   await choose(page, 'Audit');
   await button(page, 'Run draft audit').click();
-  await expect(page.getByText(/Revision 2 · 100% · Current/)).toBeVisible();
+  await expect(page.getByText(/Revision 4 · 100% · Current/)).toBeVisible();
   await choose(page, 'Export');
   const downloadPromise = page.waitForEvent('download');
   await button(page, 'Download Markdown').click();
   const download = await downloadPromise;
   const markdown = await readFile(await download.path(), 'utf8');
+  assert(markdown.includes('Requested outputs: application, pitch-deck'));
+  assert(markdown.includes('Custom export summary line.'));
   assert(markdown.includes('Saved field for Mission'));
   await capture(page, 'connected-export-1440.png');
-  checks.push('Draft persistence, revision-bound audit and browser export');
+  await button(page, 'Dark theme').click();
+  await capture(page, 'connected-export-dark-1440.png');
+  await button(page, 'Light theme').click();
+  await choose(page, 'Progress Tracking');
+  await expect(page.getByRole('heading', { name: 'Stage workplan', exact: true })).toBeVisible();
+  await button(page, 'Mark done: Review itemized budget lines').click();
+  await expect(page.getByText('Review itemized budget lines · 0% · marked done')).toBeVisible();
+  await button(page, 'Reopen: Review itemized budget lines').click();
+  await expect(page.getByText('Review itemized budget lines · 0% · open')).toBeVisible();
+  await capture(page, 'connected-workplan-1440.png');
+  checks.push('Discovery filtering, profile pin, template outputs, custom export, and workplan');
 
   await createAttempt(page, 'Second verified attempt');
   await expect(page.getByText('0% of required sections complete', { exact: true })).toBeVisible();
@@ -240,6 +287,20 @@ try {
   checks.push('Multiple attempt creation and persisted case-specific data');
 
   await choose(page, 'Bounty Hunt');
+  await page.getByLabel('Source title', { exact: true }).fill('Draft regional source');
+  await page
+    .getByLabel('Source HTTPS link', { exact: true })
+    .fill('https://example.org/draft-only');
+  await page.getByLabel('Location / region', { exact: true }).fill('Central Asia');
+  await button(page, 'Not published').click();
+  await page
+    .getByLabel('Why this source belongs in Grantum', { exact: true })
+    .fill('Saved unsubmitted draft check.');
+  await button(page, 'Save draft').click();
+  await expect(page.getByText('Status · draft', { exact: true })).toBeVisible();
+  await button(page, 'Delete Draft regional source').click();
+  await expect(page.getByRole('heading', { name: 'Draft regional source' })).toHaveCount(0);
+
   await page.getByLabel('Source title', { exact: true }).fill('New public funding source');
   await page.getByLabel('Source HTTPS link', { exact: true }).fill('https://example.org/grants');
   await page

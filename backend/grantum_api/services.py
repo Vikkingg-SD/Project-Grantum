@@ -33,6 +33,9 @@ def bounty_view(record):
         "id": record.id,
         "title": record.title,
         "url": record.url,
+        "region": record.region,
+        "prizePool": record.prize_pool,
+        "mission": record.mission,
         "note": record.note,
         "status": record.status,
         "reviewNote": record.review_note,
@@ -40,8 +43,10 @@ def bounty_view(record):
     }
 
 
-def bounty_details_hash(title, url, note):
-    return sha256(json.dumps([title, url, note]).encode("utf-8")).hexdigest()
+def bounty_details_hash(title, url, note, region="", prize_pool="", mission=""):
+    return sha256(
+        json.dumps([title, url, note, region, prize_pool, mission]).encode("utf-8")
+    ).hexdigest()
 
 
 @routes.get("/bounties")
@@ -56,7 +61,10 @@ def submit_bounty():
     actor = account()
     payload = parse(BountyPayload)
     key = str(payload.requestKey)
-    fingerprint = bounty_details_hash(payload.title, payload.url, payload.note)
+    fingerprint = bounty_details_hash(
+        payload.title, payload.url, payload.note, payload.region, payload.prizePool, payload.mission
+    )
+    status = "draft" if payload.mode == "draft" else "pending"
     inserted = g.db.scalar(
         insert(Bounty)
         .values(
@@ -66,7 +74,11 @@ def submit_bounty():
             creation_hash=fingerprint,
             title=payload.title,
             url=payload.url,
+            region=payload.region,
+            prize_pool=payload.prizePool,
+            mission=payload.mission,
             note=payload.note,
+            status=status,
         )
         .on_conflict_do_nothing(constraint="uq_bounty_request")
         .returning(Bounty.id)
@@ -74,7 +86,9 @@ def submit_bounty():
     record = g.db.scalar(
         select(Bounty).where(Bounty.account_id == actor.id, Bounty.request_key == key)
     )
-    existing = record.creation_hash or bounty_details_hash(record.title, record.url, record.note)
+    existing = record.creation_hash or bounty_details_hash(
+        record.title, record.url, record.note, record.region, record.prize_pool, record.mission
+    )
     if existing != fingerprint:
         abort(409, "This request was already used for another bounty.")
     return bounty_view(record), 201 if inserted else 200
@@ -91,22 +105,64 @@ def resubmit_bounty(bounty_id):
     )
     if not record:
         abort(404, "This bounty is unavailable.")
-    details = payload.title, payload.url, payload.note
+    details = (
+        payload.title,
+        payload.url,
+        payload.note,
+        payload.region,
+        payload.prizePool,
+        payload.mission,
+    )
+    expected_replay_status = "pending" if payload.submit else None
     if (
-        record.status == "pending"
-        and record.version == payload.version + 1
-        and (record.title, record.url, record.note) == details
+        record.version == payload.version + 1
+        and (expected_replay_status is None or record.status == expected_replay_status)
+        and (
+            record.title,
+            record.url,
+            record.note,
+            record.region,
+            record.prize_pool,
+            record.mission,
+        )
+        == details
     ):
         return bounty_view(record)
     require_version(record, payload.version)
-    if record.status != "changes_requested":
-        abort(409, "Staff must request changes before this source can be resubmitted.")
+    if record.status not in {"draft", "changes_requested"}:
+        abort(409, "Only saved drafts or sources with requested changes can be updated.")
     if record.creation_hash is None:
-        record.creation_hash = bounty_details_hash(record.title, record.url, record.note)
-    record.title, record.url, record.note = details
-    record.status = "pending"
+        record.creation_hash = bounty_details_hash(
+            record.title, record.url, record.note, record.region, record.prize_pool, record.mission
+        )
+    (
+        record.title,
+        record.url,
+        record.note,
+        record.region,
+        record.prize_pool,
+        record.mission,
+    ) = details
+    if payload.submit:
+        record.status = "pending"
     record.version += 1
     return bounty_view(record)
+
+
+@routes.delete("/bounties/<bounty_id>")
+def delete_bounty_draft(bounty_id):
+    actor = account()
+    record = g.db.scalar(
+        select(Bounty)
+        .where(Bounty.id == identifier(bounty_id), Bounty.account_id == actor.id)
+        .with_for_update()
+    )
+    if not record:
+        abort(404, "This bounty is unavailable.")
+    if record.status != "draft":
+        abort(409, "Only unsubmitted source drafts can be deleted.")
+    g.db.delete(record)
+    return "", 204
 
 
 @routes.get("/staff/bounties")
@@ -231,9 +287,20 @@ def clean_xml(value):
 
 def build_export(attempt, fmt):
     sections = [(section["name"], section["text"]) for section in attempt.sections]
-    markdown = "\n\n".join(
-        [f"# {attempt.title}"] + [f"## {title}\n\n{body}" for title, body in sections]
-    )
+    outputs_line = "Requested outputs: " + ", ".join(attempt.outputs or ["application"])
+    custom = (attempt.export_narrative or "").strip()
+    if custom:
+        markdown = f"# {attempt.title}\n\n{outputs_line}\n\n{custom}"
+    else:
+        parts = [f"# {attempt.title}", outputs_line]
+        parts.extend(f"## {title}\n\n{body}" for title, body in sections)
+        if attempt.budget:
+            budget_lines = "\n".join(
+                f"- {line['name']}: {line['currency']} {line['amountMinor'] / 100:.2f}"
+                for line in attempt.budget
+            )
+            parts.append(f"## Budget\n\n{budget_lines}")
+        markdown = "\n\n".join(parts)
     if fmt == "markdown":
         return markdown.encode("utf-8"), "text/markdown", "md"
     if fmt == "notebook":
@@ -259,9 +326,21 @@ def build_export(attempt, fmt):
     if fmt == "word":
         doc = WordDocument()
         doc.add_heading(clean_xml(attempt.title), level=0)
-        for title, body in sections:
-            doc.add_heading(clean_xml(title), level=1)
-            doc.add_paragraph(clean_xml(body))
+        doc.add_paragraph(clean_xml(outputs_line))
+        if custom:
+            doc.add_paragraph(clean_xml(custom))
+        else:
+            for title, body in sections:
+                doc.add_heading(clean_xml(title), level=1)
+                doc.add_paragraph(clean_xml(body))
+            if attempt.budget:
+                doc.add_heading("Budget", level=1)
+                for line in attempt.budget:
+                    doc.add_paragraph(
+                        clean_xml(
+                            f"{line['name']}: {line['currency']} {line['amountMinor'] / 100:.2f}"
+                        )
+                    )
         doc.save(buffer)
         return (
             buffer.getvalue(),
@@ -269,13 +348,35 @@ def build_export(attempt, fmt):
             "docx",
         )
     styles = getSampleStyleSheet()
-    story = [Paragraph(escape(clean_xml(attempt.title)), styles["Title"])]
-    for title, body in sections:
-        story.append(Paragraph(escape(clean_xml(title)), styles["Heading2"]))
-        for line in clean_xml(body).splitlines():
+    story = [
+        Paragraph(escape(clean_xml(attempt.title)), styles["Title"]),
+        Paragraph(escape(clean_xml(outputs_line)), styles["BodyText"]),
+        Spacer(1, 8),
+    ]
+    if custom:
+        for line in clean_xml(custom).splitlines():
             if line.strip():
                 story.append(Paragraph(escape(line), styles["BodyText"]))
-        story.append(Spacer(1, 12))
+    else:
+        for title, body in sections:
+            story.append(Paragraph(escape(clean_xml(title)), styles["Heading2"]))
+            for line in clean_xml(body).splitlines():
+                if line.strip():
+                    story.append(Paragraph(escape(line), styles["BodyText"]))
+            story.append(Spacer(1, 12))
+        if attempt.budget:
+            story.append(Paragraph("Budget", styles["Heading2"]))
+            for line in attempt.budget:
+                story.append(
+                    Paragraph(
+                        escape(
+                            clean_xml(
+                                f"{line['name']}: {line['currency']} {line['amountMinor'] / 100:.2f}"
+                            )
+                        ),
+                        styles["BodyText"],
+                    )
+                )
     SimpleDocTemplate(buffer, title="Grantum application").build(story)
     return buffer.getvalue(), "application/pdf", "pdf"
 

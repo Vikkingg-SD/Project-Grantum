@@ -131,13 +131,27 @@ def test_restore(settings):
             with psycopg.connect(
                 restored_url.replace("+psycopg", "", 1), connect_timeout=4
             ) as conn:
+                from grantum_api import EXPECTED_SCHEMA_REVISION
+
                 version = conn.execute("SELECT version_num FROM alembic_version").fetchone()[0]
+                assert version == EXPECTED_SCHEMA_REVISION, (
+                    f"Expected schema {EXPECTED_SCHEMA_REVISION}, got {version}"
+                )
                 counts = [
                     conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
-                    for table in ("opportunities", "projects", "attempts")
+                    for table in (
+                        "opportunities",
+                        "projects",
+                        "project_revisions",
+                        "attempts",
+                        "attempt_tasks",
+                    )
                 ]
             print(
-                "Restore passed. Revision:", version, "Opportunities, projects, attempts:", counts
+                "Restore passed. Revision:",
+                version,
+                "Opportunities, projects, revisions, attempts, tasks:",
+                counts,
             )
         finally:
             admin.execute(sql.SQL("DROP DATABASE {}").format(sql.Identifier(database)))
